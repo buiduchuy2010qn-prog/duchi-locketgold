@@ -1341,19 +1341,19 @@ html[data-theme="glass"] video.object-cover {
   prefersdark: false;
   color-scheme: light;
 
-  --color-base-100: #ffd1e3;
-  --color-base-200: #ffd6e6;
-  --color-base-300: #ffb6d3;
-  --color-base-content: #ad0d4d;
-  --color-primary: #ff4f91;
+  --color-base-100: #ff9fc3;
+  --color-base-200: #ffb9d2;
+  --color-base-300: #ff91b9;
+  --color-base-content: #97003e;
+  --color-primary: #ed1765;
   --color-primary-content: #ffffff;
-  --color-secondary: #ff3f88;
+  --color-secondary: #f52f78;
   --color-secondary-content: #ffffff;
-  --color-accent: #ff82b2;
-  --color-accent-content: #ad0d4d;
+  --color-accent: #ff6fa7;
+  --color-accent-content: #97003e;
   --color-neutral: #ffacd0;
-  --color-neutral-content: #ad0d4d;
-  --color-info: #ff85b3;
+  --color-neutral-content: #97003e;
+  --color-info: #ff6fa7;
   --color-success: #f472b6;
   --color-warning: #fb7185;
   --color-error: #e11d48;
@@ -1363,20 +1363,21 @@ html[data-theme="glass"] video.object-cover {
 html[data-theme="pink-snow-ai"] {
   color-scheme: light;
 
-  --pink-ai-accent: #ff4f91;
-  --pink-ai-glow: rgba(255, 79, 145, 0.35);
-  --pink-ai-surface: rgba(255, 214, 230, 0.55);
-  --pink-ai-border: #ff4f91;
-  --pink-ai-shadow: 0 8px 24px rgba(255, 63, 136, 0.22);
-  --pink-ai-text: #ad0d4d;
-  --pink-ai-text-sec: #c24678;
+  --pink-ai-accent: #ed1765;
+  --pink-ai-glow: rgba(237, 23, 101, 0.35);
+  --pink-ai-surface: rgba(255, 172, 208, 0.75);
+  --pink-ai-border: #f52f78;
+  --pink-ai-shadow: 0 8px 24px rgba(237, 23, 101, 0.25);
+  --pink-ai-text: #97003e;
+  --pink-ai-text-sec: #b8154f;
 }
 
 html[data-theme="pink-snow-ai"],
 html[data-theme="pink-snow-ai"] body {
   min-height: 100%;
   color: var(--pink-ai-text);
-  background: linear-gradient(180deg, #ffc4dc 0%, #ffd7e7 50%, #ffc8df 100%) !important;
+  background-color: #ff9fc3;
+  background-image: linear-gradient(180deg, #ff91ba 0%, #ffabc9 48%, #ff96bd 100%);
   background-attachment: fixed;
 }
 
@@ -1475,9 +1476,9 @@ html[data-theme="pink-snow-ai"] .bg-base-100.flex.flex-col,
 html[data-theme="pink-snow-ai"] .modal-box,
 html[data-theme="pink-snow-ai"] [role="dialog"]:not([data-draft-library]),
 html[data-theme="pink-snow-ai"] .bg-base-100:not(.draft-library-root) {
-  background: rgba(255, 224, 236, 0.92) !important;
+  background: rgba(255, 172, 208, 0.94) !important;
   border: 1px solid var(--pink-ai-border) !important;
-  box-shadow: var(--pink-ai-shadow), 0 0 40px rgba(255, 79, 145, 0.12) !important;
+  box-shadow: var(--pink-ai-shadow), 0 0 40px rgba(237, 23, 101, 0.12) !important;
   backdrop-filter: blur(20px) !important;
   -webkit-backdrop-filter: blur(20px) !important;
   color: var(--pink-ai-text) !important;
@@ -1485,7 +1486,7 @@ html[data-theme="pink-snow-ai"] .bg-base-100:not(.draft-library-root) {
 
 html[data-theme="pink-snow-ai"] .menuBackdrop,
 html[data-theme="pink-snow-ai"] .fixed.inset-0.bg-base-100\/10 {
-  background: rgba(255, 198, 220, 0.3) !important;
+  background: rgba(255, 145, 186, 0.4) !important;
   backdrop-filter: blur(6px) !important;
   -webkit-backdrop-filter: blur(6px) !important;
 }
@@ -1557,15 +1558,15 @@ html[data-theme="pink-snow-ai"] .glassButtonActive {
 html[data-theme="pink-snow-ai"] .menu a.bg-base-300,
 html[data-theme="pink-snow-ai"] .menu a[aria-current="page"] {
   background: rgba(255, 79, 145, 0.2) !important;
-  color: #a41450 !important;
+  color: #97003e !important;
   border-left: 3px solid var(--pink-ai-accent);
 }
 
 /* Draft library */
 html[data-theme="pink-snow-ai"] .draft-library-root,
 html[data-theme="pink-snow-ai"] .draft-library-root[role="dialog"] {
-  background: #ffe0ec !important;
-  background-color: #ffe0ec !important;
+  background: #ffb9d2 !important;
+  background-color: #ffb9d2 !important;
   border: none !important;
   box-shadow: none !important;
   backdrop-filter: none !important;
@@ -1577,10 +1578,10 @@ html[data-theme="pink-snow-ai"] .text-base-content {
 }
 
 html[data-theme="pink-snow-ai"] .btn-primary {
-  background: var(--pink-ai-accent) !important;
-  border-color: var(--pink-ai-accent) !important;
+  background: #ed1765 !important;
+  border-color: #ed1765 !important;
   color: #ffffff !important;
-  box-shadow: 0 4px 15px var(--pink-ai-glow) !important;
+  box-shadow: 0 4px 15px rgba(237, 23, 101, 0.35) !important;
 }
 
 /* Live Camera luôn sắc nét, không bị tint */
