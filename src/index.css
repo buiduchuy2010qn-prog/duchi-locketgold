@@ -512,11 +512,25 @@ body.theme-pink-snow-ai,
   background: #ff6fa7;
 }
 
-/* ── Focus ring ── */
+  /* 🎀 Focus ring 🎀 */
 .theme-pink-snow-ai *:focus-visible {
   outline-color: #ed1765 !important;
 }
 
+  /* 🎀 Zoom Badge & Slider (Override dark text to be visible on camera) 🎀 */
+.theme-pink-snow-ai [data-zoom-badge="true"] > div,
+.theme-pink-snow-ai [data-zoom-slider="true"] .bg-black\/70 {
+  background-color: rgba(92, 12, 50, 0.88) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.55) !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75) !important;
+}
+
+.theme-pink-snow-ai [data-zoom-badge="true"] .text-white,
+.theme-pink-snow-ai [data-zoom-slider="true"] .text-white,
+.theme-pink-snow-ai [data-zoom-slider="true"] .text-white\/80 {
+  color: #ffffff !important;
+}
 
 /* ═══ END THEME PINK SNOW AI ═══ */
 
