@@ -5,6 +5,7 @@ import {
   checkForAppUpdate,
 } from "@/utils/pwaUtils/updateWatcher";
 import { RefreshCw } from "lucide-react";
+import { SonnerInfo, SonnerError } from "@/components/uikit/SonnerToast";
 
 /**
  * Nút tròn cập nhật — luôn hiện cạnh avatar hồ sơ.
@@ -29,11 +30,25 @@ export default function AppUpdateButton({ className = "" }) {
     if (loading) return;
     setLoading(true);
     try {
-      await userForceUpdate();
-      // Nếu reload không chạy (đã latest + guard), tắt loading
-      setTimeout(() => setLoading(false), 4000);
+      const status = await userForceUpdate();
+      if (status === "latest") {
+        SonnerInfo("Bạn đang dùng phiên bản mới nhất");
+        setLoading(false);
+      } else if (status === "offline") {
+        SonnerError("Đang ngoại tuyến", "Vui lòng kiểm tra kết nối mạng.");
+        setLoading(false);
+      } else if (status === "error") {
+        SonnerError("Kiểm tra thất bại", "Không thể kiểm tra cập nhật.");
+        setLoading(false);
+      } else if (status === "busy") {
+        setLoading(false);
+      } else {
+        // "updated" - reloading
+        setTimeout(() => setLoading(false), 4000);
+      }
     } catch (err) {
       console.error("[AppUpdateButton]", err);
+      SonnerError("Kiểm tra thất bại", "Vui lòng thử lại sau.");
       setLoading(false);
     }
   };

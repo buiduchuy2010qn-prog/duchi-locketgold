@@ -6,6 +6,10 @@
  */
 
 import currentBuild from "@/config/buildMeta.json";
+import { usePostStore } from "@/stores/PostStores/usePostStore";
+import { useUploadQueueStore } from "@/stores/PostStores/useUploadPostStore";
+import { useMomentDraftStore } from "@/stores/PostStores/useMomentDraftStore";
+import { SonnerInfo } from "@/components/uikit/SonnerToast";
 
 const STORAGE_BUILD = "app_known_build_id";
 const STORAGE_RELOAD_GUARD = "app_update_reload_guard";
@@ -260,6 +264,10 @@ export async function autoUpdateIfAvailable() {
     return false;
   }
 
+  if (isUserBusy()) {
+    return false;
+  }
+
   const guard = safeGet(STORAGE_RELOAD_GUARD);
   if (guard) {
     try {
@@ -289,15 +297,57 @@ export async function autoUpdateIfAvailable() {
   }
 }
 
-/** User bấm nút — cập nhật ngay, không cần chờ 30p */
-export async function userForceUpdate() {
+export function isUserBusy() {
   try {
-    await checkForAppUpdate();
-  } catch {
+    const postState = usePostStore.getState();
+    if (postState.selectedFile || postState.preview) return true;
+
+    const uploadState = useUploadQueueStore.getState();
+    if (uploadState.isQueueRunning || uploadState.uploadItems.some(i => i.status === "uploading")) return true;
+
+    const draftState = useMomentDraftStore.getState();
+    if (draftState.postingDraftId || draftState.syncing) return true;
+
+  } catch (e) {
     /* ignore */
   }
+  return false;
+}
+
+/** User bấm nút — cập nhật ngay, không cần chờ 30p */
+export async function userForceUpdate() {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) {
+    return "offline";
+  }
+
+  let hasUpdate = false;
+  try {
+    // Ép SW check update
+    if (navigator.serviceWorker) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      if (regs) {
+        for (const reg of regs) {
+          reg.update().catch(() => {});
+        }
+      }
+    }
+    hasUpdate = await checkForAppUpdate();
+  } catch (e) {
+    return "error";
+  }
+
+  if (!hasUpdate) {
+    return "latest";
+  }
+
+  if (isUserBusy()) {
+    SonnerInfo("Đã có phiên bản mới", "Ứng dụng sẽ cập nhật sau khi bạn hoàn tất.");
+    return "busy";
+  }
+
   const buildId = updateState.latest?.buildId;
-  return applyWebsiteUpdate(buildId, { force: true });
+  const success = await applyWebsiteUpdate(buildId, { force: true });
+  return success ? "updated" : "error";
 }
 
 export function handleVisibilityUpdateCheck() {

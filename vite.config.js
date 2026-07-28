@@ -25,7 +25,7 @@ const manifestForPlugIn = {
       "maskable-icon-*.png",
       "fonts/**/*.{woff,woff2}",
     ],
-    globIgnores: [
+    globIgnores: ["version.json", 
       "**/pwa-icons/**",
       "**/images/**",
       "**/stats.html",
