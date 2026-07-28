@@ -382,6 +382,125 @@ body.theme-pink-snow-ai,
   outline-color: #ed1765 !important;
 }
 
+/* ── UI Transitions & Feedback (Pink Snow AI Exclusive) ── */
+/* Modals & Dropdowns */
+.theme-pink-snow-ai .modal {
+  transition: opacity 0.25s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.25s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+.theme-pink-snow-ai .modal-box,
+.theme-pink-snow-ai [role="dialog"] {
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+.theme-pink-snow-ai .modal:not(.modal-open) .modal-box,
+.theme-pink-snow-ai .modal:not(.modal-open) [role="dialog"] {
+  transform: scale(0.96) translate3d(0, 0, 0) !important;
+}
+.theme-pink-snow-ai .modal.modal-open .modal-box,
+.theme-pink-snow-ai .modal.modal-open [role="dialog"] {
+  transform: scale(1) translate3d(0, 0, 0) !important;
+}
+
+/* Drawers & Bottom Sheets (Menus) */
+.theme-pink-snow-ai .drawer-side {
+  transition: opacity 0.25s cubic-bezier(0.22, 1, 0.36, 1), transform 0.25s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+.theme-pink-snow-ai .drawer-side > .menu {
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+.theme-pink-snow-ai .drawer-toggle:not(:checked) ~ .drawer-side > .menu {
+  transform: translate3d(24px, 0, 0) scale(0.97) !important;
+}
+.theme-pink-snow-ai .drawer-toggle:checked ~ .drawer-side > .menu {
+  transform: translate3d(0, 0, 0) scale(1) !important;
+}
+
+/* Page Transitions (History, Drafts, Settings, Chat) */
+@keyframes page-enter-ai {
+  0% { opacity: 0; transform: translate3d(0, 12px, 0); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+/* We apply this to major known sub-screens to avoid hitting the camera container */
+.theme-pink-snow-ai .draft-library-root,
+.theme-pink-snow-ai .history-container,
+.theme-pink-snow-ai .chat-container,
+.theme-pink-snow-ai .settings-container,
+.theme-pink-snow-ai .drawer-side {
+  animation: page-enter-ai 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Stagger for history items and drafts */
+@keyframes list-item-slide-up-ai {
+  0% { opacity: 0; transform: translate3d(0, 16px, 0); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+.theme-pink-snow-ai .history-container > *,
+.theme-pink-snow-ai .draft-library-grid > * {
+  animation: list-item-slide-up-ai 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.theme-pink-snow-ai .history-container > *:nth-child(1), .theme-pink-snow-ai .draft-library-grid > *:nth-child(1) { animation-delay: 25ms; }
+.theme-pink-snow-ai .history-container > *:nth-child(2), .theme-pink-snow-ai .draft-library-grid > *:nth-child(2) { animation-delay: 50ms; }
+.theme-pink-snow-ai .history-container > *:nth-child(3), .theme-pink-snow-ai .draft-library-grid > *:nth-child(3) { animation-delay: 75ms; }
+.theme-pink-snow-ai .history-container > *:nth-child(n+4), .theme-pink-snow-ai .draft-library-grid > *:nth-child(n+4) { animation-delay: 100ms; }
+
+/* Dropdown / 3-dot menus */
+@keyframes dropdown-enter-ai {
+  0% { opacity: 0; transform: translate3d(0, -6px, 0); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+.theme-pink-snow-ai .dropdown-content {
+  animation: dropdown-enter-ai 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Toasts */
+@keyframes toast-enter-ai {
+  0% { opacity: 0; transform: translate3d(0, -20px, 0); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+.theme-pink-snow-ai .toast {
+  animation: toast-enter-ai 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Button Feedback */
+.theme-pink-snow-ai button,
+.theme-pink-snow-ai .btn,
+.theme-pink-snow-ai a {
+  transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.15s, filter 0.15s !important;
+}
+/* Active scale down, but do NOT scale camera shutter to prevent layout bugs */
+.theme-pink-snow-ai button:active:not([class*="camera-capture"]):not([class*="shutter"]),
+.theme-pink-snow-ai .btn:active:not([class*="camera-capture"]):not([class*="shutter"]) {
+  transform: scale(0.96) !important;
+}
+/* Hover effect for desktop */
+@media (hover: hover) {
+  .theme-pink-snow-ai button:hover:not([class*="camera-capture"]):not([class*="shutter"]),
+  .theme-pink-snow-ai .btn:hover:not([class*="camera-capture"]):not([class*="shutter"]) {
+    transform: translate3d(0, -1px, 0);
+    filter: brightness(1.03);
+  }
+}
+/* Camera button just gets brightness feedback */
+.theme-pink-snow-ai [class*="camera-capture"]:active,
+.theme-pink-snow-ai [class*="shutter"]:active {
+  filter: brightness(0.9) !important;
+}
+
+/* Reduced Motion Override */
+@media (prefers-reduced-motion: reduce) {
+  .theme-pink-snow-ai *,
+  .theme-pink-snow-ai .drawer-side,
+  .theme-pink-snow-ai .drawer-side > .menu,
+  .theme-pink-snow-ai .modal,
+  .theme-pink-snow-ai .modal-box,
+  .theme-pink-snow-ai .dropdown-content,
+  .theme-pink-snow-ai button,
+  .theme-pink-snow-ai .toast {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* ═══ END THEME PINK SNOW AI ═══ */
 
 /* Ensure profile button is round for focus rings */
