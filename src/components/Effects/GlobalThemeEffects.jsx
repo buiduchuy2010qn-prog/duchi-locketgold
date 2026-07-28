@@ -5,6 +5,7 @@ import SnowEffect from "./SnowEffect";
 import {
   hasSnowEffect,
   isPinkSnowTheme,
+  isPinkSnowAiTheme,
   getSnowIntensity,
 } from "@/utils/theme/themeUtils";
 import { getPerfProfile } from "@/utils/device/perfProfile";
@@ -47,14 +48,16 @@ const GlobalThemeEffects = () => {
     }
     const p = getPerfProfile();
     const isPink = isPinkSnowTheme(theme);
+    const isAi = isPinkSnowAiTheme(theme);
 
-    // reduced motion — few static flakes only, EXCEPT for pink mode which just slows down/reduces flakes
+    // reduced motion — few static flakes only, EXCEPT for pink/ai mode which just slows down/reduces flakes
     if (reduceMotion) {
       return { 
         enabled: true, 
-        maxFlakes: isPink ? 15 : 8, 
-        staticOnly: !isPink, 
-        pinkMode: isPink 
+        maxFlakes: isAi ? 15 : (isPink ? 15 : 8), 
+        staticOnly: !(isPink || isAi), 
+        pinkMode: isPink,
+        aiMode: isAi
       };
     }
 
@@ -73,6 +76,7 @@ const GlobalThemeEffects = () => {
       maxFlakes: max,
       staticOnly: false,
       pinkMode: isPink,
+      aiMode: isAi,
       reduceMotion,
     };
   }, [snowTheme, intensity, theme, reduceMotion, onCameraRoute]);
@@ -83,6 +87,7 @@ const GlobalThemeEffects = () => {
     <SnowEffect
       maxFlakes={cfg.maxFlakes}
       pinkMode={cfg.pinkMode}
+      aiMode={cfg.aiMode}
       staticOnly={cfg.staticOnly}
       reduceMotion={cfg.reduceMotion}
       className={cfg.pinkMode ? "snow-layer--pink" : ""}

@@ -24,6 +24,7 @@ export const SNOW_THEME_IDS = new Set([
   "pink-snow",
   "valentine",
   "winter",
+  "pink-snow-ai"
 ]);
 
 export const isPinkSnowTheme = (theme) =>

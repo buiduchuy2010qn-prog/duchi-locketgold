@@ -10,6 +10,7 @@ import "./snow.css";
 const SnowEffect = ({
   maxFlakes = 28,
   pinkMode = false,
+  aiMode = false,
   className = "",
   /** static flakes only (reduced-motion) */
   staticOnly = false,
@@ -20,9 +21,9 @@ const SnowEffect = ({
   const particlesRef = useRef([]);
   const sizeRef = useRef({ w: 0, h: 0, dpr: 1 });
 
-  // DOM Snow for Pink Mode
+  // DOM Snow for AI Mode
   const domFlakes = useMemo(() => {
-    if (!pinkMode) return [];
+    if (!aiMode) return [];
     
     const arr = [];
     const count = Math.max(0, Math.min(150, Number(maxFlakes) || 0));
@@ -74,10 +75,10 @@ const SnowEffect = ({
       });
     }
     return arr;
-  }, [pinkMode, maxFlakes]);
+  }, [aiMode, maxFlakes]);
 
   useEffect(() => {
-    if (pinkMode) return; // Skip canvas loop for pinkMode
+    if (aiMode) return; // Skip canvas loop for aiMode
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -252,11 +253,11 @@ const SnowEffect = ({
         /* ignore */
       }
     };
-  }, [maxFlakes, pinkMode, staticOnly, reduceMotion]);
+  }, [maxFlakes, aiMode, staticOnly, reduceMotion]);
 
-  if (pinkMode) {
+  if (aiMode) {
     return (
-      <div className={`snow-layer dom-snow-container snow-layer--pink ${className}`.trim()} aria-hidden="true">
+      <div className={`snow-layer dom-snow-container ${pinkMode ? 'snow-layer--pink' : ''} ${className}`.trim()} aria-hidden="true">
         {domFlakes.map(f => (
           <div key={f.id} className="dom-snowflake-x" style={f.xStyle}>
             <div className="dom-snowflake-y" style={f.yStyle}>
