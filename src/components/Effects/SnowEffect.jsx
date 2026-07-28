@@ -27,7 +27,7 @@ const SnowEffect = ({
     let alive = true;
     const particles = particlesRef.current;
 
-    const cap = Math.max(0, Math.min(60, Number(maxFlakes) || 0));
+    const cap = Math.max(0, Math.min(150, Number(maxFlakes) || 0));
 
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 1.75);

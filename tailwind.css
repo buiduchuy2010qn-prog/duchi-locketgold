@@ -1,12 +1,12 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 @plugin "daisyui" {
   themes: all;
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Theme: Pink Glassmorphism (pinksnow / pink-snow)
-   Kính hồng — chỉ palette + glass chrome
-   ═══════════════════════════════════════════ */
+   KÃ­nh há»“ng â€” chá»‰ palette + glass chrome
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 @plugin "daisyui/theme" {
   name: "pinksnow";
   default: true;
@@ -45,9 +45,9 @@
   --radius-box: 1.25rem;
 }
 
-/* ═══════════════════════════════════════════
-   Theme: Glass — soft blur chrome (mobile-safe)
-   ═══════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   Theme: Glass â€” soft blur chrome (mobile-safe)
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 @plugin "daisyui/theme" {
   name: "glass";
   default: false;
@@ -86,10 +86,10 @@
   --radius-box: 1.25rem;
 }
 
-/* ═══════════════════════════════════════════
-   Theme: Hồng Sakura Glass (pink-sakura-glass)
-   Kính hồng sakura — palette + glass chrome
-   ═══════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   Theme: Há»“ng Sakura Glass (pink-sakura-glass)
+   KÃ­nh há»“ng sakura â€” palette + glass chrome
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 @plugin "daisyui/theme" {
   name: "pink-sakura-glass";
   default: false;
@@ -128,7 +128,7 @@
 }
 
 /*
- * Hồng Sakura Glass — pink-sakura-glass
+ * Há»“ng Sakura Glass â€” pink-sakura-glass
  * Only color / background / border / shadow / opacity / backdrop-filter.
  * Do not change layout geometry.
  */
@@ -295,7 +295,7 @@ html[data-theme="pink-sakura-glass"] .cameraShutterRing {
 }
 
 html[data-theme="pink-sakura-glass"] .cameraShutterCore,
-html[data-theme="pink-sakura-glass"] button[aria-label="Chụp ảnh"] .bg-white {
+html[data-theme="pink-sakura-glass"] button[aria-label="Chá»¥p áº£nh"] .bg-white {
   background: #ffffff !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95);
 }
@@ -424,10 +424,10 @@ html[data-theme="pink-sakura-glass"] video.object-cover {
     -webkit-backdrop-filter: none !important;
   }
 }
-/* ═══════════════════════════════════════════
-   Theme: Hồng Lite — Máy yếu (pink-lite)
-   Tối ưu cho thiết bị yếu — không blur, không filter
-   ═══════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   Theme: Há»“ng Lite â€” MÃ¡y yáº¿u (pink-lite)
+   Tá»‘i Æ°u cho thiáº¿t bá»‹ yáº¿u â€” khÃ´ng blur, khÃ´ng filter
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 @plugin "daisyui/theme" {
   name: "pink-lite";
   default: false;
@@ -494,7 +494,7 @@ html[data-theme="pink-lite"] {
   --color-primary-content: #ffffff;
 }
 
-/* Background — Simple static gradient */
+/* Background â€” Simple static gradient */
 html[data-theme="pink-lite"],
 html[data-theme="pink-lite"] body {
   min-height: 100%;
@@ -503,7 +503,7 @@ html[data-theme="pink-lite"] body {
   /* NO fixed background attachment for performance */
 }
 
-/* Shared surface — NO backdrop-filter */
+/* Shared surface â€” NO backdrop-filter */
 html[data-theme="pink-lite"] .pinkSnowSurface,
 html[data-theme="pink-lite"] .cameraControlPill,
 html[data-theme="pink-lite"] .cameraBottomNav,
@@ -567,7 +567,7 @@ html[data-theme="pink-lite"] .cameraShutterRing {
   box-shadow: 0 0 0 5px var(--lite-pink) !important;
 }
 html[data-theme="pink-lite"] .cameraShutterCore,
-html[data-theme="pink-lite"] button[aria-label="Chụp ảnh"] .bg-white {
+html[data-theme="pink-lite"] button[aria-label="Chá»¥p áº£nh"] .bg-white {
   background: #ffffff !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95);
 }
@@ -665,7 +665,7 @@ html[data-theme="pink-lite"] video.object-cover {
 }
 
 /*
- * Pink Glassmorphism — pinksnow / pink-snow
+ * Pink Glassmorphism â€” pinksnow / pink-snow
  * Only color / background / border / shadow / opacity / backdrop-filter.
  * Do not change layout geometry.
  */
@@ -751,7 +751,7 @@ html[data-theme="pink-snow"] body:has([data-locket-camera]) {
   background-attachment: scroll !important;
 }
 
-/* Shared pink glass material (chrome only — not video) */
+/* Shared pink glass material (chrome only â€” not video) */
 html[data-theme="pinksnow"] .pinkSnowSurface,
 html[data-theme="pink-snow"] .pinkSnowSurface,
 html[data-theme="pinksnow"] .cameraControlPill,
@@ -768,7 +768,7 @@ html[data-theme="pink-snow"] .historyChip {
   color: var(--pink-text) !important;
 }
 
-/* Soften capture-bar highlight layer if present — color only */
+/* Soften capture-bar highlight layer if present â€” color only */
 html[data-theme="pinksnow"] .cameraControlPill::before,
 html[data-theme="pink-snow"] .cameraControlPill::before {
   background: linear-gradient(
@@ -780,7 +780,7 @@ html[data-theme="pink-snow"] .cameraControlPill::before {
   ) !important;
 }
 
-/* Side icons — plum/text, accent on press (color only) */
+/* Side icons â€” plum/text, accent on press (color only) */
 html[data-theme="pinksnow"] .pillSideBtn,
 html[data-theme="pink-snow"] .pillSideBtn,
 html[data-theme="pinksnow"] .cameraSideBtn,
@@ -812,7 +812,7 @@ html[data-theme="pinksnow"] .pillSideBtn:disabled {
   opacity: 0.42;
 }
 
-/* Header chrome — pink glass (no geometry) */
+/* Header chrome â€” pink glass (no geometry) */
 html[data-theme="pinksnow"] header button.w-11,
 html[data-theme="pinksnow"] header .w-11.h-11.rounded-full,
 html[data-theme="pinksnow"] [data-header-profile="true"] > div.absolute,
@@ -850,7 +850,7 @@ html[data-theme="pinksnow"] .bg-base-300\/70.backdrop-blur-\[4px\] {
   -webkit-backdrop-filter: blur(16px) !important;
 }
 
-/* Shutter ring — accent #d81b60 (color/shadow only) */
+/* Shutter ring â€” accent #d81b60 (color/shadow only) */
 html[data-theme="pinksnow"] .border-camera-custome,
 html[data-theme="pink-snow"] .border-camera-custome,
 html[data-theme="pinksnow"] .cameraShutterRing,
@@ -860,12 +860,12 @@ html[data-theme="pink-snow"] .cameraShutterRing {
 }
 
 html[data-theme="pinksnow"] .cameraShutterCore,
-html[data-theme="pinksnow"] button[aria-label="Chụp ảnh"] .bg-white {
+html[data-theme="pinksnow"] button[aria-label="Chá»¥p áº£nh"] .bg-white {
   background: #ffffff !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95);
 }
 
-/* Zoom rail — soft pink track / accent fill */
+/* Zoom rail â€” soft pink track / accent fill */
 html[data-theme="pinksnow"] [data-zoom-slider] .bg-white\/35 {
   background-color: rgba(255, 182, 193, 0.45) !important;
 }
@@ -899,7 +899,7 @@ html[data-theme="pinksnow"] .glassButtonActive {
   box-shadow: none !important;
 }
 
-/* Sidebar / drawer — pink glass (color only) */
+/* Sidebar / drawer â€” pink glass (color only) */
 html[data-theme="pinksnow"] .menuDrawer,
 html[data-theme="pink-snow"] .menuDrawer,
 html[data-theme="pinksnow"] .fixed.z-60.top-0.right-0.bg-base-100,
@@ -938,7 +938,7 @@ html[data-theme="pinksnow"] .bg-base-100:not(.draft-library-root) {
   color: var(--pink-text);
 }
 
-/* Draft library = full page opaque (never glass over live camera → lag) */
+/* Draft library = full page opaque (never glass over live camera â†’ lag) */
 .draft-library-root,
 .draft-library-root[role="dialog"],
 html[data-theme="pinksnow"] .draft-library-root,
@@ -954,7 +954,7 @@ html[data-theme="glass"] .draft-library-root[role="dialog"] {
   -webkit-backdrop-filter: none !important;
   opacity: 1 !important;
   isolation: isolate;
-  /* Che camera + controls phía dưới */
+  /* Che camera + controls phÃ­a dÆ°á»›i */
   z-index: 320 !important;
 }
 
@@ -977,7 +977,7 @@ html[data-theme="black"] .draft-library-root .draft-library-card {
   background: #2a2a2a !important;
 }
 
-/* Khi thư viện mở: ẩn/tắt hit-test camera chrome (phòng hở z-index) */
+/* Khi thÆ° viá»‡n má»Ÿ: áº©n/táº¯t hit-test camera chrome (phÃ²ng há»Ÿ z-index) */
 html.draft-library-open .cameraPreview,
 html.draft-library-open [data-camera-root] {
   visibility: hidden !important;
@@ -1009,7 +1009,7 @@ html[data-theme="pinksnow"] video.object-cover {
   border: none !important;
 }
 
-/* Valentine alias — same glass palette, no huge shapes */
+/* Valentine alias â€” same glass palette, no huge shapes */
 html.theme-pink-snow:not([data-theme="pinksnow"]):not([data-theme="pink-snow"]) body {
   min-height: 100%;
   background:
@@ -1028,9 +1028,9 @@ html.theme-pink-snow:not([data-theme="pinksnow"]):not([data-theme="pink-snow"]) 
   color: #4a4a4a;
 }
 
-/* ═══════════════════════════════════════════
-   Theme: Glass — surfaces + chrome (no full-screen blur)
-   ═══════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   Theme: Glass â€” surfaces + chrome (no full-screen blur)
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 html[data-theme="glass"] {
   color-scheme: light;
 
@@ -1076,7 +1076,7 @@ html[data-theme="glass"] body {
   color: var(--text-primary, var(--color-base-content));
 }
 
-/* Soft bg on camera — never cover video */
+/* Soft bg on camera â€” never cover video */
 html[data-theme="glass"] body:has([data-locket-camera]) {
   background:
     radial-gradient(circle at 18% 8%, rgba(145, 188, 255, 0.22), transparent 30%),
@@ -1085,7 +1085,7 @@ html[data-theme="glass"] body:has([data-locket-camera]) {
   background-attachment: scroll !important;
 }
 
-/* Shared glass look — do NOT force position:relative on header absolute pill */
+/* Shared glass look â€” do NOT force position:relative on header absolute pill */
 .glassSurface,
 html[data-theme="glass"] .cameraControlPill,
 html[data-theme="glass"] .cameraBottomNav {
@@ -1186,7 +1186,7 @@ html[data-theme="glass"] .glassButtonActive {
 
 /*
  * Friends pill MUST stay absolutely centered (left-1/2 -translate-x-1/2).
- * Never set position:relative here — that was pushing "N người bạn" to the side.
+ * Never set position:relative here â€” that was pushing "N ngÆ°á»i báº¡n" to the side.
  */
 html[data-theme="glass"] header button[data-friends-pill="true"],
 html[data-theme="glass"] header button.absolute.rounded-3xl,
@@ -1216,11 +1216,11 @@ html[data-theme="glass"] .cameraHeaderFriends {
 html[data-theme="glass"] header button[data-friends-pill="true"]:active,
 html[data-theme="glass"] header button.absolute.rounded-3xl:active,
 html[data-theme="glass"] header button.absolute.left-1\/2:active {
-  /* keep horizontal center when pressing — only scale */
+  /* keep horizontal center when pressing â€” only scale */
   transform: translateX(-50%) scale(1.03) !important;
 }
 
-/* Header round buttons (avatar frame / chat / menu) — not the centered pill */
+/* Header round buttons (avatar frame / chat / menu) â€” not the centered pill */
 html[data-theme="glass"] header .w-11.h-11.rounded-full:not(.absolute),
 html[data-theme="glass"] .cameraHeaderBtn {
   background: rgba(255, 255, 255, 0.46) !important;
@@ -1230,7 +1230,7 @@ html[data-theme="glass"] .cameraHeaderBtn {
   box-shadow: 0 6px 16px rgba(31, 44, 61, 0.1) !important;
 }
 
-/* Avatar outer glass disc — keep behind avatar image */
+/* Avatar outer glass disc â€” keep behind avatar image */
 html[data-theme="glass"] header .bg-base-300\/70.rounded-full.absolute {
   position: absolute !important;
   background: rgba(255, 255, 255, 0.5) !important;
@@ -1239,7 +1239,7 @@ html[data-theme="glass"] header .bg-base-300\/70.rounded-full.absolute {
   -webkit-backdrop-filter: blur(12px) !important;
 }
 
-/* Capture shutter — solid / strong glass, clear accent ring */
+/* Capture shutter â€” solid / strong glass, clear accent ring */
 html[data-theme="glass"] .border-camera-custome,
 html[data-theme="glass"] .cameraShutterRing {
   color: var(--color-primary);
@@ -1274,7 +1274,7 @@ html[data-theme="glass"] .previewChip {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
-/* Cards / modals — solid-ish glass, no nested blur on children */
+/* Cards / modals â€” solid-ish glass, no nested blur on children */
 html[data-theme="glass"] .modal-box,
 html[data-theme="glass"] [role="dialog"]:not([data-draft-library]),
 html[data-theme="glass"] .bg-base-100:not(.draft-library-root) {
@@ -1333,40 +1333,55 @@ html[data-theme="glass"] video.object-cover {
 
 /* ═══════════════════════════════════════════
    Theme: Hồng Tuyết Rơi AI ✨ (pink-snow-ai)
-   Dark Mode Premium - Hardware Accelerated Snow
+   BRIGHT PINK Light Mode - Hardware Accelerated Snow
    ═══════════════════════════════════════════ */
 @plugin "daisyui/theme" {
   name: "pink-snow-ai";
   default: false;
-  prefersdark: true;
-  color-scheme: dark;
+  prefersdark: false;
+  color-scheme: light;
 
-  --color-base-100: #1f0b2e;
+  --color-base-100: #fff0f7;
+  --color-base-200: #ffe0ec;
+  --color-base-300: #ffc6dc;
+  --color-base-content: #a41450;
+  --color-primary: #ff4f91;
+  --color-primary-content: #ffffff;
+  --color-secondary: #ff76aa;
+  --color-secondary-content: #ffffff;
+  --color-accent: #ff9fc5;
+  --color-accent-content: #a41450;
+  --color-neutral: #ffb6d1;
+  --color-neutral-content: #a41450;
+  --color-info: #ff85b3;
+  --color-success: #f472b6;
+  --color-warning: #fb7185;
+  --color-error: #e11d48;
 }
 
 /* Base definitions for pink-snow-ai */
 html[data-theme="pink-snow-ai"] {
-  color-scheme: dark;
+  color-scheme: light;
 
-  --pink-ai-accent: #ff3385;
-  --pink-ai-glow: rgba(255, 51, 133, 0.6);
-  --pink-ai-surface: rgba(255, 255, 255, 0.08);
-  --pink-ai-border: rgba(255, 105, 180, 0.2);
-  --pink-ai-shadow: 0 8px 32px rgba(31, 11, 46, 0.8);
-  --pink-ai-text: #ffe6f0;
-  --pink-ai-text-sec: rgba(255, 230, 240, 0.7);
+  --pink-ai-accent: #ff4f91;
+  --pink-ai-glow: rgba(255, 79, 145, 0.35);
+  --pink-ai-surface: rgba(255, 198, 220, 0.55);
+  --pink-ai-border: #ff85b3;
+  --pink-ai-shadow: 0 8px 24px rgba(255, 79, 145, 0.2);
+  --pink-ai-text: #a41450;
+  --pink-ai-text-sec: #c24678;
 }
 
 html[data-theme="pink-snow-ai"],
 html[data-theme="pink-snow-ai"] body {
   min-height: 100%;
   color: var(--pink-ai-text);
-  background: linear-gradient(135deg, #1f0b2e 0%, #3a1c4a 50%, #1f0b2e 100%) !important;
+  background: #fff0f7 !important;
   background-attachment: fixed;
 }
 
-/* HARDWARE ACCELERATED SNOWFALL (Pure CSS, 0 JS) 
-   Sử dụng translate3d trên 2 layer rơi chéo nhau */
+/* HARDWARE ACCELERATED SNOWFALL (Pure CSS, 0 JS)
+   Sử dụng translate3d trên 2 layer rời chạy nhau */
 html[data-theme="pink-snow-ai"] body::before,
 html[data-theme="pink-snow-ai"] body::after {
   content: "";
@@ -1381,25 +1396,25 @@ html[data-theme="pink-snow-ai"] body::after {
   will-change: transform;
 }
 
-/* Layer tuyết 1 (nhanh, bão tuyết hồng rực rỡ) */
+/* Layer tuyết 1 — trắng + hồng sáng */
 html[data-theme="pink-snow-ai"] body::before {
-  background-image: 
-    radial-gradient(4px 4px at 50px 100px, rgba(255, 255, 255, 0.9) 50%, transparent),
-    radial-gradient(3px 3px at 200px 50px, rgba(255, 105, 180, 0.9) 50%, transparent),
-    radial-gradient(5px 5px at 300px 250px, rgba(255, 255, 255, 0.7) 50%, transparent),
-    radial-gradient(6px 6px at 120px 320px, rgba(255, 51, 133, 0.8) 50%, transparent),
-    radial-gradient(2px 2px at 380px 150px, rgba(255, 230, 240, 0.6) 50%, transparent);
+  background-image:
+    radial-gradient(4px 4px at 50px 100px, rgba(255, 255, 255, 0.95) 50%, transparent),
+    radial-gradient(3px 3px at 200px 50px, rgba(255, 182, 209, 0.9) 50%, transparent),
+    radial-gradient(5px 5px at 300px 250px, rgba(255, 255, 255, 0.8) 50%, transparent),
+    radial-gradient(6px 6px at 120px 320px, rgba(255, 130, 180, 0.8) 50%, transparent),
+    radial-gradient(2px 2px at 380px 150px, rgba(255, 230, 240, 0.7) 50%, transparent);
   background-size: 400px 400px;
   animation: snowfall-ai-layer1 16s linear infinite;
 }
 
-/* Layer tuyết 2 (chậm, nền sáng lấp lánh) */
+/* Layer tuyết 2 — chậm, nền sáng lấp lánh */
 html[data-theme="pink-snow-ai"] body::after {
-  background-image: 
-    radial-gradient(3px 3px at 80px 120px, rgba(255, 255, 255, 0.6) 50%, transparent),
-    radial-gradient(5px 5px at 250px 300px, rgba(255, 182, 193, 0.7) 50%, transparent),
-    radial-gradient(2px 2px at 100px 50px, rgba(255, 255, 255, 0.4) 50%, transparent),
-    radial-gradient(4px 4px at 350px 180px, rgba(255, 105, 180, 0.5) 50%, transparent);
+  background-image:
+    radial-gradient(3px 3px at 80px 120px, rgba(255, 255, 255, 0.7) 50%, transparent),
+    radial-gradient(5px 5px at 250px 300px, rgba(255, 182, 209, 0.7) 50%, transparent),
+    radial-gradient(2px 2px at 100px 50px, rgba(255, 255, 255, 0.5) 50%, transparent),
+    radial-gradient(4px 4px at 350px 180px, rgba(255, 159, 197, 0.6) 50%, transparent);
   background-size: 350px 350px;
   animation: snowfall-ai-layer2 22s linear infinite;
   opacity: 0.8;
@@ -1417,7 +1432,7 @@ html[data-theme="pink-snow-ai"] body::after {
   100% { transform: translate3d(-160px, 350px, 0); }
 }
 
-/* ═════ GLASSMORPHISM BỀ MẶT TỐI (CHỈ CHE PHẦN UI) ═════ */
+/* ===== GLASSMORPHISM SURFACES (BRIGHT PINK) ===== */
 html[data-theme="pink-snow-ai"] .pinkSnowSurface,
 html[data-theme="pink-snow-ai"] .cameraControlPill,
 html[data-theme="pink-snow-ai"] .cameraBottomNav,
@@ -1441,16 +1456,16 @@ html[data-theme="pink-snow-ai"] [data-zoom-badge="true"] > div {
   color: var(--pink-ai-text) !important;
 }
 
-/* Tăng cường bóng mờ của menu sidebar / popup */
+/* Menu sidebar / popup — BRIGHT PINK */
 html[data-theme="pink-snow-ai"] .menuDrawer,
 html[data-theme="pink-snow-ai"] .fixed.z-60.top-0.right-0.bg-base-100,
 html[data-theme="pink-snow-ai"] .bg-base-100.flex.flex-col,
 html[data-theme="pink-snow-ai"] .modal-box,
 html[data-theme="pink-snow-ai"] [role="dialog"]:not([data-draft-library]),
 html[data-theme="pink-snow-ai"] .bg-base-100:not(.draft-library-root) {
-  background: rgba(31, 11, 46, 0.6) !important;
+  background: rgba(255, 224, 236, 0.92) !important;
   border: 1px solid var(--pink-ai-border) !important;
-  box-shadow: var(--pink-ai-shadow), 0 0 40px rgba(255, 51, 133, 0.15) !important;
+  box-shadow: var(--pink-ai-shadow), 0 0 40px rgba(255, 79, 145, 0.12) !important;
   backdrop-filter: blur(20px) !important;
   -webkit-backdrop-filter: blur(20px) !important;
   color: var(--pink-ai-text) !important;
@@ -1458,7 +1473,7 @@ html[data-theme="pink-snow-ai"] .bg-base-100:not(.draft-library-root) {
 
 html[data-theme="pink-snow-ai"] .menuBackdrop,
 html[data-theme="pink-snow-ai"] .fixed.inset-0.bg-base-100\/10 {
-  background: rgba(10, 2, 18, 0.4) !important;
+  background: rgba(255, 198, 220, 0.3) !important;
   backdrop-filter: blur(6px) !important;
   -webkit-backdrop-filter: blur(6px) !important;
 }
@@ -1476,7 +1491,7 @@ html[data-theme="pink-snow-ai"] .pillSideBtn svg,
 html[data-theme="pink-snow-ai"] .cameraSideBtn svg {
   color: var(--pink-ai-text) !important;
   stroke: var(--pink-ai-text);
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+  filter: drop-shadow(0 1px 2px rgba(255, 79, 145, 0.3));
 }
 html[data-theme="pink-snow-ai"] .pillSideBtn:active:not(:disabled),
 html[data-theme="pink-snow-ai"] .cameraSideBtn:active:not(:disabled) {
@@ -1488,7 +1503,7 @@ html[data-theme="pink-snow-ai"] .pillSideBtn:active:not(:disabled) svg {
 }
 html[data-theme="pink-snow-ai"] .pillSideBtn:disabled { opacity: 0.4; }
 
-/* Shutter ring (Nút chụp ảnh rực rỡ) */
+/* Shutter ring (Nút chụp ảnh) */
 html[data-theme="pink-snow-ai"] .border-camera-custome,
 html[data-theme="pink-snow-ai"] .cameraShutterRing {
   color: var(--pink-ai-accent) !important;
@@ -1497,12 +1512,12 @@ html[data-theme="pink-snow-ai"] .cameraShutterRing {
 html[data-theme="pink-snow-ai"] .cameraShutterCore,
 html[data-theme="pink-snow-ai"] button[aria-label="Chụp ảnh"] .bg-white {
   background: #ffffff !important;
-  box-shadow: inset 0 2px 8px rgba(255, 51, 133, 0.4);
+  box-shadow: inset 0 2px 8px rgba(255, 79, 145, 0.3);
 }
 
 /* Zoom rail */
 html[data-theme="pink-snow-ai"] [data-zoom-slider] .bg-white\/35 {
-  background-color: rgba(255, 51, 133, 0.2) !important;
+  background-color: rgba(255, 79, 145, 0.2) !important;
 }
 html[data-theme="pink-snow-ai"] [data-zoom-slider] .bg-white\/90 {
   background-color: var(--pink-ai-accent) !important;
@@ -1520,25 +1535,25 @@ html[data-theme="pink-snow-ai"] .cameraBottomNavBtn {
 }
 html[data-theme="pink-snow-ai"] .cameraBottomNavBtn.is-active,
 html[data-theme="pink-snow-ai"] .glassButtonActive {
-  background: color-mix(in srgb, var(--pink-ai-accent) 20%, transparent) !important;
-  border: 1px solid color-mix(in srgb, var(--pink-ai-accent) 40%, transparent) !important;
+  background: rgba(255, 79, 145, 0.18) !important;
+  border: 1px solid rgba(255, 79, 145, 0.35) !important;
   color: var(--pink-ai-text) !important;
-  box-shadow: 0 0 15px rgba(255, 51, 133, 0.3) !important;
+  box-shadow: 0 0 15px rgba(255, 79, 145, 0.2) !important;
 }
 
 /* Menu active state */
 html[data-theme="pink-snow-ai"] .menu a.bg-base-300,
 html[data-theme="pink-snow-ai"] .menu a[aria-current="page"] {
-  background: color-mix(in srgb, var(--pink-ai-accent) 25%, transparent) !important;
-  color: #ffffff !important;
+  background: rgba(255, 79, 145, 0.2) !important;
+  color: #a41450 !important;
   border-left: 3px solid var(--pink-ai-accent);
 }
 
-/* Draft library - Nền cứng vì thư viện ảnh không cần tuyết đè lên */
+/* Draft library */
 html[data-theme="pink-snow-ai"] .draft-library-root,
 html[data-theme="pink-snow-ai"] .draft-library-root[role="dialog"] {
-  background: #1f0b2e !important;
-  background-color: #1f0b2e !important;
+  background: #ffe0ec !important;
+  background-color: #ffe0ec !important;
   border: none !important;
   box-shadow: none !important;
   backdrop-filter: none !important;

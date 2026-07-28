@@ -57,8 +57,8 @@ const GlobalThemeEffects = () => {
     if (p.isMobile) max = intensity === "normal" ? (isPink ? 50 : 26) : (isPink ? 30 : 20);
     if (p.isLowEnd || p.isAndroid) max = intensity === "normal" ? (isPink ? 35 : 18) : (isPink ? 20 : 14);
     if (onCameraRoute) {
-      // Keep camera smooth — always light on camera
-      max = Math.min(max, p.isLowEnd || p.isAndroid ? 12 : 18);
+      // Keep camera smooth — more snow for pink, lighter for others
+      max = Math.min(max, p.isLowEnd || p.isAndroid ? (isPink ? 20 : 12) : (isPink ? 45 : 18));
     }
     // hard cap
     max = Math.min(150, Math.max(10, max));
