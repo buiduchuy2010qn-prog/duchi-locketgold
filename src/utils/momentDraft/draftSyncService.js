@@ -106,9 +106,16 @@ async function syncOneDraft(draft) {
   });
 
   if (draft.syncStatus === SYNC_STATUS.PENDING_DELETE) {
-    await instanceMain.delete(`/api/drafts/${encodeURIComponent(id)}`, {
-      timeout: 30000,
-    });
+    try {
+      await instanceMain.delete(`/api/drafts/${encodeURIComponent(id)}`, {
+        timeout: 30000,
+      });
+    } catch (e) {
+      // 404 means it's already deleted on cloud, which is fine
+      if (e?.response?.status !== 404) {
+        throw e;
+      }
+    }
     await momentDraftDB.drafts.delete(id);
     await momentDraftDB.draftBlobs.delete(id);
     return { ok: true, deleted: true };
@@ -403,6 +410,11 @@ export async function pullCloudDrafts({ onProgress } = {}) {
         local.syncStatus === SYNC_STATUS.PENDING_SYNC ||
         local.syncStatus === SYNC_STATUS.SYNC_FAILED ||
         local.syncStatus === SYNC_STATUS.SYNCING;
+
+      if (local.syncStatus === SYNC_STATUS.PENDING_DELETE) {
+        // Local wants to delete this draft. Do not restore or overwrite from cloud.
+        continue;
+      }
 
       if (localPending && (local.revision || 1) > (cloud.revision || 1)) {
         // Local newer — will push later

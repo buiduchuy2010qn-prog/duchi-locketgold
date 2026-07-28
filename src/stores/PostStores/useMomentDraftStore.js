@@ -657,8 +657,12 @@ export const useMomentDraftStore = create((set, get) => ({
             && !useConnectivityStore.getState().isOffline;
         
         if (online) {
-          const { instanceMain } = await import("@/libs");
-          await instanceMain.delete(`/api/drafts/${encodeURIComponent(id)}`);
+          try {
+            const { instanceMain } = await import("@/libs");
+            await instanceMain.delete(`/api/drafts/${encodeURIComponent(id)}`);
+          } catch (e) {
+            if (e?.response?.status !== 404) throw e;
+          }
           await deleteDraft(id);
         } else {
           await updateDraftMeta(id, { syncStatus: SYNC_STATUS.PENDING_DELETE });
@@ -698,14 +702,16 @@ export const useMomentDraftStore = create((set, get) => ({
         const { instanceMain } = await import("@/libs");
         await instanceMain.delete(`/api/drafts/${encodeURIComponent(id)}`);
       } catch (e) {
-        // Mark pending delete for later
-        await updateDraftMeta(id, {
-          syncStatus: SYNC_STATUS.PENDING_DELETE,
-          lastSyncError: e?.message || "pending delete",
-        });
-        SonnerWarning("Đã đánh dấu xóa — sẽ xóa trên tài khoản khi mạng ổn.");
-        await get().refreshList();
-        return true;
+        if (e?.response?.status !== 404) {
+          // Mark pending delete for later
+          await updateDraftMeta(id, {
+            syncStatus: SYNC_STATUS.PENDING_DELETE,
+            lastSyncError: e?.message || "pending delete",
+          });
+          SonnerWarning("Đã đánh dấu xóa — sẽ xóa trên tài khoản khi mạng ổn.");
+          await get().refreshList();
+          return true;
+        }
       }
     } else if (!online && meta?.syncStatus === SYNC_STATUS.SYNCED) {
       await updateDraftMeta(id, { syncStatus: SYNC_STATUS.PENDING_DELETE });
