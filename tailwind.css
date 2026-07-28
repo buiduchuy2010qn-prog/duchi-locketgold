@@ -1341,18 +1341,18 @@ html[data-theme="glass"] video.object-cover {
   prefersdark: false;
   color-scheme: light;
 
-  --color-base-100: #fff0f7;
-  --color-base-200: #ffe0ec;
-  --color-base-300: #ffc6dc;
-  --color-base-content: #a41450;
+  --color-base-100: #ffd1e3;
+  --color-base-200: #ffd6e6;
+  --color-base-300: #ffb6d3;
+  --color-base-content: #ad0d4d;
   --color-primary: #ff4f91;
   --color-primary-content: #ffffff;
-  --color-secondary: #ff76aa;
+  --color-secondary: #ff3f88;
   --color-secondary-content: #ffffff;
-  --color-accent: #ff9fc5;
-  --color-accent-content: #a41450;
-  --color-neutral: #ffb6d1;
-  --color-neutral-content: #a41450;
+  --color-accent: #ff82b2;
+  --color-accent-content: #ad0d4d;
+  --color-neutral: #ffacd0;
+  --color-neutral-content: #ad0d4d;
   --color-info: #ff85b3;
   --color-success: #f472b6;
   --color-warning: #fb7185;
@@ -1365,10 +1365,10 @@ html[data-theme="pink-snow-ai"] {
 
   --pink-ai-accent: #ff4f91;
   --pink-ai-glow: rgba(255, 79, 145, 0.35);
-  --pink-ai-surface: rgba(255, 198, 220, 0.55);
-  --pink-ai-border: #ff85b3;
-  --pink-ai-shadow: 0 8px 24px rgba(255, 79, 145, 0.2);
-  --pink-ai-text: #a41450;
+  --pink-ai-surface: rgba(255, 214, 230, 0.55);
+  --pink-ai-border: #ff4f91;
+  --pink-ai-shadow: 0 8px 24px rgba(255, 63, 136, 0.22);
+  --pink-ai-text: #ad0d4d;
   --pink-ai-text-sec: #c24678;
 }
 
@@ -1376,7 +1376,7 @@ html[data-theme="pink-snow-ai"],
 html[data-theme="pink-snow-ai"] body {
   min-height: 100%;
   color: var(--pink-ai-text);
-  background: #fff0f7 !important;
+  background: linear-gradient(180deg, #ffc4dc 0%, #ffd7e7 50%, #ffc8df 100%) !important;
   background-attachment: fixed;
 }
 
@@ -1451,12 +1451,10 @@ html[data-theme="pink-snow-ai"] .pinkSnowSurface,
 html[data-theme="pink-snow-ai"] .cameraControlPill,
 html[data-theme="pink-snow-ai"] .cameraBottomNav,
 html[data-theme="pink-snow-ai"] .historyChip,
-html[data-theme="pink-snow-ai"] header button.w-11,
 html[data-theme="pink-snow-ai"] header .w-11.h-11.rounded-full,
 html[data-theme="pink-snow-ai"] [data-header-profile="true"] > div.absolute,
 html[data-theme="pink-snow-ai"] [data-header-chat="true"],
 html[data-theme="pink-snow-ai"] [data-header-menu="true"],
-html[data-theme="pink-snow-ai"] button.w-11.h-11,
 html[data-theme="pink-snow-ai"] [data-friends-pill="true"],
 html[data-theme="pink-snow-ai"] header button.absolute.rounded-3xl,
 html[data-theme="pink-snow-ai"] header .bg-base-300\/70.rounded-full.absolute,
