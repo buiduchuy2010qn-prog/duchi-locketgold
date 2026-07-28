@@ -14,6 +14,7 @@ import {
   Play,
   Camera,
   RefreshCw,
+  AlertTriangle,
 } from "lucide-react";
 import { useMomentDraftStore, usePostStore } from "@/stores";
 import { useConnectivityStore } from "@/stores/useConnectivityStore";
@@ -316,7 +317,7 @@ export default function DraftLibrary() {
             </button>
           </div>
         ) : (
-          <ul className="flex flex-col gap-6 max-w-md mx-auto w-full">
+          <ul className="draft-library-grid">
             {sorted.map((d) => (
               <DraftPreviewCard
                 key={d.id}
@@ -382,9 +383,72 @@ export default function DraftLibrary() {
 
   // Portal ra body — tách hẳn khỏi layout camera (z-index / transparency)
   if (typeof document !== "undefined" && document.body) {
-    return createPortal(shell, document.body);
+    return createPortal(
+      <>
+        <DraftLibraryStyles />
+        {shell}
+      </>,
+      document.body,
+    );
   }
-  return shell;
+  return (
+    <>
+      <DraftLibraryStyles />
+      {shell}
+    </>
+  );
+}
+
+/** Scoped styles for draft library grid — no global side effects */
+const _draftStylesInserted = { current: false };
+function DraftLibraryStyles() {
+  useEffect(() => {
+    if (_draftStylesInserted.current) return undefined;
+    _draftStylesInserted.current = true;
+    const style = document.createElement("style");
+    style.setAttribute("data-draft-library", "scoped");
+    style.textContent = `
+      .draft-library-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        list-style: none;
+        padding: 0;
+      }
+      @media (min-width: 700px) {
+        .draft-library-grid {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 18px;
+        }
+      }
+      @media (min-width: 1100px) {
+        .draft-library-grid {
+          grid-template-columns: repeat(3, 1fr);
+          gap: 20px;
+        }
+      }
+      .draft-library-card {
+        background: var(--fallback-b1,oklch(var(--b1)/1));
+      }
+      @keyframes draft-skeleton-pulse {
+        0%, 100% { opacity: 0.4; }
+        50% { opacity: 0.15; }
+      }
+      .draft-thumb-skeleton {
+        animation: draft-skeleton-pulse 1.5s ease-in-out infinite;
+        background: var(--fallback-b3,oklch(var(--b3)/1));
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      _draftStylesInserted.current = false;
+      style.remove();
+    };
+  }, []);
+  return null;
 }
 
 function buildOverlayData(draft) {
@@ -442,6 +506,8 @@ function DraftPreviewCard({
   const [mediaUrl, setMediaUrl] = useState(null);
   const [nearView, setNearView] = useState(false);
   const [playing, setPlaying] = useState(false);
+  // "loading" | "loaded" | "error"
+  const [thumbLoadState, setThumbLoadState] = useState("loading");
 
   const isVideo = draft.mediaType === "video";
   const failed = draft.status === DRAFT_STATUS.FAILED;
@@ -460,6 +526,7 @@ function DraftPreviewCard({
   // Thumbnail ASAP — local IDB, rồi tải từ tài khoản (thiết bị khác / URL ký hết hạn)
   useEffect(() => {
     let cancelled = false;
+    setThumbLoadState("loading");
     (async () => {
       let blob = await getDraftThumbnailBlob(draft.id);
       if (!blob && !offline) {
@@ -470,7 +537,11 @@ function DraftPreviewCard({
           /* network */
         }
       }
-      if (cancelled || !blob) return;
+      if (cancelled) return;
+      if (!blob) {
+        setThumbLoadState("error");
+        return;
+      }
       if (thumbUrlRef.current) {
         try {
           URL.revokeObjectURL(thumbUrlRef.current);
@@ -481,6 +552,7 @@ function DraftPreviewCard({
       const u = URL.createObjectURL(blob);
       thumbUrlRef.current = u;
       setThumbUrl(u);
+      setThumbLoadState("loaded");
     })();
     return () => {
       cancelled = true;
@@ -668,7 +740,7 @@ function DraftPreviewCard({
               onEdit();
             }
           }}
-          className="draft-library-card w-full text-left border border-base-300 rounded-[28px] sm:rounded-[40px] overflow-hidden shadow-md cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="draft-library-card w-full text-left border border-base-300 rounded-2xl overflow-hidden shadow-md cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           {/* Nền đặc — không trong suốt xuyên camera */}
           <div className="relative aspect-square w-full overflow-hidden draft-library-card">
@@ -683,11 +755,13 @@ function DraftPreviewCard({
                   mediaUrl && !isVideo ? "opacity-0" : "opacity-100"
                 }`}
               />
+            ) : thumbLoadState === "loading" ? (
+              <div className="absolute inset-0 draft-thumb-skeleton" />
             ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-base-content/40">
-                {isVideo ? <Video size={40} /> : <ImageIcon size={40} />}
-                <span className="text-xs">
-                  {offline ? "Chưa có ảnh local" : "Đang tải…"}
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-base-content/40 bg-base-200">
+                <AlertTriangle size={32} className="opacity-50" />
+                <span className="text-xs text-center px-3 leading-relaxed">
+                  Không thể tải bản nháp
                 </span>
               </div>
             )}
