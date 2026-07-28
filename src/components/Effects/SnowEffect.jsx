@@ -44,22 +44,35 @@ const SnowEffect = ({
     const colorFor = () => {
       if (!pinkMode) return "rgba(255,255,255,";
       const r = Math.random();
-      if (r < 0.55) return "rgba(255,255,255,";
-      if (r < 0.85) return "rgba(255,240,248,";
-      return "rgba(255,210,230,";
+      if (r < 0.4) return "rgba(255,255,255,"; // Trắng
+      if (r < 0.8) return "rgba(255,230,240,"; // Hồng nhạt
+      return "rgba(255,160,200,"; // Hồng sáng
     };
 
     const resetParticle = (p, spawnTop) => {
       const { w, h } = sizeRef.current;
       p.x = Math.random() * w;
       p.y = spawnTop ? -4 - Math.random() * 40 : Math.random() * h;
-      p.r = 1.5 + Math.random() * 3.5;
-      p.speed = 0.35 + Math.random() * 1.15;
-      p.drift = (Math.random() - 0.5) * 0.45;
+      
+      const layerRand = Math.random();
+      if (layerRand < 0.5) {
+        p.r = 1.0 + Math.random() * 1.5;
+        p.speed = 0.2 + Math.random() * 0.4;
+        p.op = 0.2 + Math.random() * 0.3;
+      } else if (layerRand < 0.85) {
+        p.r = 2.0 + Math.random() * 2.0;
+        p.speed = 0.5 + Math.random() * 0.7;
+        p.op = 0.4 + Math.random() * 0.4;
+      } else {
+        p.r = 3.5 + Math.random() * 3.5;
+        p.speed = 1.0 + Math.random() * 0.8;
+        p.op = 0.6 + Math.random() * 0.4;
+      }
+
+      p.drift = (Math.random() - 0.5) * 0.6;
       p.phase = Math.random() * Math.PI * 2;
-      p.op = 0.35 + Math.random() * 0.5;
       p.color = colorFor();
-      p.kind = Math.random() < 0.72 ? 0 : Math.random() < 0.5 ? 1 : 2; // 0 circle, 1 soft star, 2 cross
+      p.kind = Math.random() < 0.6 ? 0 : Math.random() < 0.8 ? 1 : 2; // 0 circle, 1 soft star, 2 cross
     };
 
     // Build / trim pool (reuse — no alloc in loop)

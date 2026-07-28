@@ -163,3 +163,106 @@ html.tab-hidden [data-decorative-fx] {
   animation-play-state: paused !important;
   visibility: hidden;
 }
+
+/* --- THEME PINK SNOW AI --- */
+body.theme-pink-snow-ai,
+.theme-pink-snow-ai #root,
+.theme-pink-snow-ai .bg-locket,
+.theme-pink-snow-ai main {
+  background-color: #fff0f6 !important;
+  background-image: none !important;
+  color: #5a2038 !important;
+}
+
+.theme-pink-snow-ai .bg-black,
+.theme-pink-snow-ai .bg-black\/50,
+.theme-pink-snow-ai .bg-black\/80,
+.theme-pink-snow-ai .bg-zinc-950,
+.theme-pink-snow-ai .bg-zinc-900,
+.theme-pink-snow-ai .bg-zinc-800,
+.theme-pink-snow-ai .bg-zinc-700,
+.theme-pink-snow-ai .bg-neutral-900,
+.theme-pink-snow-ai .bg-base-100,
+.theme-pink-snow-ai .bg-base-200,
+.theme-pink-snow-ai .bg-base-300 {
+  background-color: #ffd9e8 !important;
+  color: #5a2038 !important;
+}
+
+.theme-pink-snow-ai .text-white,
+.theme-pink-snow-ai .text-gray-100,
+.theme-pink-snow-ai .text-gray-200,
+.theme-pink-snow-ai .text-gray-300,
+.theme-pink-snow-ai .text-zinc-100,
+.theme-pink-snow-ai .text-zinc-200,
+.theme-pink-snow-ai .text-zinc-300,
+.theme-pink-snow-ai .text-zinc-400 {
+  color: #5a2038 !important;
+}
+
+.theme-pink-snow-ai .bg-yellow-400,
+.theme-pink-snow-ai .bg-yellow-500,
+.theme-pink-snow-ai .bg-primary {
+  background-color: #ff5c9a !important;
+  color: #fff !important;
+}
+
+.theme-pink-snow-ai .text-yellow-400,
+.theme-pink-snow-ai .text-yellow-500,
+.theme-pink-snow-ai .text-primary {
+  color: #e91e63 !important;
+}
+
+.theme-pink-snow-ai .border-zinc-800,
+.theme-pink-snow-ai .border-zinc-700,
+.theme-pink-snow-ai .border-white\/10,
+.theme-pink-snow-ai .border-white\/20,
+.theme-pink-snow-ai .border-base-300 {
+  border-color: #ff8fba !important;
+}
+
+.theme-pink-snow-ai .bg-white\/10,
+.theme-pink-snow-ai .bg-white\/20,
+.theme-pink-snow-ai .bg-white\/5 {
+  background-color: rgba(255, 92, 154, 0.15) !important;
+}
+
+/* Các nút nh?n */
+.theme-pink-snow-ai button.bg-white,
+.theme-pink-snow-ai button.bg-zinc-800 {
+  background-color: #ff5c9a !important;
+  color: #fff !important;
+}
+
+.theme-pink-snow-ai button.bg-white:hover,
+.theme-pink-snow-ai button.bg-zinc-800:hover {
+  background-color: #e91e63 !important;
+}
+
+/* Camera btn (n?u có border-white) */
+.theme-pink-snow-ai button.border-white.border-4 {
+  border-color: #ff5c9a !important;
+}
+.theme-pink-snow-ai .bg-white.rounded-full {
+  background-color: #ff5c9a !important;
+}
+
+/* B?o v? video/canvas kh?i b? override background */
+.theme-pink-snow-ai video,
+.theme-pink-snow-ai canvas,
+.theme-pink-snow-ai img,
+.theme-pink-snow-ai .camera-preview,
+.theme-pink-snow-ai .media-preview {
+  background-color: transparent !important;
+}
+
+/* Không dè màu ch? trong input n?u b? ?n */
+.theme-pink-snow-ai input,
+.theme-pink-snow-ai textarea {
+  color: #5a2038 !important;
+}
+.theme-pink-snow-ai input::placeholder,
+.theme-pink-snow-ai textarea::placeholder {
+  color: #ff8fba !important;
+}
+

@@ -53,15 +53,15 @@ const GlobalThemeEffects = () => {
       return { enabled: true, maxFlakes: 8, staticOnly: true, pinkMode: isPink };
     }
 
-    let max = intensity === "normal" ? 42 : 24;
-    if (p.isMobile) max = intensity === "normal" ? 26 : 20;
-    if (p.isLowEnd || p.isAndroid) max = intensity === "normal" ? 18 : 14;
+    let max = intensity === "normal" ? (isPink ? 120 : 42) : (isPink ? 70 : 24);
+    if (p.isMobile) max = intensity === "normal" ? (isPink ? 50 : 26) : (isPink ? 30 : 20);
+    if (p.isLowEnd || p.isAndroid) max = intensity === "normal" ? (isPink ? 35 : 18) : (isPink ? 20 : 14);
     if (onCameraRoute) {
       // Keep camera smooth — always light on camera
       max = Math.min(max, p.isLowEnd || p.isAndroid ? 12 : 18);
     }
     // hard cap
-    max = Math.min(60, Math.max(10, max));
+    max = Math.min(150, Math.max(10, max));
 
     return {
       enabled: true,
