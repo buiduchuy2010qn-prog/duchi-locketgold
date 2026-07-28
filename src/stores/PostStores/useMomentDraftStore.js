@@ -647,9 +647,33 @@ export const useMomentDraftStore = create((set, get) => ({
 
   clearAfterSuccessfulPost: async (draftId) => {
     const id = draftId || get().activeDraftId;
-    if (id) {
-      await deleteDraft(id);
+    if (!id) return;
+    
+    // Đọc trạng thái để xóa cloud nếu đã được đồng bộ
+    try {
+      const meta = await getDraftMeta(id);
+      if (meta?.syncStatus === SYNC_STATUS.SYNCED || meta?.syncStatus === SYNC_STATUS.SYNC_FAILED) {
+        const online = useConnectivityStore.getState().serverReachable !== false
+            && !useConnectivityStore.getState().isOffline;
+        
+        if (online) {
+          const { instanceMain } = await import("@/libs");
+          await instanceMain.delete(`/api/drafts/${encodeURIComponent(id)}`);
+          await deleteDraft(id);
+        } else {
+          await updateDraftMeta(id, { syncStatus: SYNC_STATUS.PENDING_DELETE });
+          // Không xóa ngay local để pushPendingDrafts sau này có draft xóa cloud
+        }
+      } else {
+        await deleteDraft(id);
+      }
+    } catch (e) {
+      await updateDraftMeta(id, {
+        syncStatus: SYNC_STATUS.PENDING_DELETE,
+        lastSyncError: e?.message || "Lỗi xóa cloud khi hoàn tất",
+      });
     }
+
     if (get().activeDraftId === id) set({ activeDraftId: null });
     get().clearThumbnail();
     await get().refreshList();
