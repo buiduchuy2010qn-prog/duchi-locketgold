@@ -12,6 +12,7 @@ const SnowEffect = ({
   className = "",
   /** static flakes only (reduced-motion) */
   staticOnly = false,
+  reduceMotion = false,
 }) => {
   const canvasRef = useRef(null);
   const rafRef = useRef(0);
@@ -143,11 +144,13 @@ const SnowEffect = ({
       const { w, h } = sizeRef.current;
       ctx.clearRect(0, 0, w, h);
 
+      const speedMult = reduceMotion ? 0.3 : 1;
+
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
-        p.phase += dt * 0.0012;
-        p.y += p.speed * (dt * 0.06);
-        p.x += p.drift + Math.sin(p.phase) * 0.15;
+        p.phase += (dt * 0.0012) * speedMult;
+        p.y += p.speed * (dt * 0.06) * speedMult;
+        p.x += (p.drift + Math.sin(p.phase) * 0.15) * speedMult;
         if (p.y > h + 8 || p.x < -12 || p.x > w + 12) {
           resetParticle(p, true);
         }

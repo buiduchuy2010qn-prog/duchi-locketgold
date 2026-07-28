@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 @plugin "daisyui" {
   themes: all;
 }
@@ -1405,7 +1405,8 @@ html[data-theme="pink-snow-ai"] body::before {
     radial-gradient(6px 6px at 120px 320px, rgba(255, 130, 180, 0.8) 50%, transparent),
     radial-gradient(2px 2px at 380px 150px, rgba(255, 230, 240, 0.7) 50%, transparent);
   background-size: 400px 400px;
-  animation: snowfall-ai-layer1 16s linear infinite;
+  animation: snowfall-ai-layer1 12s linear infinite;
+  animation-delay: -5s;
 }
 
 /* Layer tuyết 2 — chậm, nền sáng lấp lánh */
@@ -1416,20 +1417,33 @@ html[data-theme="pink-snow-ai"] body::after {
     radial-gradient(2px 2px at 100px 50px, rgba(255, 255, 255, 0.5) 50%, transparent),
     radial-gradient(4px 4px at 350px 180px, rgba(255, 159, 197, 0.6) 50%, transparent);
   background-size: 350px 350px;
-  animation: snowfall-ai-layer2 22s linear infinite;
+  animation: snowfall-ai-layer2 18s linear infinite;
+  animation-delay: -11s;
   opacity: 0.8;
 }
 
 @keyframes snowfall-ai-layer1 {
   0% { transform: translate3d(0, 0, 0); }
-  50% { transform: translate3d(100px, 200px, 0); }
-  100% { transform: translate3d(200px, 400px, 0); }
+  100% { transform: translate3d(400px, 1200px, 0); }
 }
 
 @keyframes snowfall-ai-layer2 {
   0% { transform: translate3d(0, 0, 0); }
-  50% { transform: translate3d(-80px, 175px, 0); }
-  100% { transform: translate3d(-160px, 350px, 0); }
+  100% { transform: translate3d(-350px, 1050px, 0); }
+}
+
+/* KHÔNG ĐÓNG BĂNG TUYẾT NẾU REDUCED MOTION BẬT, CHỈ LÀM CHẬM LẠI */
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="pink-snow-ai"] body::before {
+    animation-duration: 40s !important;
+    animation-iteration-count: infinite !important;
+    animation-play-state: running !important;
+  }
+  html[data-theme="pink-snow-ai"] body::after {
+    animation-duration: 60s !important;
+    animation-iteration-count: infinite !important;
+    animation-play-state: running !important;
+  }
 }
 
 /* ===== GLASSMORPHISM SURFACES (BRIGHT PINK) ===== */

@@ -48,9 +48,14 @@ const GlobalThemeEffects = () => {
     const p = getPerfProfile();
     const isPink = isPinkSnowTheme(theme);
 
-    // reduced motion → few static flakes only
+    // reduced motion — few static flakes only, EXCEPT for pink mode which just slows down/reduces flakes
     if (reduceMotion) {
-      return { enabled: true, maxFlakes: 8, staticOnly: true, pinkMode: isPink };
+      return { 
+        enabled: true, 
+        maxFlakes: isPink ? 15 : 8, 
+        staticOnly: !isPink, 
+        pinkMode: isPink 
+      };
     }
 
     let max = intensity === "normal" ? (isPink ? 120 : 42) : (isPink ? 70 : 24);
@@ -68,6 +73,7 @@ const GlobalThemeEffects = () => {
       maxFlakes: max,
       staticOnly: false,
       pinkMode: isPink,
+      reduceMotion,
     };
   }, [snowTheme, intensity, theme, reduceMotion, onCameraRoute]);
 
@@ -78,6 +84,7 @@ const GlobalThemeEffects = () => {
       maxFlakes={cfg.maxFlakes}
       pinkMode={cfg.pinkMode}
       staticOnly={cfg.staticOnly}
+      reduceMotion={cfg.reduceMotion}
       className={cfg.pinkMode ? "snow-layer--pink" : ""}
     />
   );
