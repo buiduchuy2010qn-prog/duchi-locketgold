@@ -290,14 +290,19 @@ button:active:not([class*="camera-capture"]):not([class*="shutter"]),
 
 /* Reduced Motion Override */
 @media (prefers-reduced-motion: reduce) {
-  *,
   .drawer-side,
   .drawer-side > .menu,
   .modal,
   .modal-box,
   .dropdown-content,
   button,
-  .toast {
+  .toast,
+  .draft-library-root,
+  .history-container,
+  .chat-container,
+  .settings-container,
+  .history-container > *,
+  .draft-library-grid > * {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
