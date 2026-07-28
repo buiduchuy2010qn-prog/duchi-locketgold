@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
@@ -190,10 +190,7 @@ body.theme-pink-snow-ai,
 .theme-pink-snow-ai .bg-gray-900,
 .theme-pink-snow-ai .bg-gray-800,
 .theme-pink-snow-ai .bg-slate-900,
-.theme-pink-snow-ai .bg-slate-800,
-.theme-pink-snow-ai .bg-base-100,
-.theme-pink-snow-ai .bg-base-200,
-.theme-pink-snow-ai .bg-base-300 {
+.theme-pink-snow-ai .bg-slate-800 {
   background-color: #ffe0ec !important;
   color: #a41450 !important;
 }
@@ -244,31 +241,26 @@ body.theme-pink-snow-ai,
   color: #c24678 !important;
 }
 
-/* ── Primary / accent colors ── */
+/* 🌸 Primary / accent colors 🌸 */
 .theme-pink-snow-ai .bg-yellow-400,
-.theme-pink-snow-ai .bg-yellow-500,
-.theme-pink-snow-ai .bg-primary {
+.theme-pink-snow-ai .bg-yellow-500 {
   background-color: #ff4f91 !important;
   color: #fff !important;
 }
 
 .theme-pink-snow-ai .text-yellow-400,
-.theme-pink-snow-ai .text-yellow-500,
-.theme-pink-snow-ai .text-primary {
+.theme-pink-snow-ai .text-yellow-500 {
   color: #ff4f91 !important;
 }
 
-/* ── Borders ── */
+/* 🌸 Borders 🌸 */
 .theme-pink-snow-ai .border-zinc-800,
 .theme-pink-snow-ai .border-zinc-700,
 .theme-pink-snow-ai .border-zinc-600,
 .theme-pink-snow-ai .border-gray-700,
 .theme-pink-snow-ai .border-gray-600,
 .theme-pink-snow-ai .border-white\/10,
-.theme-pink-snow-ai .border-white\/20,
-.theme-pink-snow-ai .border-base-300,
-.theme-pink-snow-ai .border-base-200,
-.theme-pink-snow-ai .border-gray-300 {
+.theme-pink-snow-ai .border-white\/20 {
   border-color: #ff85b3 !important;
 }
 
