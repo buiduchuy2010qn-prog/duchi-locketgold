@@ -174,7 +174,7 @@ body.theme-pink-snow-ai,
 .theme-pink-snow-ai main {
   background-color: #ff9fc3 !important;
   background-image: linear-gradient(180deg, #ff91ba 0%, #ffabc9 48%, #ff96bd 100%) !important;
-  color: #b51257 !important;
+  color: #1E293B !important;
 }
 
 /* ── Dark backgrounds → bright pink ── */
@@ -192,7 +192,7 @@ body.theme-pink-snow-ai,
 .theme-pink-snow-ai .bg-slate-900,
 .theme-pink-snow-ai .bg-slate-800 {
   background-color: #ffb9d2 !important;
-  color: #b51257 !important;
+  color: #1E293B !important;
 }
 
 /* ── Header specific ── */
@@ -200,7 +200,7 @@ body.theme-pink-snow-ai,
 .theme-pink-snow-ai [data-header],
 .theme-pink-snow-ai nav {
   background-color: #ff6fa7 !important;
-  color: #b51257 !important;
+  color: #1E293B !important;
 }
 
 /* ── Cards / floating elements ── */
@@ -211,7 +211,7 @@ body.theme-pink-snow-ai,
 .theme-pink-snow-ai [role="dialog"],
 .theme-pink-snow-ai .popover {
   background-color: #ffb9d2 !important;
-  color: #b51257 !important;
+  color: #1E293B !important;
   box-shadow: 0 8px 24px rgba(237, 23, 101, 0.25) !important;
 }
 
@@ -228,7 +228,7 @@ body.theme-pink-snow-ai,
 .theme-pink-snow-ai .text-slate-100,
 .theme-pink-snow-ai .text-slate-200,
 .theme-pink-snow-ai .text-slate-300 {
-  color: #b51257 !important;
+  color: #1E293B !important;
 }
 
 /* ── Secondary text ── */
@@ -238,7 +238,7 @@ body.theme-pink-snow-ai,
 .theme-pink-snow-ai .text-zinc-600,
 .theme-pink-snow-ai .text-slate-400,
 .theme-pink-snow-ai .text-slate-500 {
-  color: #c94778 !important;
+  color: #475569 !important;
 }
 
 /* 🌸 Primary / accent colors 🌸 */
@@ -280,7 +280,7 @@ body.theme-pink-snow-ai,
 .theme-pink-snow-ai button.bg-zinc-800,
 .theme-pink-snow-ai button.bg-neutral {
   background-color: #ffacd0 !important;
-  color: #b51257 !important;
+  color: #1E293B !important;
   border-color: #f52f78 !important;
   box-shadow: 0 2px 8px rgba(237, 23, 101, 0.25) !important;
 }
@@ -296,7 +296,7 @@ body.theme-pink-snow-ai,
 .theme-pink-snow-ai .btn-active,
 .theme-pink-snow-ai button[aria-pressed="true"] {
   background-color: #ed1765 !important;
-  color: #fff8fc !important;
+  color: #FFFFFF !important;
   border-color: #ed1765 !important;
 }
 
@@ -311,13 +311,13 @@ body.theme-pink-snow-ai,
 .theme-pink-snow-ai .select,
 .theme-pink-snow-ai .select-bordered {
   background-color: #ffb9d2 !important;
-  color: #b51257 !important;
+  color: #1E293B !important;
   border-color: #f52f78 !important;
 }
 
 .theme-pink-snow-ai select option {
   background-color: #ffb9d2 !important;
-  color: #b51257 !important;
+  color: #1E293B !important;
 }
 
 /* ── Toast / badge / alert ── */
@@ -325,7 +325,7 @@ body.theme-pink-snow-ai,
 .theme-pink-snow-ai .alert,
 .theme-pink-snow-ai .badge {
   background-color: #ffb9d2 !important;
-  color: #b51257 !important;
+  color: #1E293B !important;
   border-color: #f52f78 !important;
   box-shadow: 0 4px 16px rgba(237, 23, 101, 0.18) !important;
 }
@@ -356,13 +356,13 @@ body.theme-pink-snow-ai,
 /* ── Input / textarea ── */
 .theme-pink-snow-ai input,
 .theme-pink-snow-ai textarea {
-  color: #b51257 !important;
+  color: #1E293B !important;
   background-color: #ffb9d2 !important;
   border-color: #f52f78 !important;
 }
 .theme-pink-snow-ai input::placeholder,
 .theme-pink-snow-ai textarea::placeholder {
-  color: #d66b94 !important;
+  color: #64748B !important;
 }
 
 /* ── Scrollbar ── */

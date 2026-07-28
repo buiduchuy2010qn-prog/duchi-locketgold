@@ -1344,15 +1344,15 @@ html[data-theme="glass"] video.object-cover {
   --color-base-100: #ff9fc3;
   --color-base-200: #ffb9d2;
   --color-base-300: #ff91b9;
-  --color-base-content: #b51257;
+  --color-base-content: #1E293B;
   --color-primary: #ed1765;
-  --color-primary-content: #fff8fc;
+  --color-primary-content: #FFFFFF;
   --color-secondary: #f52f78;
-  --color-secondary-content: #ffffff;
+  --color-secondary-content: #FFFFFF;
   --color-accent: #ff6fa7;
-  --color-accent-content: #b51257;
+  --color-accent-content: #1E293B;
   --color-neutral: #ffacd0;
-  --color-neutral-content: #b51257;
+  --color-neutral-content: #1E293B;
   --color-info: #ff6fa7;
   --color-success: #f472b6;
   --color-warning: #fb7185;
@@ -1368,8 +1368,8 @@ html[data-theme="pink-snow-ai"] {
   --pink-ai-surface: rgba(255, 172, 208, 0.75);
   --pink-ai-border: #f52f78;
   --pink-ai-shadow: 0 8px 24px rgba(237, 23, 101, 0.25);
-  --pink-ai-text: #b51257;
-  --pink-ai-text-sec: #c94778;
+  --pink-ai-text: #1E293B;
+  --pink-ai-text-sec: #475569;
 }
 
 html[data-theme="pink-snow-ai"],
@@ -1558,7 +1558,7 @@ html[data-theme="pink-snow-ai"] .glassButtonActive {
 html[data-theme="pink-snow-ai"] .menu a.bg-base-300,
 html[data-theme="pink-snow-ai"] .menu a[aria-current="page"] {
   background: rgba(255, 79, 145, 0.2) !important;
-  color: #a90f50 !important;
+  color: #172033 !important;
   border-left: 3px solid var(--pink-ai-accent);
 }
 
