@@ -7,6 +7,10 @@ const path = require("path");
 const os = require("os");
 const { supabase, isSupabaseConfigured } = require("../../config/supabase");
 
+if (process.env.NODE_ENV === "production" && !process.env.DRAFT_MEDIA_DIR) {
+  throw new Error("DRAFT_MEDIA_DIR is required in production for drafts to persist.");
+}
+
 const META_ROOT = path.join(
   process.env.DRAFT_MEDIA_DIR || path.join(os.tmpdir(), "huy-locket-drafts"),
   "meta",
@@ -72,7 +76,7 @@ function publicView(row) {
 
 async function listDrafts(ownerUid) {
   const rows = readAll(ownerUid)
-    .filter((r) => r && !r.deletedAt)
+    .filter(Boolean)
     .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
   return rows.map(publicView);
 }

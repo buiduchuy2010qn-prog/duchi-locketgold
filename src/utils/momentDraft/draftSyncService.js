@@ -350,6 +350,15 @@ export async function pullCloudDrafts({ onProgress } = {}) {
     for (const cloud of remote) {
       if (!cloud?.id) continue;
       const local = await momentDraftDB.drafts.get(cloud.id);
+      
+      if (cloud.deletedAt) {
+        if (local) {
+          await momentDraftDB.drafts.delete(local.id);
+          await momentDraftDB.draftBlobs.delete(local.id);
+        }
+        continue;
+      }
+
       if (!local) {
         // Shell meta only — media on demand
         await momentDraftDB.drafts.put({
@@ -533,8 +542,12 @@ export async function pullCloudDrafts({ onProgress } = {}) {
         !st;
       if (keepLocal) continue;
       if (st === SYNC_STATUS.SYNCED || st === SYNC_STATUS.UPLOADING_POST) {
-        await momentDraftDB.drafts.delete(row.id);
-        await momentDraftDB.draftBlobs.delete(row.id);
+        // Since we use tombstones for deletion, a missing remote draft implies SERVER DATA LOSS.
+        // We resurrect the local draft to be re-uploaded.
+        await updateDraftMeta(row.id, {
+          syncStatus: SYNC_STATUS.PENDING_SYNC,
+          lastSyncError: "Khôi phục do mất dữ liệu trên máy chủ",
+        });
       }
     }
 
@@ -654,9 +667,10 @@ export async function ensureLocalMedia(draftId) {
 
 export async function syncAll({ onProgress } = {}) {
   if (!authOk()) return { ok: false, reason: "auth" };
-  const pull = await pullCloudDrafts({ onProgress });
+  const pull1 = await pullCloudDrafts({ onProgress });
   const push = await pushPendingDrafts({ onProgress });
-  return { ok: true, pull, push };
+  const pull2 = await pullCloudDrafts({ onProgress });
+  return { ok: true, pull1, push, pull2 };
 }
 
 export function isDraftSyncRunning() {

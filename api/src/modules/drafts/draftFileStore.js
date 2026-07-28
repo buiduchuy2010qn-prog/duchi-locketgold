@@ -8,6 +8,10 @@ const fs = require("fs");
 const path = require("path");
 const os = require("os");
 
+if (process.env.NODE_ENV === "production" && !process.env.DRAFT_MEDIA_DIR) {
+  throw new Error("DRAFT_MEDIA_DIR is required in production for draft files to persist.");
+}
+
 const ROOT = path.join(
   process.env.DRAFT_MEDIA_DIR || path.join(os.tmpdir(), "huy-locket-drafts"),
   "drafts",
