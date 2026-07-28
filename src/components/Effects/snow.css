@@ -40,3 +40,49 @@ html.tab-hidden .snow-layer {
     opacity: 0.5;
   }
 }
+
+/* ===== DOM SNOW PARTICLES (Hardware Accelerated) ===== */
+.dom-snow-container {
+  display: block;
+  z-index: 15;
+}
+
+.dom-snowflake-x {
+  position: absolute;
+  top: -10vh;
+  animation: sway-ai infinite alternate ease-in-out;
+  will-change: transform;
+}
+
+.dom-snowflake-y {
+  animation: fall-ai infinite linear;
+  will-change: transform;
+  font-family: Arial, "Segoe UI Symbol", sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes sway-ai {
+  0% { transform: translate3d(-30px, 0, 0); }
+  100% { transform: translate3d(30px, 0, 0); }
+}
+
+@keyframes fall-ai {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  100% { transform: translate3d(0, 120vh, 0) rotate(360deg); }
+}
+
+/* Reduced motion for DOM snow */
+@media (prefers-reduced-motion: reduce) {
+  .dom-snowflake-x { animation-name: none !important; }
+  .dom-snowflake-y { 
+    animation-duration: 40s !important; 
+    animation-name: fall-ai-slow !important;
+  }
+}
+
+@keyframes fall-ai-slow {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  100% { transform: translate3d(0, 120vh, 0) rotate(0deg); }
+}

@@ -1,9 +1,10 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useMemo } from "react";
 import "./snow.css";
 
 /**
  * Canvas snow — single fixed canvas, particle pool, rAF.
- * No DOM flakes / emoji. Does not capture pointer events.
+ * Pink mode — DOM-based hardware accelerated CSS animations with ❄❅❆.
+ * No JS loop for pink mode. Does not capture pointer events.
  * Never draws into camera MediaStream or capture canvas.
  */
 const SnowEffect = ({
@@ -19,7 +20,65 @@ const SnowEffect = ({
   const particlesRef = useRef([]);
   const sizeRef = useRef({ w: 0, h: 0, dpr: 1 });
 
+  // DOM Snow for Pink Mode
+  const domFlakes = useMemo(() => {
+    if (!pinkMode) return [];
+    
+    const arr = [];
+    const count = Math.max(0, Math.min(150, Number(maxFlakes) || 0));
+    
+    for (let i = 0; i < count; i++) {
+      const r = Math.random();
+      const isRound = r < 0.55;
+      const isLarge = !isRound;
+      
+      let char = '';
+      if (!isRound) {
+        if (r < 0.85) char = '❄';
+        else char = Math.random() < 0.5 ? '❅' : '❆';
+      }
+      
+      const left = Math.random() * 100;
+      const animDuration = 7 + Math.random() * 9; // 7-16s
+      const swayDuration = 2 + Math.random() * 3;
+      const animDelay = -(Math.random() * 20); // negative delay to fill screen
+      
+      const size = isRound ? 2 + Math.random() * 4 : 10 + Math.random() * 12;
+      
+      const colors = ['#ffffff', '#fff0f5', '#ffe4ed'];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      
+      const opacity = 0.4 + Math.random() * 0.6;
+      
+      arr.push({
+        id: i,
+        char,
+        isRound,
+        xStyle: {
+          left: `${left}vw`,
+          animationDuration: `${swayDuration}s`,
+          animationDelay: `${animDelay}s`,
+          zIndex: isLarge ? 20 : 10,
+        },
+        yStyle: {
+          fontSize: `${size}px`,
+          color,
+          opacity,
+          animationDuration: `${animDuration}s`,
+          animationDelay: `${animDelay}s`,
+          width: isRound ? `${size}px` : 'auto',
+          height: isRound ? `${size}px` : 'auto',
+          backgroundColor: isRound ? color : 'transparent',
+          borderRadius: isRound ? '50%' : '0'
+        }
+      });
+    }
+    return arr;
+  }, [pinkMode, maxFlakes]);
+
   useEffect(() => {
+    if (pinkMode) return; // Skip canvas loop for pinkMode
+
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d", { alpha: true });
@@ -43,11 +102,7 @@ const SnowEffect = ({
     };
 
     const colorFor = () => {
-      if (!pinkMode) return "rgba(255,255,255,";
-      const r = Math.random();
-      if (r < 0.4) return "rgba(255,255,255,"; // Trắng
-      if (r < 0.8) return "rgba(255,230,240,"; // Hồng nhạt
-      return "rgba(255,160,200,"; // Hồng sáng
+      return "rgba(255,255,255,";
     };
 
     const resetParticle = (p, spawnTop) => {
@@ -73,7 +128,7 @@ const SnowEffect = ({
       p.drift = (Math.random() - 0.5) * 0.6;
       p.phase = Math.random() * Math.PI * 2;
       p.color = colorFor();
-      p.kind = Math.random() < 0.6 ? 0 : Math.random() < 0.8 ? 1 : 2; // 0 circle, 1 soft star, 2 cross
+      p.kind = Math.random() < 0.6 ? 0 : Math.random() < 0.8 ? 1 : 2; 
     };
 
     // Build / trim pool (reuse — no alloc in loop)
@@ -197,7 +252,21 @@ const SnowEffect = ({
         /* ignore */
       }
     };
-  }, [maxFlakes, pinkMode, staticOnly]);
+  }, [maxFlakes, pinkMode, staticOnly, reduceMotion]);
+
+  if (pinkMode) {
+    return (
+      <div className={`snow-layer dom-snow-container snow-layer--pink ${className}`.trim()} aria-hidden="true">
+        {domFlakes.map(f => (
+          <div key={f.id} className="dom-snowflake-x" style={f.xStyle}>
+            <div className="dom-snowflake-y" style={f.yStyle}>
+              {f.char}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <canvas
