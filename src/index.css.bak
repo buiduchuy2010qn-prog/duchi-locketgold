@@ -1,0 +1,393 @@
+﻿:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  /* color-scheme: light dark; */
+  color: rgba(255, 255, 255, 0.87);
+  /* background-color: #242424; */
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* --theme-color: #ffffff: */
+}
+.no-save {
+  pointer-events: none; /* NgÄƒn má»i tÆ°Æ¡ng tÃ¡c chuá»™t */
+  -webkit-user-drag: none; /* Chrome, Edge, Opera */
+}
+.no-select {
+  user-select: none; /* Cháº·n chá»n chá»¯ trÃªn táº¥t cáº£ trÃ¬nh duyá»‡t */
+  -webkit-user-select: none; /* Safari */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* IE/Edge */
+  pointer-events: none; /* NgÄƒn má»i tÆ°Æ¡ng tÃ¡c chuá»™t */
+  -webkit-user-drag: none; /* Chrome, Edge, Opera */
+}
+.disable-select {
+  user-select: none; /* Cháº·n chá»n chá»¯ trÃªn táº¥t cáº£ trÃ¬nh duyá»‡t */
+  -webkit-user-select: none; /* Safari */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* IE/Edge */
+  pointer-events: none; /* NgÄƒn má»i tÆ°Æ¡ng tÃ¡c chuá»™t */
+  -webkit-user-drag: none; /* Chrome, Edge, Opera */
+}
+@keyframes gradientMove {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.bg-locket {
+  background: linear-gradient(rgb(0, 0, 0), #8f6700);
+  background-size: 200% 200%;
+  /* animation: gradientMove 5s ease infinite; */
+  color: white;
+}
+
+.font-lovehouse {
+  font-family: "LoveHouse", system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+@font-face {
+  font-family: "LoveHouse";
+  src: url("/fonts/LoveHouse.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+.font-purrfect {
+  font-family: "Purrfect", system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+@font-face {
+  font-family: 'Purrfect';
+  src: url("/fonts/Purrfect.woff2") format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Class Ä‘á»ƒ dÃ¹ng font nÃ y */
+/* .sf-compact-rounded-regular {
+  font-family: 'SF Compact Rounded Black', sans-serif;
+} */
+
+/* Animation send new moments */
+@layer utilities {
+  .animate-slide-up {
+    animation: slide-up 0.5s forwards;
+  }
+
+  .animate-reset {
+    animation: reset 0s forwards, scale-up 0.5s 0.1s forwards;
+  }
+
+  @keyframes slide-up {
+    0% {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1) translateY(-100vh); /* Äáº©y lÃªn khá»i mÃ n hÃ¬nh */
+    }
+  }
+
+  @keyframes reset {
+    0% {
+      opacity: 0;
+      transform: scale(0) translateY(-100vh);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(0) translateY(0);
+    }
+  }
+
+  @keyframes scale-up {
+    0% {
+      opacity: 0;
+      transform: scale(0);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+}
+
+@keyframes angry-shake {
+  0% {
+    transform: scale(var(--emoji-scale, 1)) rotate(-6deg);
+  }
+
+  25% {
+    transform: scale(var(--emoji-scale, 1)) rotate(6deg);
+  }
+
+  50% {
+    transform: scale(var(--emoji-scale, 1)) rotate(-8deg);
+  }
+
+  75% {
+    transform: scale(var(--emoji-scale, 1)) rotate(8deg);
+  }
+
+  100% {
+    transform: scale(var(--emoji-scale, 1)) rotate(-6deg);
+  }
+}
+
+.shake {
+  animation: angry-shake var(--shake-speed, 0.12s) linear infinite;
+  transform-origin: center;
+}
+
+/* prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+html.tab-hidden .snow-layer,
+html.tab-hidden .perf-snow,
+html.tab-hidden [data-decorative-fx] {
+  animation-play-state: paused !important;
+  visibility: hidden;
+}
+
+
+/* ═══ THEME PINK SNOW AI — BRIGHT PINK ONLY ═══ */
+
+/* ── Page background ── */
+body.theme-pink-snow-ai,
+.theme-pink-snow-ai #root,
+.theme-pink-snow-ai .bg-locket,
+.theme-pink-snow-ai main {
+  background-color: #fff0f7 !important;
+  background-image: none !important;
+  color: #a41450 !important;
+}
+
+/* ── Dark backgrounds → bright pink ── */
+.theme-pink-snow-ai .bg-black,
+.theme-pink-snow-ai .bg-black\/50,
+.theme-pink-snow-ai .bg-black\/80,
+.theme-pink-snow-ai .bg-zinc-950,
+.theme-pink-snow-ai .bg-zinc-900,
+.theme-pink-snow-ai .bg-zinc-800,
+.theme-pink-snow-ai .bg-zinc-700,
+.theme-pink-snow-ai .bg-neutral-900,
+.theme-pink-snow-ai .bg-neutral-800,
+.theme-pink-snow-ai .bg-gray-900,
+.theme-pink-snow-ai .bg-gray-800,
+.theme-pink-snow-ai .bg-slate-900,
+.theme-pink-snow-ai .bg-slate-800,
+.theme-pink-snow-ai .bg-base-100,
+.theme-pink-snow-ai .bg-base-200,
+.theme-pink-snow-ai .bg-base-300 {
+  background-color: #ffe0ec !important;
+  color: #a41450 !important;
+}
+
+/* ── Header specific ── */
+.theme-pink-snow-ai header,
+.theme-pink-snow-ai [data-header],
+.theme-pink-snow-ai nav {
+  background-color: #ff9fc5 !important;
+  color: #a41450 !important;
+}
+
+/* ── Cards / floating elements ── */
+.theme-pink-snow-ai .card,
+.theme-pink-snow-ai .modal-box,
+.theme-pink-snow-ai .dropdown-content,
+.theme-pink-snow-ai .tooltip,
+.theme-pink-snow-ai [role="dialog"],
+.theme-pink-snow-ai .popover {
+  background-color: #ffc6dc !important;
+  color: #a41450 !important;
+  box-shadow: 0 8px 24px rgba(255, 79, 145, 0.2) !important;
+}
+
+/* ── White text → pink-red dark text ── */
+.theme-pink-snow-ai .text-white,
+.theme-pink-snow-ai .text-gray-100,
+.theme-pink-snow-ai .text-gray-200,
+.theme-pink-snow-ai .text-gray-300,
+.theme-pink-snow-ai .text-gray-400,
+.theme-pink-snow-ai .text-zinc-100,
+.theme-pink-snow-ai .text-zinc-200,
+.theme-pink-snow-ai .text-zinc-300,
+.theme-pink-snow-ai .text-zinc-400,
+.theme-pink-snow-ai .text-slate-100,
+.theme-pink-snow-ai .text-slate-200,
+.theme-pink-snow-ai .text-slate-300 {
+  color: #a41450 !important;
+}
+
+/* ── Secondary text ── */
+.theme-pink-snow-ai .text-gray-500,
+.theme-pink-snow-ai .text-gray-600,
+.theme-pink-snow-ai .text-zinc-500,
+.theme-pink-snow-ai .text-zinc-600,
+.theme-pink-snow-ai .text-slate-400,
+.theme-pink-snow-ai .text-slate-500 {
+  color: #c24678 !important;
+}
+
+/* ── Primary / accent colors ── */
+.theme-pink-snow-ai .bg-yellow-400,
+.theme-pink-snow-ai .bg-yellow-500,
+.theme-pink-snow-ai .bg-primary {
+  background-color: #ff4f91 !important;
+  color: #fff !important;
+}
+
+.theme-pink-snow-ai .text-yellow-400,
+.theme-pink-snow-ai .text-yellow-500,
+.theme-pink-snow-ai .text-primary {
+  color: #ff4f91 !important;
+}
+
+/* ── Borders ── */
+.theme-pink-snow-ai .border-zinc-800,
+.theme-pink-snow-ai .border-zinc-700,
+.theme-pink-snow-ai .border-zinc-600,
+.theme-pink-snow-ai .border-gray-700,
+.theme-pink-snow-ai .border-gray-600,
+.theme-pink-snow-ai .border-white\/10,
+.theme-pink-snow-ai .border-white\/20,
+.theme-pink-snow-ai .border-base-300,
+.theme-pink-snow-ai .border-base-200,
+.theme-pink-snow-ai .border-gray-300 {
+  border-color: #ff85b3 !important;
+}
+
+/* ── Semi-transparent backgrounds → pink tint ── */
+.theme-pink-snow-ai .bg-white\/10,
+.theme-pink-snow-ai .bg-white\/20,
+.theme-pink-snow-ai .bg-white\/5 {
+  background-color: rgba(255, 79, 145, 0.1) !important;
+}
+
+/* ── Buttons ── */
+.theme-pink-snow-ai button:not(.camera-shutter):not([aria-label]) {
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.theme-pink-snow-ai .btn,
+.theme-pink-snow-ai button.bg-zinc-800,
+.theme-pink-snow-ai button.bg-neutral {
+  background-color: #ffb6d1 !important;
+  color: #a41450 !important;
+  border-color: #ff85b3 !important;
+  box-shadow: 0 2px 8px rgba(255, 79, 145, 0.15) !important;
+}
+
+.theme-pink-snow-ai .btn:hover,
+.theme-pink-snow-ai button.bg-zinc-800:hover,
+.theme-pink-snow-ai button.bg-neutral:hover {
+  background-color: #ff76aa !important;
+  color: #ffffff !important;
+}
+
+.theme-pink-snow-ai .btn-primary,
+.theme-pink-snow-ai .btn-active,
+.theme-pink-snow-ai button[aria-pressed="true"] {
+  background-color: #ff4f91 !important;
+  color: #ffffff !important;
+  border-color: #ff4f91 !important;
+}
+
+/* ── Camera button — keep shape, just change border/bg ── */
+.theme-pink-snow-ai button.border-white.border-4,
+.theme-pink-snow-ai .border-camera-custome {
+  border-color: #ff4f91 !important;
+}
+
+/* ── Select / dropdown / language picker ── */
+.theme-pink-snow-ai select,
+.theme-pink-snow-ai .select,
+.theme-pink-snow-ai .select-bordered {
+  background-color: #ffe0ec !important;
+  color: #a41450 !important;
+  border-color: #ff85b3 !important;
+}
+
+.theme-pink-snow-ai select option {
+  background-color: #ffe0ec !important;
+  color: #a41450 !important;
+}
+
+/* ── Toast / badge / alert ── */
+.theme-pink-snow-ai .toast,
+.theme-pink-snow-ai .alert,
+.theme-pink-snow-ai .badge {
+  background-color: #ffc6dc !important;
+  color: #a41450 !important;
+  border-color: #ff85b3 !important;
+  box-shadow: 0 4px 16px rgba(255, 79, 145, 0.15) !important;
+}
+
+.theme-pink-snow-ai .badge-primary {
+  background-color: #ff4f91 !important;
+  color: #ffffff !important;
+}
+
+/* ── Shadows override — NO BLACK SHADOWS ── */
+.theme-pink-snow-ai .shadow,
+.theme-pink-snow-ai .shadow-md,
+.theme-pink-snow-ai .shadow-lg,
+.theme-pink-snow-ai .shadow-xl {
+  box-shadow: 0 8px 24px rgba(255, 79, 145, 0.2) !important;
+}
+
+/* ── Protect video/canvas/img from pink override ── */
+.theme-pink-snow-ai video,
+.theme-pink-snow-ai canvas.snow-layer,
+.theme-pink-snow-ai img,
+.theme-pink-snow-ai .camera-preview,
+.theme-pink-snow-ai .media-preview {
+  background-color: transparent !important;
+  filter: none !important;
+}
+
+/* ── Input / textarea ── */
+.theme-pink-snow-ai input,
+.theme-pink-snow-ai textarea {
+  color: #a41450 !important;
+  background-color: #fff0f7 !important;
+  border-color: #ff85b3 !important;
+}
+.theme-pink-snow-ai input::placeholder,
+.theme-pink-snow-ai textarea::placeholder {
+  color: #c24678 !important;
+}
+
+/* ── Scrollbar ── */
+.theme-pink-snow-ai ::-webkit-scrollbar-track {
+  background: #ffe0ec;
+}
+.theme-pink-snow-ai ::-webkit-scrollbar-thumb {
+  background: #ffb6d1;
+  border-radius: 999px;
+}
+.theme-pink-snow-ai ::-webkit-scrollbar-thumb:hover {
+  background: #ff76aa;
+}
+
+/* ── Focus ring ── */
+.theme-pink-snow-ai *:focus-visible {
+  outline-color: #ff4f91 !important;
+}
+
+/* ═══ END THEME PINK SNOW AI ═══ */
