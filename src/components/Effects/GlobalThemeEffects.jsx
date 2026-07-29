@@ -2,10 +2,12 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useTheme } from "@/hooks/useTheme";
 import SnowEffect from "./SnowEffect";
+import OceanEffect from "./OceanEffect";
 import {
   hasSnowEffect,
   isPinkSnowTheme,
   isPinkSnowAiTheme,
+  isOceanBlueTheme,
   getSnowIntensity,
 } from "@/utils/theme/themeUtils";
 import { getPerfProfile } from "@/utils/device/perfProfile";
@@ -81,7 +83,13 @@ const GlobalThemeEffects = () => {
     };
   }, [snowTheme, intensity, theme, reduceMotion, onCameraRoute]);
 
-  if (!cfg.enabled || hidden) return null;
+  if (hidden) return null;
+
+  if (isOceanBlueTheme(theme)) {
+    return <OceanEffect reduceMotion={reduceMotion} />;
+  }
+
+  if (!cfg.enabled) return null;
 
   return (
     <SnowEffect

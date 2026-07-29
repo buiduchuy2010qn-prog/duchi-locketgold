@@ -7,6 +7,7 @@ export const GLASS_THEME = "glass";
 export const PINK_SAKURA_GLASS_THEME = "pink-sakura-glass";
 export const PINK_LITE_THEME = "pink-lite";
 export const PINK_SNOW_AI_THEME = "pink-snow-ai";
+export const OCEAN_BLUE_THEME = "ocean-blue";
 
 /** User-facing storage key values */
 export const HUY_THEME_KEY = "huy-locket-theme";
@@ -17,6 +18,7 @@ export const HUY_THEME_GLASS = "glass";
 export const HUY_THEME_PINK_SAKURA = "pink-sakura-glass";
 export const HUY_THEME_PINK_LITE = "pink-lite";
 export const HUY_THEME_PINK_SNOW_AI = "pink-snow-ai";
+export const HUY_THEME_OCEAN_BLUE = "ocean-blue";
 
 /** Theme bật hiệu ứng tuyết rơi — Glass does NOT include snow */
 export const SNOW_THEME_IDS = new Set([
@@ -44,6 +46,9 @@ export const isPinkLiteTheme = (theme) =>
 export const isPinkSnowAiTheme = (theme) =>
   theme === PINK_SNOW_AI_THEME || theme === HUY_THEME_PINK_SNOW_AI;
 
+export const isOceanBlueTheme = (theme) =>
+  theme === OCEAN_BLUE_THEME || theme === HUY_THEME_OCEAN_BLUE;
+
 export const hasSnowEffect = (theme) => SNOW_THEME_IDS.has(theme);
 
 /** Map any theme id → huy-locket-theme storage value */
@@ -55,6 +60,7 @@ export function toHuyThemeKey(themeId) {
   if (isPinkSakuraGlassTheme(themeId)) return HUY_THEME_PINK_SAKURA;
   if (isPinkLiteTheme(themeId)) return HUY_THEME_PINK_LITE;
   if (isPinkSnowAiTheme(themeId)) return HUY_THEME_PINK_SNOW_AI;
+  if (isOceanBlueTheme(themeId)) return HUY_THEME_OCEAN_BLUE;
   return HUY_THEME_DEFAULT;
 }
 
@@ -103,6 +109,9 @@ export function resolveStoredTheme() {
     }
     if (huy === HUY_THEME_PINK_SNOW_AI || huy === "pink-snow-ai") {
       return PINK_SNOW_AI_THEME;
+    }
+    if (huy === HUY_THEME_OCEAN_BLUE || huy === "ocean-blue") {
+      return OCEAN_BLUE_THEME;
     }
     if (huy === HUY_THEME_DEFAULT) {
       const legacy = localStorage.getItem("theme");
@@ -155,11 +164,13 @@ export const applyTheme = (theme) => {
   root.classList.toggle("theme-pink-sakura-glass", isPinkSakuraGlassTheme(dataTheme));
   root.classList.toggle("theme-pink-lite", isPinkLiteTheme(dataTheme));
   root.classList.toggle("theme-pink-snow-ai", isPinkSnowAiTheme(dataTheme));
+  root.classList.toggle("theme-ocean-blue", isOceanBlueTheme(dataTheme));
   document.body?.classList.toggle("theme-pink-snow", isPinkSnowTheme(dataTheme));
   document.body?.classList.toggle("theme-glass", isGlassTheme(dataTheme));
   document.body?.classList.toggle("theme-pink-sakura-glass", isPinkSakuraGlassTheme(dataTheme));
   document.body?.classList.toggle("theme-pink-lite", isPinkLiteTheme(dataTheme));
   document.body?.classList.toggle("theme-pink-snow-ai", isPinkSnowAiTheme(dataTheme));
+  document.body?.classList.toggle("theme-ocean-blue", isOceanBlueTheme(dataTheme));
 
   try {
     localStorage.setItem("theme", dataTheme);
@@ -193,6 +204,8 @@ export const applyTheme = (theme) => {
     baseColor = "#ec407a";
   } else if (isPinkSnowAiTheme(dataTheme)) {
     baseColor = "#ff3385";
+  } else if (isOceanBlueTheme(dataTheme)) {
+    baseColor = "#0284c7";
   }
 
   let metaTheme = document.querySelector('meta[name="theme-color"]');

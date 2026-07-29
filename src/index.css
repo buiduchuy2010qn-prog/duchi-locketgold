@@ -539,3 +539,41 @@ body.theme-pink-snow-ai,
 .theme-pink-snow-ai button.w-11.h-11 {
   border-radius: 50% !important;
 }
+/* ?????? THEME OCEAN BLUE ?????? */
+html[data-theme="ocean-blue"] {
+  --fallback-b1: 223 100% 95%; /* #dff7ff */
+}
+
+body.theme-ocean-blue,
+html[data-theme="ocean-blue"] {
+  background: linear-gradient(180deg, #dff7ff 0%, #7dd3fc 40%, #0284c7 100%) !important;
+  background-attachment: fixed !important;
+  color: #073b5c;
+}
+
+/* ?? Protect Camera View ?? */
+html[data-theme="ocean-blue"] .cameraPreview,
+html[data-theme="ocean-blue"] .cameraPreview video,
+html[data-theme="ocean-blue"] [data-locket-camera] video,
+html[data-theme="ocean-blue"] video.object-cover {
+  filter: none !important;
+  opacity: 1 !important;
+  mix-blend-mode: normal !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+}
+
+/* ?? Zoom Badge Protection ?? */
+html[data-theme="ocean-blue"] [data-zoom-badge="true"] > div,
+html[data-theme="ocean-blue"] [data-zoom-slider="true"] .bg-black\/70 {
+  background-color: rgba(3, 105, 161, 0.9) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.55) !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75) !important;
+}
+
+html[data-theme="ocean-blue"] [data-zoom-badge="true"] .text-white,
+html[data-theme="ocean-blue"] [data-zoom-slider="true"] .text-white,
+html[data-theme="ocean-blue"] [data-zoom-slider="true"] .text-white\/80 {
+  color: #ffffff !important;
+}
