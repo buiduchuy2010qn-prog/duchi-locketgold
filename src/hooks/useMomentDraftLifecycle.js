@@ -1,9 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   useAuthStore,
   useMomentDraftStore,
   useOverlayEditorStore,
   usePostStore,
+  useUploadQueueStore,
 } from "@/stores";
 import { resolveDraftUid, requestDraftPersist } from "@/utils/momentDraft";
 import { useConnectivityStore } from "@/stores/useConnectivityStore";
@@ -17,11 +18,23 @@ export function useMomentDraftLifecycle() {
   const isAuth = useAuthStore((s) => s.isAuth);
   const checkAndOfferRestore = useMomentDraftStore((s) => s.checkAndOfferRestore);
   const flushMetaSave = useMomentDraftStore((s) => s.flushMetaSave);
-  const scheduleMetaSave = useMomentDraftStore((s) => s.scheduleMetaSave);
   const refreshDraftPresence = useMomentDraftStore((s) => s.refreshDraftPresence);
+  const activeDraftId = useMomentDraftStore((s) => s.activeDraftId);
+  const postingDraftId = useMomentDraftStore((s) => s.postingDraftId);
+  const selectedFile = usePostStore((s) => s.selectedFile);
+  const uploadInProgress = useUploadQueueStore(
+    (s) =>
+      s.isQueueRunning ||
+      s.uploadItems.some((item) => item.status === "uploading"),
+  );
   const isOffline = useConnectivityStore((s) => s.isOffline);
   const serverReachable = useConnectivityStore((s) => s.serverReachable);
   const prevUid = useRef(null);
+  const mediaSaveVersion = useRef(0);
+  const metaSaveVersion = useRef(0);
+  const metaSaveTimer = useRef(null);
+  const [mediaSaveState, setMediaSaveState] = useState("idle");
+  const [metaSavePending, setMetaSavePending] = useState(false);
 
   useEffect(() => {
     if (!isAuth) return;
@@ -59,8 +72,30 @@ export function useMomentDraftLifecycle() {
   }, [isAuth, isOffline, serverReachable]);
 
   useEffect(() => {
+    let disposed = false;
+
+    const queueMetaSave = () => {
+      if (!useMomentDraftStore.getState().activeDraftId) return;
+
+      const version = ++metaSaveVersion.current;
+      setMetaSavePending(true);
+      if (metaSaveTimer.current) clearTimeout(metaSaveTimer.current);
+      metaSaveTimer.current = setTimeout(() => {
+        metaSaveTimer.current = null;
+        void flushMetaSave()
+          .then(() => {
+            if (!disposed && metaSaveVersion.current === version) {
+              setMetaSavePending(false);
+            }
+          })
+          .catch(() => {
+            /* Keep warning active until a later save succeeds. */
+          });
+      }, 250);
+    };
+
     const unsubOverlay = useOverlayEditorStore.subscribe(() => {
-      scheduleMetaSave(250);
+      queueMetaSave();
     });
     const unsubPost = usePostStore.subscribe((state, prev) => {
       if (
@@ -70,22 +105,57 @@ export function useMomentDraftLifecycle() {
         state.videoCropData !== prev.videoCropData ||
         state.restoreStreakData !== prev.restoreStreakData
       ) {
-        scheduleMetaSave(250);
+        queueMetaSave();
       }
       // New media file → bind to active draft or create NEW uuid (never overwrite others)
       if (state.selectedFile && state.selectedFile !== prev.selectedFile) {
-        void useMomentDraftStore.getState().saveMediaFromFile(state.selectedFile);
+        const version = ++mediaSaveVersion.current;
+        setMediaSaveState("saving");
+        void useMomentDraftStore
+          .getState()
+          .saveMediaFromFile(state.selectedFile)
+          .then((result) => {
+            if (disposed || mediaSaveVersion.current !== version) return;
+            setMediaSaveState(result?.error ? "failed" : "saved");
+          })
+          .catch(() => {
+            if (!disposed && mediaSaveVersion.current === version) {
+              setMediaSaveState("failed");
+            }
+          });
+      } else if (!state.selectedFile && prev.selectedFile) {
+        mediaSaveVersion.current += 1;
+        setMediaSaveState("idle");
+        setMetaSavePending(false);
       }
     });
     return () => {
+      disposed = true;
       unsubOverlay();
       unsubPost();
+      if (metaSaveTimer.current) {
+        clearTimeout(metaSaveTimer.current);
+        metaSaveTimer.current = null;
+      }
     };
-  }, [scheduleMetaSave]);
+  }, [flushMetaSave]);
 
   useEffect(() => {
     const flush = () => {
-      void flushMetaSave();
+      if (metaSaveTimer.current) {
+        clearTimeout(metaSaveTimer.current);
+        metaSaveTimer.current = null;
+      }
+      const version = metaSaveVersion.current;
+      void flushMetaSave()
+        .then(() => {
+          if (metaSaveVersion.current === version) {
+            setMetaSavePending(false);
+          }
+        })
+        .catch(() => {
+          /* Keep beforeunload warning active when persistence fails. */
+        });
     };
     const onVis = () => {
       if (document.visibilityState === "hidden") flush();
@@ -100,17 +170,33 @@ export function useMomentDraftLifecycle() {
   }, [flushMetaSave]);
 
   useEffect(() => {
+    const hasUnsavedMedia =
+      Boolean(selectedFile) &&
+      (mediaSaveState === "saving" ||
+        mediaSaveState === "failed" ||
+        !activeDraftId);
+    const shouldWarnBeforeUnload =
+      hasUnsavedMedia ||
+      metaSavePending ||
+      uploadInProgress ||
+      Boolean(postingDraftId);
+
+    if (!shouldWarnBeforeUnload) return;
+
     const onBeforeUnload = (e) => {
-      const post = usePostStore.getState();
-      // Drafts already in the library are persisted and must not block an app
-      // update. Only warn while media is actively open in the editor.
-      if (!post.selectedFile && !post.preview) return;
       e.preventDefault();
       e.returnValue = "";
     };
     window.addEventListener("beforeunload", onBeforeUnload);
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
-  }, []);
+  }, [
+    activeDraftId,
+    mediaSaveState,
+    metaSavePending,
+    postingDraftId,
+    selectedFile,
+    uploadInProgress,
+  ]);
 
   useEffect(() => {
     if (!isAuth) return;

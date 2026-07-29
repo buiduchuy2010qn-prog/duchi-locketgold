@@ -1,10 +1,29 @@
 const RELOAD_KEY = "__app_reload_once__";
+const DOM_RELOAD_KEY = "hl_dom_recover_v2";
+const STABLE_LOAD_MS = 30 * 1000;
+let resetTimer = null;
+let resetScheduled = false;
 
-// reset reload state nếu app load OK
+// Chỉ mở lại quyền recovery sau khi trang đã chạy ổn định.
+// Không xóa guard ngay lúc load vì lỗi chunk/DOM có thể tái diễn sau đó.
 export function initReloadState() {
-  window.addEventListener("load", () => {
-    sessionStorage.removeItem(RELOAD_KEY);
-  });
+  if (resetScheduled) return;
+  resetScheduled = true;
+
+  const scheduleStableReset = () => {
+    if (resetTimer) clearTimeout(resetTimer);
+    resetTimer = setTimeout(() => {
+      sessionStorage.removeItem(RELOAD_KEY);
+      sessionStorage.removeItem(DOM_RELOAD_KEY);
+      resetTimer = null;
+    }, STABLE_LOAD_MS);
+  };
+
+  if (document.readyState === "complete") {
+    scheduleStableReset();
+  } else {
+    window.addEventListener("load", scheduleStableReset, { once: true });
+  }
 }
 
 // recovery UI

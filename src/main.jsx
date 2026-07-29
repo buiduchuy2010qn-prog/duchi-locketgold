@@ -21,11 +21,6 @@ applyPerfClasses();
 
 // init chunk recovery flags
 initReloadState();
-try {
-  sessionStorage.removeItem("hl_dom_recover_v2");
-} catch {
-  /* ignore */
-}
 
 const rootEl = document.getElementById("root");
 if (rootEl) {

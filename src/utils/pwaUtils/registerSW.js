@@ -1,67 +1,156 @@
-import { registerSW } from "virtual:pwa-register";
 import {
   handleServiceWorkerUpdate,
-  setPendingSwApply,
-  checkForAppUpdate,
+  setServiceWorkerCheck,
 } from "./updateWatcher";
 
-/**
- * PWA register — silent. AppUpdateButton appears when update is ready.
- */
-export function initPWA() {
-  let registration = null;
-  let swUpdateNotified = false;
+const SW_URL = "/sw.js";
+const SW_SCOPE = "/";
+const UPDATE_CHECK_MS = 10 * 60 * 1000;
 
-  const notifySwOnce = (updateSW) => {
-    if (swUpdateNotified) return;
-    swUpdateNotified = true;
-    handleServiceWorkerUpdate(() => updateSW?.(true));
+let initialized = false;
+let initPromise = null;
+let registration = null;
+let registrationUpdatePromise = null;
+let updateTimer = null;
+let notifiedWaitingWorker = null;
+let visibilityHandler = null;
+let updateFoundHandler = null;
+const workerStateHandlers = new Map();
+
+function removeWorkerStateHandler(worker) {
+  const handler = workerStateHandlers.get(worker);
+  if (!handler) return;
+  worker.removeEventListener("statechange", handler);
+  workerStateHandlers.delete(worker);
+}
+
+function notifyWaitingWorker() {
+  const waitingWorker = registration?.waiting;
+  if (!waitingWorker) return false;
+  if (waitingWorker === notifiedWaitingWorker) return true;
+
+  notifiedWaitingWorker = waitingWorker;
+  handleServiceWorkerUpdate(async () => {
+    const worker = registration?.waiting || waitingWorker;
+    if (!worker || worker.state === "redundant") return false;
+    worker.postMessage({ type: "SKIP_WAITING" });
+    return true;
+  });
+  return true;
+}
+
+function watchInstallingWorker(worker) {
+  if (!worker || workerStateHandlers.has(worker)) return;
+
+  const onStateChange = () => {
+    if (worker.state === "installed") {
+      removeWorkerStateHandler(worker);
+      if (navigator.serviceWorker.controller) {
+        notifyWaitingWorker();
+      } else {
+        console.log("[PWA] offline ready — shell cached");
+      }
+    } else if (worker.state === "redundant") {
+      removeWorkerStateHandler(worker);
+    }
   };
 
-  const updateSW = registerSW({
-    // Register as soon as module runs (do not wait for window load only).
-    // Scope is `/` via vite-plugin-pwa + Workbox(`/sw.js`, { scope: "/" }).
-    immediate: true,
-    onNeedRefresh() {
-      console.log("[PWA] waiting SW — show update button");
-      notifySwOnce(updateSW);
-    },
-    onOfflineReady() {
-      console.log("[PWA] offline ready — shell cached");
-    },
-    onRegisteredSW(swUrl, reg) {
-      console.log("[PWA] registered", swUrl, "scope", reg?.scope);
-      registration = reg || null;
-      if (!registration) return;
+  workerStateHandlers.set(worker, onStateChange);
+  worker.addEventListener("statechange", onStateChange);
+  onStateChange();
+}
 
-      setPendingSwApply(async () => {
-        await updateSW?.(true);
-      });
+function requestRegistrationUpdate() {
+  if (registrationUpdatePromise) return registrationUpdatePromise;
 
-      if (registration.waiting) {
-        notifySwOnce(updateSW);
-      }
+  registrationUpdatePromise = (async () => {
+    const currentRegistration = registration || (await initPromise);
+    if (!currentRegistration) return false;
 
-      setInterval(() => {
-        if (document.hidden || !registration) return;
-        try {
-          registration.update();
-        } catch {
-          /* ignore */
-        }
-      }, 10 * 60 * 1000);
-    },
+    await currentRegistration.update();
+    watchInstallingWorker(currentRegistration.installing);
+    return notifyWaitingWorker();
+  })().finally(() => {
+    registrationUpdatePromise = null;
   });
 
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState !== "visible" || !registration) return;
-    try {
-      registration.update();
-    } catch {
-      /* ignore */
-    }
-    checkForAppUpdate();
-  });
+  return registrationUpdatePromise;
+}
 
-  return updateSW;
+/**
+ * Register and observe the PWA service worker.
+ * Applying a waiting worker and reloading are owned only by updateWatcher.
+ */
+export function initPWA() {
+  if (initPromise) return initPromise;
+  if (
+    initialized ||
+    typeof navigator === "undefined" ||
+    !("serviceWorker" in navigator)
+  ) {
+    return Promise.resolve(registration);
+  }
+
+  initialized = true;
+  initPromise = navigator.serviceWorker
+    .register(SW_URL, { scope: SW_SCOPE })
+    .then((registered) => {
+      registration = registered;
+      console.log("[PWA] registered", SW_URL, "scope", registered.scope);
+
+      updateFoundHandler = () => {
+        watchInstallingWorker(registration?.installing);
+      };
+      registration.addEventListener("updatefound", updateFoundHandler);
+
+      watchInstallingWorker(registration.installing);
+      notifyWaitingWorker();
+
+      visibilityHandler = () => {
+        if (document.visibilityState !== "visible") return;
+        void requestRegistrationUpdate().catch(() => {});
+      };
+      document.addEventListener("visibilitychange", visibilityHandler);
+
+      updateTimer = setInterval(() => {
+        if (document.hidden) return;
+        void requestRegistrationUpdate().catch(() => {});
+      }, UPDATE_CHECK_MS);
+
+      return registration;
+    })
+    .catch((error) => {
+      console.warn("[PWA] registration failed", error);
+      initialized = false;
+      initPromise = null;
+      return null;
+    });
+
+  setServiceWorkerCheck(requestRegistrationUpdate);
+  return initPromise;
+}
+
+export function disposePWA() {
+  if (updateTimer) {
+    clearInterval(updateTimer);
+    updateTimer = null;
+  }
+  if (visibilityHandler) {
+    document.removeEventListener("visibilitychange", visibilityHandler);
+    visibilityHandler = null;
+  }
+  if (registration && updateFoundHandler) {
+    registration.removeEventListener("updatefound", updateFoundHandler);
+    updateFoundHandler = null;
+  }
+  for (const worker of workerStateHandlers.keys()) {
+    removeWorkerStateHandler(worker);
+  }
+
+  setServiceWorkerCheck(null);
+  notifiedWaitingWorker = null;
+  registrationUpdatePromise = null;
+  registration = null;
+  initPromise = null;
+  initialized = false;
 }
