@@ -21,8 +21,9 @@ const DelButton = () => {
 
   const discardStudio = useCallback(async () => {
     // Soft-delete draft in IDB (pendingDeletion + Undo toast) when present
-    if (hasDraft || useMomentDraftStore.getState().draftMeta?.mediaKey) {
-      await softDeleteDraft();
+    const activeDraftId = useMomentDraftStore.getState().activeDraftId;
+    if (activeDraftId) {
+      await softDeleteDraft(activeDraftId);
     }
 
     if (camera.streamRef.current) {

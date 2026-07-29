@@ -447,7 +447,7 @@ export const useMomentDraftStore = create((set, get) => ({
       SonnerError("Chưa đăng nhập — không khôi phục được bản nháp.");
       return false;
     }
-    const id = draftId || get().drafts[0]?.id;
+    const id = draftId || get().activeDraftId;
     if (!id) return false;
     set({ loading: true });
     setRestoreInProgress(true);
@@ -680,7 +680,7 @@ export const useMomentDraftStore = create((set, get) => ({
 
   /** Permanent delete with caller confirmation already done */
   confirmDeleteDraft: async (draftId) => {
-    const id = draftId || get().drafts[0]?.id;
+    const id = draftId || get().activeDraftId;
     if (!id) return false;
     const meta = await getDraftMeta(id);
     const online =
