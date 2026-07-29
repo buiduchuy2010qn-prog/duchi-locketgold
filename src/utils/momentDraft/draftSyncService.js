@@ -1,6 +1,7 @@
 /**
  * Account draft sync — IndexedDB offline queue → Railway API.
  * Sequential uploads; never auto-posts moments.
+ * Implements Single-Flight, Exponential Backoff, Token Refresh, Fast Pull.
  */
 import { instanceMain } from "@/libs";
 import momentDraftDB from "@/cache/momentDraftDB";
@@ -12,15 +13,74 @@ import {
   getDeviceId,
   updateDraftMeta,
 } from "./draftLibrary";
+import { refreshIdToken } from "@/services/LocketDioServices/AuthServices";
+import { getToken } from "@/utils/storage";
 
-const MAX_RETRIES = 5;
-const BASE_BACKOFF_MS = 2500;
+const MAX_RETRIES = 4;
+const BASE_BACKOFF_MS = 1500;
 
-let syncRunning = false;
-let pullRunning = false;
+// Single-flight states
+let pullInFlight = null;
+let pushInFlight = null;
+let fullSyncInFlight = null;
+let syncRequestedAgain = false;
 
 function authOk() {
   return Boolean(resolveDraftUid());
+}
+
+/**
+ * Draft-specific API wrapper with Token Refresh & Exponential Backoff
+ */
+async function apiDraftCall(config, attempts = 0) {
+  try {
+    const res = await instanceMain(config);
+    return res;
+  } catch (error) {
+    const status = error?.response?.status;
+    const isNetworkError = !error.response;
+    
+    // Auth 401 handling - only try once
+    if (status === 401 && attempts === 0) {
+      try {
+        const { refreshToken } = getToken();
+        if (refreshToken) {
+          const newToken = await refreshIdToken(refreshToken);
+          if (newToken) {
+            localStorage.setItem("idToken", newToken);
+            config.headers = config.headers || {};
+            config.headers["Authorization"] = `Bearer ${newToken}`;
+            return await apiDraftCall(config, attempts + 1);
+          }
+        }
+      } catch {
+        // Stop retry on auth failure
+        throw error;
+      }
+    }
+
+    // Rate limits, server errors or network drops
+    const retryableStatus = [408, 425, 429, 500, 502, 503, 504].includes(status) || isNetworkError;
+    
+    if (retryableStatus && attempts < MAX_RETRIES) {
+      let delayMs = BASE_BACKOFF_MS * Math.pow(2, attempts); // 1.5, 3, 6, 12s
+      
+      if (status === 429) {
+        const retryAfter = error?.response?.headers?.["retry-after"];
+        if (retryAfter) {
+          delayMs = parseInt(retryAfter, 10) * 1000 || delayMs;
+        }
+      }
+      
+      // Add jitter up to 10%
+      delayMs = delayMs + (Math.random() * 0.1 * delayMs);
+      
+      await new Promise(r => setTimeout(r, delayMs));
+      return await apiDraftCall(config, attempts + 1);
+    }
+    
+    throw error;
+  }
 }
 
 async function listPendingLocal(ownerUid) {
@@ -64,7 +124,10 @@ async function putMeta(draft) {
     createdAt: draft.createdAt,
     sourceDeviceId: draft.sourceDeviceId || getDeviceId(),
   };
-  const res = await instanceMain.put(`/api/drafts/${encodeURIComponent(draft.id)}`, body, {
+  const res = await apiDraftCall({
+    method: "put",
+    url: `/api/drafts/${encodeURIComponent(draft.id)}`,
+    data: body,
     timeout: 60000,
   });
   return res?.data;
@@ -73,24 +136,22 @@ async function putMeta(draft) {
 async function uploadRole(draftId, role, blob, mime) {
   if (!blob) return null;
   const buf = await blob.arrayBuffer();
-  const res = await instanceMain.put(
-    `/api/drafts/${encodeURIComponent(draftId)}/media/${role}`,
-    buf,
-    {
-      headers: {
-        "Content-Type": mime || blob.type || "application/octet-stream",
-      },
-      timeout: 180000,
-      transformRequest: [(d) => d],
-      maxBodyLength: Infinity,
-      maxContentLength: Infinity,
+  const res = await apiDraftCall({
+    method: "put",
+    url: `/api/drafts/${encodeURIComponent(draftId)}/media/${role}`,
+    data: buf,
+    headers: {
+      "Content-Type": mime || blob.type || "application/octet-stream",
     },
-  );
+    timeout: 180000,
+    transformRequest: [(d) => d],
+    maxBodyLength: Infinity,
+    maxContentLength: Infinity,
+  });
   return res?.data;
 }
 
 function ownerUidHash(uid) {
-  // Short non-reversible-ish label for console (not crypto secret)
   const s = String(uid || "");
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
@@ -107,15 +168,17 @@ async function syncOneDraft(draft) {
 
   if (draft.syncStatus === SYNC_STATUS.PENDING_DELETE) {
     try {
-      await instanceMain.delete(`/api/drafts/${encodeURIComponent(id)}`, {
+      await apiDraftCall({
+        method: "delete",
+        url: `/api/drafts/${encodeURIComponent(id)}`,
         timeout: 30000,
       });
     } catch (e) {
-      // 404 means it's already deleted on cloud, which is fine
       if (e?.response?.status !== 404) {
         throw e;
       }
     }
+    // Chỉ xóa tombstone local khi đã xóa thành công trên cloud hoặc cloud trả 404
     await momentDraftDB.drafts.delete(id);
     await momentDraftDB.draftBlobs.delete(id);
     return { ok: true, deleted: true };
@@ -124,7 +187,6 @@ async function syncOneDraft(draft) {
   const full = await getDraftFull(id);
   if (!full?.meta) throw new Error("missing local draft");
 
-  // 1) metadata upsert (idempotent)
   let metaRes;
   try {
     metaRes = await putMeta(full.meta);
@@ -140,7 +202,6 @@ async function syncOneDraft(draft) {
     throw e;
   }
 
-  // 2) media — must complete before "synced" (not meta-only / not IDB-only)
   const media = full.media;
   if (!media?.blob) {
     throw new Error("Thiếu media local — không đánh dấu đã đồng bộ");
@@ -152,7 +213,6 @@ async function syncOneDraft(draft) {
     throw new Error("Upload active media thất bại");
   }
 
-  // original: prefer separate original; else mirror active so other devices can open
   const originalBlob = media.originalMediaBlob || media.blob;
   const originalUp = await uploadRole(
     id,
@@ -178,24 +238,16 @@ async function syncOneDraft(draft) {
     throw new Error("Thiếu thumbnail — không đánh dấu đã đồng bộ");
   }
 
-  // 3) Confirm server has metadata + object keys (never trust local write alone)
-  const verify = await instanceMain.get(
-    `/api/drafts/${encodeURIComponent(id)}`,
-    { timeout: 60000 },
-  );
+  const verify = await apiDraftCall({
+    method: "get",
+    url: `/api/drafts/${encodeURIComponent(id)}`,
+    timeout: 60000,
+  });
   const cloud = verify?.data?.draft || metaRes?.draft || {};
-  if (!cloud?.id) {
-    throw new Error("Server không trả draft sau upload");
-  }
-  if (!cloud.activeObjectKey && !cloud.originalObjectKey) {
-    throw new Error("Server chưa có file media");
-  }
-  if (!cloud.thumbnailObjectKey) {
-    throw new Error("Server chưa có thumbnail");
-  }
-  if (cloud.revision == null) {
-    throw new Error("Server không trả revision hợp lệ");
-  }
+  if (!cloud?.id) throw new Error("Server không trả draft sau upload");
+  if (!cloud.activeObjectKey && !cloud.originalObjectKey) throw new Error("Server chưa có file media");
+  if (!cloud.thumbnailObjectKey) throw new Error("Server chưa có thumbnail");
+  if (cloud.revision == null) throw new Error("Server không trả revision hợp lệ");
 
   await updateDraftMeta(id, {
     syncStatus: SYNC_STATUS.SYNCED,
@@ -214,62 +266,45 @@ async function syncOneDraft(draft) {
     thumbnailUploaded: true,
     serverStatus: "ok",
   };
-  // Safe diagnostics only — no token, no media, no full signed URL
   console.info("[draft-sync]", safeLog);
   return { ok: true, ownerUid, ...safeLog };
 }
 
-/**
- * Push local pending drafts to cloud (sequential).
- */
-export async function pushPendingDrafts({ onProgress } = {}) {
-  if (syncRunning || !authOk()) return { ok: false, reason: "busy_or_auth" };
-  syncRunning = true;
+async function internalPushPendingDrafts({ onProgress } = {}) {
   const ownerUid = resolveDraftUid();
   const results = [];
-  try {
-    const pending = await listPendingLocal(ownerUid);
-    let attemptById = {};
-    for (const d of pending) {
-      let attempts = 0;
-      let done = false;
-      while (attempts < MAX_RETRIES && !done) {
-        attempts += 1;
-        try {
-          onProgress?.({ phase: "push", draftId: d.id, attempts });
-          const r = await syncOneDraft(d);
-          results.push({ id: d.id, ...r });
-          done = true;
-        } catch (e) {
-          const msg =
-            e?.response?.data?.message || e?.message || "sync failed";
-          await updateDraftMeta(d.id, {
-            syncStatus: SYNC_STATUS.SYNC_FAILED,
-            lastSyncError: msg,
-          });
-          if (attempts >= MAX_RETRIES) {
-            results.push({ id: d.id, ok: false, error: msg });
-            done = true;
-          } else {
-            await new Promise((r) =>
-              setTimeout(r, BASE_BACKOFF_MS * attempts),
-            );
-          }
-        }
-      }
-      attemptById[d.id] = attempts;
+  const pending = await listPendingLocal(ownerUid);
+  let allOk = true;
+  
+  for (const d of pending) {
+    try {
+      onProgress?.({ phase: "push", draftId: d.id, attempts: 1 });
+      const r = await syncOneDraft(d);
+      results.push({ id: d.id, ...r });
+      if (!r.ok) allOk = false;
+    } catch (e) {
+      const msg = e?.response?.data?.message || e?.message || "sync failed";
+      await updateDraftMeta(d.id, {
+        syncStatus: SYNC_STATUS.SYNC_FAILED,
+        lastSyncError: msg,
+      });
+      results.push({ id: d.id, ok: false, error: msg });
+      allOk = false;
     }
-    return { ok: true, results, attemptById };
-  } finally {
-    syncRunning = false;
   }
+  return { ok: allOk, results, count: pending.length };
 }
 
-/**
- * Download draft media role with Bearer auth.
- * Prefer authenticated API path (no signed URL expiry) so PC/phone always work.
- * Fallback: signed mediaUrls if absolute path fails.
- */
+export function pushPendingDrafts({ onProgress } = {}) {
+  if (!authOk()) return Promise.resolve({ ok: false, error: "Lỗi xác thực", reason: "auth" });
+  if (pushInFlight) return pushInFlight;
+  
+  pushInFlight = internalPushPendingDrafts({ onProgress })
+    .finally(() => { pushInFlight = null; });
+    
+  return pushInFlight;
+}
+
 function isUsableMediaBlob(blob) {
   return (
     blob instanceof Blob &&
@@ -279,10 +314,11 @@ function isUsableMediaBlob(blob) {
 }
 
 async function downloadDraftRoleBlob(draftId, role, mediaUrls) {
-  // 1) Authenticated API path — works after signed URL expires (15m)
   const path = `/api/drafts/${encodeURIComponent(draftId)}/media/${encodeURIComponent(role)}`;
   try {
-    const res = await instanceMain.get(path, {
+    const res = await apiDraftCall({
+      method: "get",
+      url: path,
       responseType: "blob",
       timeout: 180000,
     });
@@ -291,25 +327,15 @@ async function downloadDraftRoleBlob(draftId, role, mediaUrls) {
     /* try signed URLs */
   }
 
-  // 2) Signed URLs from list/get (prefer same-origin proxy)
   const entry = mediaUrls?.[role];
   const candidates = [entry?.proxyUrl, entry?.url].filter(Boolean);
   for (const url of candidates) {
     try {
-      let res;
-      if (String(url).startsWith("http")) {
-        // Full absolute host — do not prepend /dio-api
-        res = await instanceMain.get(url, {
-          responseType: "blob",
-          timeout: 180000,
-          baseURL: "",
-        });
-      } else {
-        res = await instanceMain.get(url, {
-          responseType: "blob",
-          timeout: 180000,
-        });
-      }
+      const res = await instanceMain.get(url, {
+        responseType: "blob",
+        timeout: 180000,
+        baseURL: String(url).startsWith("http") ? "" : undefined,
+      });
       if (isUsableMediaBlob(res?.data)) return res.data;
     } catch {
       /* try next */
@@ -320,10 +346,11 @@ async function downloadDraftRoleBlob(draftId, role, mediaUrls) {
 
 async function refreshDraftMediaUrls(draftId) {
   try {
-    const res = await instanceMain.get(
-      `/api/drafts/${encodeURIComponent(draftId)}`,
-      { timeout: 60000 },
-    );
+    const res = await apiDraftCall({
+      method: "get",
+      url: `/api/drafts/${encodeURIComponent(draftId)}`,
+      timeout: 60000,
+    });
     const cloud = res?.data?.draft;
     if (cloud?.mediaUrls) {
       await updateDraftMeta(draftId, { mediaUrls: cloud.mediaUrls });
@@ -335,18 +362,47 @@ async function refreshDraftMediaUrls(draftId) {
   return null;
 }
 
-/**
- * Pull cloud metadata (+ optional thumb) and merge into IndexedDB.
- * Does not download full media until user opens draft.
- */
-export async function pullCloudDrafts({ onProgress } = {}) {
-  if (pullRunning || !authOk()) return { ok: false, reason: "busy_or_auth" };
-  pullRunning = true;
+// Background Thumbnail Downloader
+const backgroundThumbnailsQueue = [];
+let isBackgroundThumbProcessing = false;
+
+async function processThumbnailsBackground() {
+  if (isBackgroundThumbProcessing) return;
+  isBackgroundThumbProcessing = true;
+  
+  while (backgroundThumbnailsQueue.length > 0) {
+    const cloud = backgroundThumbnailsQueue.shift();
+    try {
+      const thumbBlob = await downloadDraftRoleBlob(
+        cloud.id,
+        "thumbnail",
+        cloud.mediaUrls,
+      );
+      if (thumbBlob) {
+        const localBlobs = await momentDraftDB.draftBlobs.get(cloud.id);
+        await momentDraftDB.draftBlobs.put({
+          id: cloud.id,
+          mediaBlob: localBlobs?.mediaBlob || null,
+          thumbnailBlob: thumbBlob,
+          originalMediaBlob: localBlobs?.originalMediaBlob || null,
+          mimeType: localBlobs?.mimeType || cloud.mimeType || "",
+          fileName: localBlobs?.fileName || cloud.fileName || "",
+        });
+      }
+    } catch {
+      // Ignore background thumb errors
+    }
+  }
+  isBackgroundThumbProcessing = false;
+}
+
+async function internalPullCloudDrafts({ onProgress } = {}) {
   const ownerUid = resolveDraftUid();
   try {
     onProgress?.({ phase: "pull" });
-    const res = await instanceMain.get("/api/drafts", { timeout: 60000 });
+    const res = await apiDraftCall({ method: "get", url: "/api/drafts", timeout: 60000 });
     const remote = res?.data?.drafts || [];
+    
     for (const cloud of remote) {
       if (!cloud?.id) continue;
       const local = await momentDraftDB.drafts.get(cloud.id);
@@ -360,7 +416,6 @@ export async function pullCloudDrafts({ onProgress } = {}) {
       }
 
       if (!local) {
-        // Shell meta only — media on demand
         await momentDraftDB.drafts.put({
           id: cloud.id,
           ownerUid,
@@ -389,30 +444,12 @@ export async function pullCloudDrafts({ onProgress } = {}) {
           mediaUrls: cloud.mediaUrls || null,
           sourceDeviceId: cloud.sourceDeviceId || null,
         });
-        // Best-effort thumbnail for list (auth path — không phụ thuộc URL ký 15p)
-        try {
-          const thumbBlob = await downloadDraftRoleBlob(
-            cloud.id,
-            "thumbnail",
-            cloud.mediaUrls,
-          );
-          if (thumbBlob) {
-            await momentDraftDB.draftBlobs.put({
-              id: cloud.id,
-              mediaBlob: null,
-              thumbnailBlob: thumbBlob,
-              originalMediaBlob: null,
-              mimeType: cloud.mimeType || "",
-              fileName: cloud.fileName || "",
-            });
-          }
-        } catch {
-          /* thumbs are best-effort */
-        }
+        
+        // Queue thumbnail background fetch instead of blocking
+        backgroundThumbnailsQueue.push(cloud);
         continue;
       }
 
-      // Same account only
       if (String(local.ownerUid) !== String(ownerUid)) continue;
 
       const localPending =
@@ -420,15 +457,9 @@ export async function pullCloudDrafts({ onProgress } = {}) {
         local.syncStatus === SYNC_STATUS.SYNC_FAILED ||
         local.syncStatus === SYNC_STATUS.SYNCING;
 
-      if (local.syncStatus === SYNC_STATUS.PENDING_DELETE) {
-        // Local wants to delete this draft. Do not restore or overwrite from cloud.
-        continue;
-      }
+      if (local.syncStatus === SYNC_STATUS.PENDING_DELETE) continue;
 
-      if (localPending && (local.revision || 1) > (cloud.revision || 1)) {
-        // Local newer — will push later
-        continue;
-      }
+      if (localPending && (local.revision || 1) > (cloud.revision || 1)) continue;
 
       if (
         localPending &&
@@ -440,7 +471,6 @@ export async function pullCloudDrafts({ onProgress } = {}) {
           lastSyncError: "Đã sửa trên nhiều thiết bị",
           cloudRevision: cloud.revision,
         });
-        // Keep local; store cloud fork as conflict sibling
         const forkId = `${cloud.id}__cloud_${cloud.revision}`;
         if (!(await momentDraftDB.drafts.get(forkId))) {
           await momentDraftDB.drafts.put({
@@ -464,7 +494,6 @@ export async function pullCloudDrafts({ onProgress } = {}) {
         continue;
       }
 
-      // Cloud wins for metadata when local is synced
       if (!localPending || (cloud.revision || 0) >= (local.revision || 0)) {
         await momentDraftDB.drafts.put({
           ...local,
@@ -480,9 +509,7 @@ export async function pullCloudDrafts({ onProgress } = {}) {
           cloudRevision: cloud.revision,
           baseRevision: cloud.revision,
           updatedAt: Math.max(local.updatedAt || 0, cloud.updatedAt || 0),
-          syncStatus: localPending
-            ? local.syncStatus
-            : SYNC_STATUS.SYNCED,
+          syncStatus: localPending ? local.syncStatus : SYNC_STATUS.SYNCED,
           mediaUrls: cloud.mediaUrls || local.mediaUrls,
           mimeType: cloud.mimeType || local.mimeType,
           fileName: cloud.fileName || local.fileName,
@@ -491,34 +518,15 @@ export async function pullCloudDrafts({ onProgress } = {}) {
           duration: cloud.duration ?? local.duration,
           mediaType: cloud.mediaType || local.mediaType,
         });
-        // Fill missing thumb for already-synced shells (other devices)
-        try {
-          const blobs = await momentDraftDB.draftBlobs.get(local.id);
-          if (!(blobs?.thumbnailBlob instanceof Blob) || !blobs.thumbnailBlob.size) {
-            const thumbBlob = await downloadDraftRoleBlob(
-              local.id,
-              "thumbnail",
-              cloud.mediaUrls || local.mediaUrls,
-            );
-            if (thumbBlob) {
-              await momentDraftDB.draftBlobs.put({
-                id: local.id,
-                mediaBlob: blobs?.mediaBlob || null,
-                thumbnailBlob: thumbBlob,
-                originalMediaBlob: blobs?.originalMediaBlob || null,
-                mimeType: blobs?.mimeType || cloud.mimeType || local.mimeType || "",
-                fileName: blobs?.fileName || cloud.fileName || local.fileName || "",
-              });
-            }
-          }
-        } catch {
-          /* best-effort */
+        
+        // Ensure thumbnail async
+        const blobs = await momentDraftDB.draftBlobs.get(local.id);
+        if (!(blobs?.thumbnailBlob instanceof Blob) || !blobs.thumbnailBlob.size) {
+          backgroundThumbnailsQueue.push(cloud);
         }
       }
     }
 
-    // Drop local shells that only existed on cloud and were deleted elsewhere
-    // (keep pending_sync / sync_failed / conflict / local_only)
     const remoteIds = new Set(remote.map((d) => d?.id).filter(Boolean));
     let locals = [];
     try {
@@ -529,6 +537,7 @@ export async function pullCloudDrafts({ onProgress } = {}) {
     } catch {
       locals = await listDraftsMeta(ownerUid);
     }
+    
     for (const row of locals) {
       if (remoteIds.has(row.id)) continue;
       const st = row.syncStatus;
@@ -541,9 +550,8 @@ export async function pullCloudDrafts({ onProgress } = {}) {
         st === SYNC_STATUS.PENDING_DELETE ||
         !st;
       if (keepLocal) continue;
+      
       if (st === SYNC_STATUS.SYNCED || st === SYNC_STATUS.UPLOADING_POST) {
-        // Since we use tombstones for deletion, a missing remote draft implies SERVER DATA LOSS.
-        // We resurrect the local draft to be re-uploaded.
         await updateDraftMeta(row.id, {
           syncStatus: SYNC_STATUS.PENDING_SYNC,
           lastSyncError: "Khôi phục do mất dữ liệu trên máy chủ",
@@ -551,21 +559,26 @@ export async function pullCloudDrafts({ onProgress } = {}) {
       }
     }
 
+    // Start background processing
+    void processThumbnailsBackground();
+
     return { ok: true, count: remote.length };
   } catch (e) {
-    return {
-      ok: false,
-      error: e?.response?.data?.message || e?.message,
-    };
-  } finally {
-    pullRunning = false;
+    const msg = e?.response?.data?.message || e?.message || "Lỗi kéo bản nháp";
+    return { ok: false, error: msg, reason: "network" };
   }
 }
 
-/**
- * Ensure thumbnail blob present (for library preview on other devices).
- * Uses authenticated media route so signed URLs can expire safely.
- */
+export function pullCloudDrafts({ onProgress } = {}) {
+  if (!authOk()) return Promise.resolve({ ok: false, error: "Lỗi xác thực", reason: "auth" });
+  if (pullInFlight) return pullInFlight;
+  
+  pullInFlight = internalPullCloudDrafts({ onProgress })
+    .finally(() => { pullInFlight = null; });
+    
+  return pullInFlight;
+}
+
 export async function ensureLocalThumbnail(draftId) {
   if (!draftId) return { ok: false, error: "missing_id" };
   const existing = await momentDraftDB.draftBlobs.get(draftId);
@@ -576,23 +589,14 @@ export async function ensureLocalThumbnail(draftId) {
   if (!meta) return { ok: false, error: "not_found" };
 
   let mediaUrls = meta.mediaUrls || null;
-  let thumb =
-    (await downloadDraftRoleBlob(draftId, "thumbnail", mediaUrls).catch(
-      () => null,
-    )) || null;
+  let thumb = (await downloadDraftRoleBlob(draftId, "thumbnail", mediaUrls).catch(() => null)) || null;
 
-  // Fresh signed urls if first try failed
   if (!thumb) {
     mediaUrls = (await refreshDraftMediaUrls(draftId)) || mediaUrls;
-    thumb = await downloadDraftRoleBlob(draftId, "thumbnail", mediaUrls).catch(
-      () => null,
-    );
+    thumb = await downloadDraftRoleBlob(draftId, "thumbnail", mediaUrls).catch(() => null);
   }
-  // Fall back to active still (image drafts)
   if (!thumb && meta.mediaType !== "video") {
-    thumb = await downloadDraftRoleBlob(draftId, "active", mediaUrls).catch(
-      () => null,
-    );
+    thumb = await downloadDraftRoleBlob(draftId, "active", mediaUrls).catch(() => null);
   }
   if (!thumb) return { ok: false, error: "no_remote_thumb" };
 
@@ -611,7 +615,6 @@ export async function ensureLocalThumbnail(draftId) {
   };
 }
 
-/** Ensure full media blob present locally (download active if needed). */
 export async function ensureLocalMedia(draftId) {
   const blobs = await momentDraftDB.draftBlobs.get(draftId);
   if (blobs?.mediaBlob instanceof Blob && blobs.mediaBlob.size > 0) {
@@ -622,32 +625,21 @@ export async function ensureLocalMedia(draftId) {
 
   let mediaUrls = meta.mediaUrls || null;
   let mediaBlob =
-    (await downloadDraftRoleBlob(draftId, "active", mediaUrls).catch(
-      () => null,
-    )) ||
-    (await downloadDraftRoleBlob(draftId, "original", mediaUrls).catch(
-      () => null,
-    ));
+    (await downloadDraftRoleBlob(draftId, "active", mediaUrls).catch(() => null)) ||
+    (await downloadDraftRoleBlob(draftId, "original", mediaUrls).catch(() => null));
 
   if (!mediaBlob) {
     mediaUrls = (await refreshDraftMediaUrls(draftId)) || mediaUrls;
     mediaBlob =
-      (await downloadDraftRoleBlob(draftId, "active", mediaUrls).catch(
-        () => null,
-      )) ||
-      (await downloadDraftRoleBlob(draftId, "original", mediaUrls).catch(
-        () => null,
-      ));
+      (await downloadDraftRoleBlob(draftId, "active", mediaUrls).catch(() => null)) ||
+      (await downloadDraftRoleBlob(draftId, "original", mediaUrls).catch(() => null));
   }
   if (!mediaBlob) return { ok: false, error: "no_remote_media" };
 
-  // Also try to fill missing thumbnail while we're online
   let thumbnailBlob = blobs?.thumbnailBlob || null;
   if (!(thumbnailBlob instanceof Blob) || !thumbnailBlob.size) {
     thumbnailBlob =
-      (await downloadDraftRoleBlob(draftId, "thumbnail", mediaUrls).catch(
-        () => null,
-      )) ||
+      (await downloadDraftRoleBlob(draftId, "thumbnail", mediaUrls).catch(() => null)) ||
       (meta.mediaType !== "video" ? mediaBlob : null);
   }
 
@@ -665,14 +657,61 @@ export async function ensureLocalMedia(draftId) {
   };
 }
 
-export async function syncAll({ onProgress } = {}) {
-  if (!authOk()) return { ok: false, reason: "auth" };
-  const pull1 = await pullCloudDrafts({ onProgress });
+async function internalSyncAll({ onProgress }) {
+  if (!authOk()) return { ok: false, reason: "auth", error: "Lỗi xác thực" };
+  
+  const pullBefore = await pullCloudDrafts({ onProgress });
+  if (!pullBefore.ok) {
+    // Không push local nếu pull đầu tiên lỗi để tránh push lại draft đã bị xóa
+    return { 
+      ok: false, 
+      pull: pullBefore, 
+      pullBefore,
+      error: pullBefore.error,
+      partial: true
+    };
+  }
+
   const push = await pushPendingDrafts({ onProgress });
-  const pull2 = await pullCloudDrafts({ onProgress });
-  return { ok: true, pull1, push, pull2 };
+  const pullAfter = await pullCloudDrafts({ onProgress });
+  
+  // Trả về định dạng tương thích với UI
+  return { 
+    ok: push.ok && pullAfter.ok, 
+    pull: pullAfter, 
+    pullBefore,
+    pullAfter, 
+    push,
+    error: push.ok ? pullAfter.error : push.error
+  };
+}
+
+export function syncAll({ onProgress } = {}) {
+  if (!authOk()) return Promise.resolve({ ok: false, error: "Lỗi xác thực", reason: "auth" });
+  
+  if (fullSyncInFlight) {
+    // Nếu đang sync, đánh dấu cần chạy thêm 1 vòng
+    syncRequestedAgain = true;
+    return fullSyncInFlight;
+  }
+  
+  const executeSync = async () => {
+    let result = await internalSyncAll({ onProgress });
+    while (syncRequestedAgain) {
+      syncRequestedAgain = false;
+      result = await internalSyncAll({ onProgress });
+    }
+    return result;
+  };
+  
+  fullSyncInFlight = executeSync().finally(() => {
+    fullSyncInFlight = null;
+    syncRequestedAgain = false; // Reset in case
+  });
+  
+  return fullSyncInFlight;
 }
 
 export function isDraftSyncRunning() {
-  return syncRunning || pullRunning;
+  return Boolean(fullSyncInFlight || pullInFlight || pushInFlight);
 }

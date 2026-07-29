@@ -20,7 +20,6 @@ import {
   statusLabel,
   syncAll,
   ensureLocalMedia,
-  pushPendingDrafts,
 } from "@/utils/momentDraft";
 import { usePostStore } from "./usePostStore";
 import { useOverlayEditorStore } from "./useOverlayEditorStore";
@@ -37,7 +36,6 @@ import { resetAllPostData } from "@/utils";
 
 let metaSaveTimer = null;
 let mediaSaveChain = Promise.resolve();
-let cloudSyncChain = Promise.resolve();
 
 function isDraftCloudOnline() {
   const c = useConnectivityStore.getState();
@@ -47,16 +45,9 @@ function isDraftCloudOnline() {
 /** After local IDB write: push pending (sequential, never auto-post). */
 function queueCloudSyncAfterLocalSave() {
   if (!isDraftCloudOnline()) return Promise.resolve({ skipped: true, offline: true });
-  cloudSyncChain = cloudSyncChain
-    .then(async () => {
-      try {
-        await pushPendingDrafts();
-      } catch (e) {
-        console.warn("[moment-draft] push after save", e?.message || e);
-      }
-    })
-    .catch(() => {});
-  return cloudSyncChain;
+  return syncAll().catch((e) => {
+    console.warn("[moment-draft] sync after save", e?.message || e);
+  });
 }
 
 function snapshotMetaFromStores() {
@@ -243,9 +234,9 @@ export const useMomentDraftStore = create((set, get) => ({
     try {
       const r = await syncAll();
       await get().refreshList(uid);
-      const n = r?.pull?.count;
-      if (r?.pull?.ok === false) {
-        SonnerWarning("Kéo bản nháp thất bại", r.pull.error || "");
+      const n = r?.pullAfter?.count || r?.pullBefore?.count || r?.pull?.count;
+      if (r?.pullBefore?.ok === false || r?.pullAfter?.ok === false || r?.pull?.ok === false) {
+        SonnerWarning("Kéo bản nháp thất bại", r.error || r.pull?.error || r.pullBefore?.error || "");
       } else if (typeof n === "number") {
         SonnerInfo(
           n
@@ -266,7 +257,7 @@ export const useMomentDraftStore = create((set, get) => ({
       syncStatus: SYNC_STATUS.PENDING_SYNC,
       lastSyncError: null,
     });
-    await pushPendingDrafts();
+    await syncAll();
     await get().refreshList();
     return true;
   },
