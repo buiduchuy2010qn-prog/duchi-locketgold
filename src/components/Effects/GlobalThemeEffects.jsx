@@ -83,11 +83,11 @@ const GlobalThemeEffects = () => {
     };
   }, [snowTheme, intensity, theme, reduceMotion, onCameraRoute]);
 
-  if (hidden) return null;
-
   if (isOceanBlueTheme(theme)) {
     return <OceanEffect reduceMotion={reduceMotion} />;
   }
+
+  if (hidden) return null;
 
   if (!cfg.enabled) return null;
 
