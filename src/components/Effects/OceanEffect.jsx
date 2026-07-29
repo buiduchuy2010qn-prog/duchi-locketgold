@@ -52,8 +52,8 @@ const OceanEffect = ({ reduceMotion = false }) => {
     const perf = getPerfProfile();
     const deviceCompact = perf.isMobile || perf.isLowEnd;
     const motionScale = reduceMotion ? 0.44 : 1;
-    const bubblePoolCount = reduceMotion ? 14 : 26;
-    const fishPoolCount = reduceMotion ? 2 : 5;
+    const bubblePoolCount = reduceMotion ? 16 : 36;
+    const fishPoolCount = reduceMotion ? 3 : 7;
 
     let width = 1;
     let height = 1;
@@ -82,20 +82,20 @@ const OceanEffect = ({ reduceMotion = false }) => {
     let compactMode = deviceCompact || width <= 640;
     let activeBubbleCount = compactMode
       ? reduceMotion
-        ? 8
-        : 14
+        ? 10
+        : 20
       : bubblePoolCount;
     let activeFishCount = compactMode
       ? reduceMotion
-        ? 1
-        : 2
-      : reduceMotion
         ? 2
+        : 3
+      : reduceMotion
+        ? 3
         : width >= 1100
-          ? 5
-          : 4;
-    let minFishLength = compactMode ? 20 : 26;
-    let maxFishLength = compactMode ? 36 : 48;
+          ? 7
+          : 6;
+    let minFishLength = compactMode ? 20 : 27;
+    let maxFishLength = compactMode ? 38 : 52;
 
     const bubbles = [];
     const bubbleClusters = [];
@@ -117,7 +117,7 @@ const OceanEffect = ({ reduceMotion = false }) => {
     while (remainingBubbles > 0) {
       const firstCluster = bubbleClusters.length === 0;
       const clustered =
-        remainingBubbles >= 2 && (firstCluster || Math.random() < 0.34);
+        remainingBubbles >= 2 && (firstCluster || Math.random() < 0.46);
       const memberCount = firstCluster
         ? Math.min(3, remainingBubbles)
         : clustered
@@ -143,7 +143,7 @@ const OceanEffect = ({ reduceMotion = false }) => {
         Math.max(edgePadding + 1, width - edgePadding),
       );
       const anchorY = initial
-        ? randomBetween(80, height + 36)
+        ? randomBetween(64, Math.max(65, height - 18))
         : height + randomBetween(18, 76);
       const clusterSpeedFactor = randomBetween(0.94, 1.06);
 
@@ -153,7 +153,7 @@ const OceanEffect = ({ reduceMotion = false }) => {
         memberIndex += 1
       ) {
         const bubble = cluster.members[memberIndex];
-        const diameter = randomBetween(5, 22);
+        const diameter = randomBetween(6, 24);
         const horizontalOffset = clustered ? randomBetween(-13, 13) : 0;
         const verticalOffset = clustered ? randomBetween(-11, 11) : 0;
 
@@ -170,7 +170,7 @@ const OceanEffect = ({ reduceMotion = false }) => {
         bubble.phase = randomBetween(0, TAU);
         bubble.wobbleRate = randomBetween(0.8, 1.8) * motionScale;
         bubble.wobbleAmount = randomBetween(0.8, 3.2);
-        bubble.opacity = randomBetween(0.35, 0.8);
+        bubble.opacity = randomBetween(0.42, 0.86);
       }
     };
 
@@ -308,6 +308,10 @@ const OceanEffect = ({ reduceMotion = false }) => {
       bobRate: 1,
       bobAmount: 2,
       tailRate: 6,
+      verticalSpeed: 0,
+      driftPhase: randomBetween(0, TAU),
+      driftRate: 1,
+      entryDelay: 0,
       variant: FISH_VARIANTS[slot % FISH_VARIANTS.length],
       spotX: new Float32Array(6),
       spotY: new Float32Array(6),
@@ -332,30 +336,75 @@ const OceanEffect = ({ reduceMotion = false }) => {
     };
 
     const resetFish = (fish, initial) => {
+      const depthStep =
+        activeFishCount === 1
+          ? 0.5
+          : ((fish.slot + fish.cycle) % activeFishCount) /
+            Math.max(1, activeFishCount - 1);
+      fish.depth = clamp(
+        (activeFishCount === 1 ? 0.62 : 0.2 + depthStep * 0.75) +
+          randomBetween(-0.07, 0.07),
+        0.18,
+        0.96,
+      );
+
       const depthLength =
         minFishLength + fish.depth * (maxFishLength - minFishLength);
       fish.direction = Math.random() < 0.5 ? -1 : 1;
       fish.length = clamp(
-        depthLength * randomBetween(0.94, 1.04),
+        depthLength * randomBetween(0.92, 1.07),
         minFishLength,
         maxFishLength,
       );
       fish.opacity = 0.4 + fish.depth * 0.55;
       fish.speed =
-        (15 + fish.depth * 17 + randomBetween(-1.5, 1.5)) * motionScale;
+        (14 + fish.depth * 18 + randomBetween(-2, 3.5)) * motionScale;
       fish.bobRate = randomBetween(0.72, 1.18) * motionScale;
       fish.bobAmount = 1.4 + fish.depth * 2.8;
       fish.tailRate = randomBetween(5.6, 7.4) * motionScale;
       fish.time = randomBetween(0, TAU);
-      fish.y = randomBetween(height * 0.17, height * 0.7);
+      fish.verticalSpeed = randomBetween(-4.8, 4.8) * motionScale;
+      fish.driftPhase = randomBetween(0, TAU);
+      fish.driftRate = randomBetween(0.42, 0.88) * motionScale;
+      fish.entryDelay = initial ? 0 : randomBetween(0.12, 0.9);
+
+      const laneCount = Math.max(1, activeFishCount);
+      const randomLaneOffset = initial
+        ? 0
+        : Math.floor(randomBetween(1, laneCount + 1));
+      const laneIndex =
+        (fish.slot + fish.cycle * 2 + randomLaneOffset) % laneCount;
+      const laneProgress =
+        laneCount === 1 ? 0.5 : laneIndex / Math.max(1, laneCount - 1);
+      const laneTop = compactMode ? 0.2 : 0.15;
+      const laneBottom = compactMode ? 0.76 : 0.79;
+      const laneY =
+        height * (laneTop + (laneBottom - laneTop) * laneProgress);
+      fish.y = clamp(
+        laneY + randomBetween(-height * 0.06, height * 0.06),
+        height * 0.12,
+        height * 0.84,
+      );
+
+      const laneWidth = width / laneCount;
+      const laneX = laneWidth * (laneIndex + 0.5);
       fish.x = initial
-        ? randomBetween(0, width)
+        ? clamp(
+            laneX + randomBetween(-laneWidth * 0.34, laneWidth * 0.34),
+            0,
+            width,
+          )
         : fish.direction > 0
           ? -fish.length
           : width + fish.length;
 
       fish.variant =
-        FISH_VARIANTS[(fish.slot + fish.cycle) % FISH_VARIANTS.length];
+        FISH_VARIANTS[
+          (fish.slot +
+            fish.cycle +
+            Math.floor(randomBetween(0, FISH_VARIANTS.length))) %
+            FISH_VARIANTS.length
+        ];
       fish.cycle += 1;
 
       for (let spotIndex = 0; spotIndex < fish.spotX.length; spotIndex += 1) {
@@ -371,8 +420,23 @@ const OceanEffect = ({ reduceMotion = false }) => {
     }
 
     const updateFish = (fish, deltaTime) => {
+      if (fish.entryDelay > 0) {
+        fish.entryDelay = Math.max(0, fish.entryDelay - deltaTime);
+        return;
+      }
+
       fish.time += deltaTime;
+      fish.driftPhase += fish.driftRate * deltaTime;
       fish.x += fish.speed * fish.direction * deltaTime;
+      fish.y +=
+        (fish.verticalSpeed + Math.sin(fish.driftPhase) * 1.25) * deltaTime;
+
+      const swimTop = height * 0.11;
+      const swimBottom = height * 0.86;
+      if (fish.y <= swimTop || fish.y >= swimBottom) {
+        fish.y = clamp(fish.y, swimTop, swimBottom);
+        fish.verticalSpeed *= -1;
+      }
 
       if (
         (fish.direction > 0 && fish.x - fish.length * 0.52 > width) ||
@@ -383,6 +447,8 @@ const OceanEffect = ({ reduceMotion = false }) => {
     };
 
     const drawFish = (fish) => {
+      if (fish.entryDelay > 0) return;
+
       const length = fish.length;
       const halfHeight = length * 0.18;
       const tailWave = Math.sin(fish.time * fish.tailRate) * length * 0.045;
@@ -395,7 +461,15 @@ const OceanEffect = ({ reduceMotion = false }) => {
       ctx.save();
       ctx.translate(fish.x, fish.y + bob);
       if (fish.direction < 0) ctx.scale(-1, 1);
-      ctx.rotate(Math.sin(fish.time * fish.bobRate * 0.7) * 0.018);
+      const swimTilt = clamp(
+        fish.verticalSpeed / Math.max(1, fish.speed),
+        -0.08,
+        0.08,
+      );
+      ctx.rotate(
+        Math.sin(fish.time * fish.bobRate * 0.7) * 0.018 +
+          swimTilt * fish.direction,
+      );
       ctx.globalAlpha = fish.opacity;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
@@ -647,20 +721,20 @@ const OceanEffect = ({ reduceMotion = false }) => {
       const nextCompactMode = deviceCompact || width <= 640;
       const nextBubbleCount = nextCompactMode
         ? reduceMotion
-          ? 8
-          : 14
+          ? 10
+          : 20
         : bubblePoolCount;
       const nextFishCount = nextCompactMode
         ? reduceMotion
-          ? 1
-          : 2
-        : reduceMotion
           ? 2
+          : 3
+        : reduceMotion
+          ? 3
           : width >= 1100
-            ? 5
-            : 4;
-      const nextMinFishLength = nextCompactMode ? 20 : 26;
-      const nextMaxFishLength = nextCompactMode ? 36 : 48;
+            ? 7
+            : 6;
+      const nextMinFishLength = nextCompactMode ? 20 : 27;
+      const nextMaxFishLength = nextCompactMode ? 38 : 52;
       const profileChanged =
         nextCompactMode !== compactMode ||
         nextBubbleCount !== activeBubbleCount ||
@@ -699,8 +773,8 @@ const OceanEffect = ({ reduceMotion = false }) => {
       for (let fishIndex = 0; fishIndex < fishes.length; fishIndex += 1) {
         fishes[fishIndex].y = clamp(
           fishes[fishIndex].y,
-          height * 0.17,
-          height * 0.7,
+          height * 0.11,
+          height * 0.86,
         );
       }
     };
