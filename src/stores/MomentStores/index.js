@@ -1,4 +1,4 @@
-import { create } from "zustand";
+﻿import { create } from "zustand";
 import { GetAllMoments } from "@/services";
 import { MOMENTS_CONFIG } from "@/config/configAlias";
 import {
@@ -19,6 +19,7 @@ const defaultBucket = () => ({
   hasMore: true,
   isLoadingMore: false,
   visibleCount: initialVisible,
+  nextCursorSeconds: null,
 });
 
 /** createTime luôn là ms number — tránh sort NaN làm bài "biến mất" */
@@ -37,6 +38,19 @@ function toCreateTimeMs(v) {
   return 0;
 }
 
+function getMomentDateMs(moment) {
+  return (
+    toCreateTimeMs(moment?.date) ||
+    toCreateTimeMs(moment?.createTime) ||
+    0
+  );
+}
+
+function getMomentCursorSeconds(moment) {
+  const ms = getMomentDateMs(moment);
+  return ms > 0 ? Math.floor(ms / 1000) : null;
+}
+
 function hasMusicOverlay(m) {
   const o = m?.overlays;
   if (!o) return false;
@@ -48,7 +62,6 @@ function hasMusicOverlay(m) {
 
 /**
  * Merge moment: không xóa bài local; giữ overlay nhạc nếu API trả thiếu.
- * (pullLatest/fetch trước đây ghi đè → bài "Vừa xong" biến mất / mất nhạc)
  */
 function mergeMoment(local, incoming) {
   if (!incoming && !local) return null;
@@ -61,14 +74,13 @@ function mergeMoment(local, incoming) {
   if (!local) {
     return {
       ...incoming,
-      createTime:
-        toCreateTimeMs(incoming.createTime || incoming.date) || Date.now(),
+      createTime: getMomentDateMs(incoming) || Date.now(),
     };
   }
 
   const createTime = Math.max(
-    toCreateTimeMs(local.createTime || local.date),
-    toCreateTimeMs(incoming.createTime || incoming.date),
+    getMomentDateMs(local),
+    getMomentDateMs(incoming),
     0,
   );
 
@@ -103,9 +115,7 @@ function mergeMoment(local, incoming) {
 
 function sortByCreateTimeDesc(list) {
   return [...list].sort(
-    (a, b) =>
-      toCreateTimeMs(b.createTime || b.date) -
-      toCreateTimeMs(a.createTime || a.date),
+    (a, b) => getMomentDateMs(b) - getMomentDateMs(a)
   );
 }
 
@@ -115,9 +125,6 @@ function sortByCreateTimeDesc(list) {
 export const useMomentsStoreV2 = create((set, get) => ({
   momentsByUser: {},
 
-  /* --------------------------------------------------
-   * 🔧 Ensure bucket (SAFE – no race condition)
-   * -------------------------------------------------- */
   ensureBucket: (key) => {
     set((state) => {
       if (state.momentsByUser[key]) return state;
@@ -139,7 +146,6 @@ export const useMomentsStoreV2 = create((set, get) => ({
     const key = selectedFriendUid ?? "all";
     get().ensureBucket(key);
 
-    // loading = true
     set((state) => {
       const bucket = state.momentsByUser[key] ?? defaultBucket();
       return {
@@ -164,10 +170,7 @@ export const useMomentsStoreV2 = create((set, get) => ({
       if (localData?.length) {
         set((state) => {
           const bucket = state.momentsByUser[key] ?? defaultBucket();
-          // Giữ moment đang có trong RAM (vừa đăng) + local DB
-          const byId = new Map(
-            (bucket.moments || []).map((m) => [m.id, m]),
-          );
+          const byId = new Map((bucket.moments || []).map((m) => [m.id, m]));
           for (const m of localData) {
             if (!m?.id) continue;
             byId.set(m.id, mergeMoment(byId.get(m.id), m));
@@ -184,7 +187,7 @@ export const useMomentsStoreV2 = create((set, get) => ({
         });
       }
 
-      /* ---------- API sync — MERGE, không wipe feed ---------- */
+      /* ---------- API sync ---------- */
       const apiData = await GetAllMoments({
         timestamp: Math.floor(Date.now() / 1000),
         friendId: selectedFriendUid,
@@ -193,31 +196,53 @@ export const useMomentsStoreV2 = create((set, get) => ({
 
       if (apiData?.length) {
         let mergedForCache = [];
+        let nextCursorSeconds = null;
+
+        // Calculate cursor from the oldest API moment
+        const sortedApi = sortByCreateTimeDesc(apiData);
+        if (sortedApi.length > 0) {
+          nextCursorSeconds = getMomentCursorSeconds(sortedApi[sortedApi.length - 1]);
+        }
+
         set((state) => {
           const bucket = state.momentsByUser[key] ?? defaultBucket();
-          const byId = new Map(
-            (bucket.moments || []).map((m) => [m.id, m]),
-          );
+          const byId = new Map((bucket.moments || []).map((m) => [m.id, m]));
           for (const m of apiData) {
             if (!m?.id) continue;
             byId.set(m.id, mergeMoment(byId.get(m.id), m));
           }
           mergedForCache = sortByCreateTimeDesc([...byId.values()]);
+          
           return {
             momentsByUser: {
               ...state.momentsByUser,
               [key]: {
                 ...bucket,
                 moments: mergedForCache,
+                nextCursorSeconds: nextCursorSeconds,
+                hasMore: apiData.length >= initialVisible,
               },
             },
           };
         });
 
-        // Cache bản đã merge (giữ nhạc) — không ghi đè bằng API thiếu overlay
         if (mergedForCache.length) {
           await bulkAddMoments(mergedForCache);
         }
+      } else {
+        // No items returned initially
+        set((state) => {
+          const bucket = state.momentsByUser[key] ?? defaultBucket();
+          return {
+            momentsByUser: {
+              ...state.momentsByUser,
+              [key]: {
+                ...bucket,
+                hasMore: false,
+              },
+            },
+          };
+        });
       }
     } catch (err) {
       console.error("❌ fetchMoments error:", err);
@@ -239,85 +264,139 @@ export const useMomentsStoreV2 = create((set, get) => ({
   },
 
   reloadMoments: async (selectedFriendUid = null) => {
-    // Cùng logic merge với fetchMoments (user truthy để không early-return)
     return get().fetchMoments({ reload: true }, selectedFriendUid);
   },
 
   /* --------------------------------------------------
-   * 2️⃣ Load more older
+   * 2️⃣ Load more older (Fixed cursor pagination)
    * -------------------------------------------------- */
   loadMoreOlder: async (selectedFriendUid = null) => {
     const key = selectedFriendUid ?? "all";
     const bucket = get().momentsByUser[key];
-    if (!bucket) return;
-
-    if (bucket.isLoadingMore || !bucket.hasMore || !bucket.moments.length) {
+    if (!bucket || bucket.isLoadingMore || !bucket.hasMore || !bucket.moments.length) {
       return;
     }
 
-    // set loading more
     set((state) => {
       const b = state.momentsByUser[key];
       if (!b) return state;
       return {
         momentsByUser: {
           ...state.momentsByUser,
-          [key]: {
-            ...b,
-            isLoadingMore: true,
-          },
+          [key]: { ...b, isLoadingMore: true },
         },
       };
     });
 
     try {
-      const lastCreateTime = bucket.moments[bucket.moments.length - 1].createTime;
+      let currentCursorSeconds = bucket.nextCursorSeconds;
+      
+      // If we don't have a cursor yet from API, calculate from the oldest local item
+      if (!currentCursorSeconds) {
+        const oldestLocal = bucket.moments[bucket.moments.length - 1];
+        currentCursorSeconds = getMomentCursorSeconds(oldestLocal) || Math.floor(Date.now() / 1000);
+      }
 
-      const older = await GetAllMoments({
-        timestamp: lastCreateTime,
-        friendId: selectedFriendUid,
-        limit: loadMoreLimit,
-      });
+      let attempts = 0;
+      let hasAdvanced = false;
+      let fetchedAnyNew = false;
+      let isExhausted = false;
 
-      if (!older?.length) {
+      // Allow fetching up to 3 pages if we keep getting 100% duplicates
+      while (attempts < 3 && !hasAdvanced && !isExhausted) {
+        attempts++;
+        
+        const older = await GetAllMoments({
+          timestamp: currentCursorSeconds,
+          friendId: selectedFriendUid,
+          limit: loadMoreLimit,
+        });
+
+        if (!older || !older.length) {
+          isExhausted = true;
+          break;
+        }
+
+        const sortedOlder = sortByCreateTimeDesc(older);
+        const newCursorSeconds = getMomentCursorSeconds(sortedOlder[sortedOlder.length - 1]);
+
+        let hasNewItems = false;
+        
         set((state) => {
           const b = state.momentsByUser[key];
           if (!b) return state;
-          return {
-            momentsByUser: {
-              ...state.momentsByUser,
-              [key]: {
-                ...b,
-                hasMore: false,
+
+          const existingIds = new Set(b.moments.map((i) => i.id));
+          const filtered = older.filter((m) => !existingIds.has(m.id));
+
+          if (filtered.length > 0) {
+            hasNewItems = true;
+            fetchedAnyNew = true;
+            
+            // Merge into cache and sort
+            const mergedMoments = [...b.moments];
+            for (const item of filtered) {
+              mergedMoments.push(mergeMoment(null, item));
+            }
+            const newlySortedMoments = sortByCreateTimeDesc(mergedMoments);
+
+            return {
+              momentsByUser: {
+                ...state.momentsByUser,
+                [key]: {
+                  ...b,
+                  moments: newlySortedMoments,
+                  nextCursorSeconds: newCursorSeconds,
+                },
               },
-            },
-          };
+            };
+          } else {
+            // Entire page was duplicates, just advance cursor to avoid infinite loop
+            return {
+              momentsByUser: {
+                ...state.momentsByUser,
+                [key]: {
+                  ...b,
+                  nextCursorSeconds: newCursorSeconds,
+                },
+              },
+            };
+          }
         });
-        return;
+
+        currentCursorSeconds = newCursorSeconds;
+
+        if (older.length < loadMoreLimit) {
+          isExhausted = true;
+        }
+
+        if (hasNewItems) {
+          await bulkAddMoments(older);
+          hasAdvanced = true; // We found new items, stop polling ahead
+        } else if (!isExhausted) {
+          // No new items but API returned full page, need to loop again to skip duplicates
+          console.log("loadMoreOlder: Skipped duplicate page, fetching deeper...");
+        }
       }
 
+      // After loops finish, evaluate hasMore
       set((state) => {
         const b = state.momentsByUser[key];
         if (!b) return state;
-
-        const existingIds = new Set(b.moments.map((i) => i.id));
-        const filtered = older.filter((m) => !existingIds.has(m.id));
-
         return {
           momentsByUser: {
             ...state.momentsByUser,
             [key]: {
               ...b,
-              moments: [...b.moments, ...filtered],
-              hasMore: older.length === loadMoreLimit,
+              hasMore: !isExhausted,
             },
           },
         };
       });
 
-      await bulkAddMoments(older);
     } catch (err) {
       console.error("❌ loadMoreOlder error:", err);
+      // Let it throw up or log, but ensure finally resets isLoadingMore
     } finally {
       set((state) => {
         const b = state.momentsByUser[key];
@@ -351,8 +430,7 @@ export const useMomentsStoreV2 = create((set, get) => ({
         if (!raw?.id) continue;
         const m = {
           ...raw,
-          createTime:
-            toCreateTimeMs(raw.createTime || raw.date) || Date.now(),
+          createTime: getMomentDateMs(raw) || Date.now(),
         };
 
         const ownerUid = m.userUid || m.user || m.owner;
@@ -383,22 +461,11 @@ export const useMomentsStoreV2 = create((set, get) => ({
     }
   },
 
-  /**
-   * Merge a partial snapshot from socket / poll into the feed.
-   * IMPORTANT: do NOT wipe moments missing from the list — server often
-   * only sends the latest N items (limit=5). Old code filtered the feed
-   * down to snapshot ids → empty UI after realtime push.
-   */
   syncMomentsSnapshot: async (snapshot) => {
     if (!Array.isArray(snapshot) || !snapshot.length) return;
-    // Same path as realtime single/batch add (dedupe + sort + cache)
     await get().addNewMoment(snapshot);
   },
 
-  /**
-   * Soft pull latest moments without full-screen loading state.
-   * Used for auto-refresh (tab focus, open history, interval).
-   */
   pullLatestMoments: async (selectedFriendUid = null) => {
     const key = selectedFriendUid ?? "all";
     get().ensureBucket(key);
@@ -421,7 +488,6 @@ export const useMomentsStoreV2 = create((set, get) => ({
 
         for (const m of apiData) {
           if (!m?.id) continue;
-          // MERGE — giữ overlay nhạc local nếu API cắt
           const merged = mergeMoment(byId.get(m.id), m);
           byId.set(m.id, merged);
           dbQueue.push(merged);
@@ -432,7 +498,6 @@ export const useMomentsStoreV2 = create((set, get) => ({
           moments: sortByCreateTimeDesc([...byId.values()]),
         };
 
-        // Keep "all" feed in sync when filtering by friend
         if (key !== "all") {
           const all = next["all"] ?? defaultBucket();
           const allById = new Map(all.moments.map((m) => [m.id, m]));

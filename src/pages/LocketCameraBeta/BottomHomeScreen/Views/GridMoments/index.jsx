@@ -31,6 +31,7 @@ const GridMoments = ({ selectedAnimate }) => {
         loadMoreOlder={loadMoreOlder}
         hasMore={hasMore}
         loading={loading}
+        isLoadingMore={bucket?.isLoadingMore ?? false}
       />
     </div>
   );

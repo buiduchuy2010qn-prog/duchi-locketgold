@@ -13,6 +13,7 @@ const MomentsGallery = ({
   loadMoreOlder,
   hasMore,
   loading,
+  isLoadingMore,
 }) => {
   const setSelectedMoment = useSelectedStore((s) => s.setSelectedMoment);
   const setSelectedMomentId = useSelectedStore((s) => s.setSelectedMomentId);
@@ -40,7 +41,7 @@ const MomentsGallery = ({
           return;
         }
 
-        if (loadMoreOlder && hasMore) {
+        if (loadMoreOlder && hasMore && !isLoadingMore) {
           loadMoreOlder(selectedFriendUid);
         }
       },
@@ -57,6 +58,7 @@ const MomentsGallery = ({
     visibleCount,
     moments.length,
     hasMore,
+    isLoadingMore,
     loadMoreOlder,
     selectedFriendUid,
     increaseVisibleCount,

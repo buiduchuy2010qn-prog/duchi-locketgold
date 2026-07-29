@@ -1,4 +1,4 @@
-import api from "@/libs/axios";
+﻿import api from "@/libs/axios";
 
 export const GetAllMoments = async ({
   timestamp = null,
@@ -11,9 +11,11 @@ export const GetAllMoments = async ({
       friendId: friendId,
       limit: limit,
     });
-    return res.data?.data;
+    if (!res.data?.data) throw new Error("Invalid response");
+    return res.data.data;
   } catch (err) {
-    console.warn("Failed", err);
+    console.warn("❌ GetAllMoments Failed", err);
+    throw err; // Important: Throw so store can handle error state
   }
 };
 
