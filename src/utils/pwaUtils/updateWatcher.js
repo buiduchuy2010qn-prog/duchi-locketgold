@@ -1,8 +1,8 @@
 /**
- * App update:
- * - Nút tròn luôn có → user bấm = cập nhật ngay
- * - Tự cập nhật CHỈ khi user không vào web ≥ 30 phút rồi mới quay lại
- * - Không toast, không auto khi đang xài app
+ * Single owner for app-update state, service-worker activation, and reload.
+ *
+ * State flow:
+ * idle -> checking -> update-ready -> applying -> reloading
  */
 
 import currentBuild from "@/config/buildMeta.json";
@@ -13,25 +13,44 @@ import { SonnerInfo } from "@/components/uikit/SonnerToast";
 
 const STORAGE_BUILD = "app_known_build_id";
 const STORAGE_RELOAD_GUARD = "app_update_reload_guard";
-/** Lần cuối user rời / ẩn tab web (ms epoch) */
 const STORAGE_LAST_AWAY = "app_last_away_at";
-/** Lần cuối user đang active trên web */
 const STORAGE_LAST_ACTIVE = "app_last_active_at";
 
-const POLL_MS = 30 * 1000;
-/** Chỉ auto-update nếu đã vắng ≥ 30 phút */
+const POLL_MS = 5 * 60 * 1000;
 const AWAY_AUTO_UPDATE_MS = 30 * 60 * 1000;
-const RELOAD_GUARD_MS = 20 * 1000;
+const RELOAD_GUARD_MS = 60 * 1000;
+const CONTROLLER_TIMEOUT_MS = 8 * 1000;
 const EVENT_NAME = "app:update_state";
+const UPDATE_LOCK_NAME = "huy-locket-app-update";
+const TAB_ID =
+  typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+export const APP_UPDATE_PHASE = Object.freeze({
+  IDLE: "idle",
+  CHECKING: "checking",
+  UPDATE_READY: "update-ready",
+  APPLYING: "applying",
+  RELOADING: "reloading",
+});
 
 let pollTimer = null;
 let started = false;
-let checking = false;
-let autoUpdating = false;
-/** @type {null | (() => void | Promise<void>)} */
+let checkingPromise = null;
+let autoUpdatingPromise = null;
+let applyPromise = null;
 let pendingSwApply = null;
-/** @type {{ available: boolean, latest: object | null, swWaiting: boolean }} */
-let updateState = { available: false, latest: null, swWaiting: false };
+let serviceWorkerCheck = null;
+let controllerChangeListener = null;
+let reloadFallbackTimer = null;
+
+let updateState = {
+  phase: APP_UPDATE_PHASE.IDLE,
+  available: false,
+  latest: null,
+  swWaiting: false,
+};
 
 function now() {
   return Date.now();
@@ -61,6 +80,57 @@ function safeRemove(key) {
   }
 }
 
+function readReloadGuard() {
+  const raw = safeGet(STORAGE_RELOAD_GUARD);
+  if (!raw) return null;
+  try {
+    const value = JSON.parse(raw);
+    const at = Number(value?.at || 0);
+    if (!Number.isFinite(at) || now() - at >= RELOAD_GUARD_MS) {
+      safeRemove(STORAGE_RELOAD_GUARD);
+      return null;
+    }
+    return value;
+  } catch {
+    safeRemove(STORAGE_RELOAD_GUARD);
+    return null;
+  }
+}
+
+function isReloadGuardActive(targetBuildId) {
+  const guard = readReloadGuard();
+  if (!guard) return false;
+  return !targetBuildId || !guard.buildId || guard.buildId === targetBuildId;
+}
+
+function claimReloadGuard(targetBuildId, { replaceExisting = false } = {}) {
+  if (replaceExisting) {
+    safeRemove(STORAGE_RELOAD_GUARD);
+  } else if (isReloadGuardActive(targetBuildId)) {
+    return null;
+  }
+
+  const token = `${TAB_ID}:${now()}`;
+  safeSet(
+    STORAGE_RELOAD_GUARD,
+    JSON.stringify({
+      at: now(),
+      buildId: targetBuildId || "",
+      owner: TAB_ID,
+      token,
+    }),
+  );
+
+  const claimed = readReloadGuard();
+  return claimed?.token === token ? token : null;
+}
+
+function releaseReloadGuard(token) {
+  if (!token) return;
+  const guard = readReloadGuard();
+  if (guard?.token === token) safeRemove(STORAGE_RELOAD_GUARD);
+}
+
 function markActive() {
   safeSet(STORAGE_LAST_ACTIVE, String(now()));
 }
@@ -69,37 +139,40 @@ function markAway() {
   safeSet(STORAGE_LAST_AWAY, String(now()));
 }
 
-/**
- * Đã vắng web đủ lâu chưa (≥ 30 phút).
- * Dùng last_away; fallback last_active nếu không có mốc rời.
- */
 function hasBeenAwayLongEnough() {
-  const awayRaw = safeGet(STORAGE_LAST_AWAY);
-  const activeRaw = safeGet(STORAGE_LAST_ACTIVE);
-  const t = now();
-
-  if (awayRaw) {
-    const awayAt = Number(awayRaw);
-    if (Number.isFinite(awayAt) && t - awayAt >= AWAY_AUTO_UPDATE_MS) {
-      return true;
-    }
-    // Rời tab gần đây (< 30p) → không auto
-    if (Number.isFinite(awayAt) && t - awayAt < AWAY_AUTO_UPDATE_MS) {
-      return false;
-    }
+  const awayAt = Number(safeGet(STORAGE_LAST_AWAY));
+  if (Number.isFinite(awayAt) && awayAt > 0) {
+    return now() - awayAt >= AWAY_AUTO_UPDATE_MS;
   }
 
-  // Lần đầu / không có mốc away: chỉ auto nếu last active cũng đã cũ ≥ 30p
-  // (đóng browser lâu rồi mở lại)
-  if (activeRaw) {
-    const activeAt = Number(activeRaw);
-    if (Number.isFinite(activeAt) && t - activeAt >= AWAY_AUTO_UPDATE_MS) {
-      return true;
-    }
-  }
+  const activeAt = Number(safeGet(STORAGE_LAST_ACTIVE));
+  return (
+    Number.isFinite(activeAt) &&
+    activeAt > 0 &&
+    now() - activeAt >= AWAY_AUTO_UPDATE_MS
+  );
+}
 
-  // Chưa từng có mốc → coi là session mới, không ép auto (user bấm nút)
-  return false;
+function statesMatch(a, b) {
+  return (
+    a.phase === b.phase &&
+    a.available === b.available &&
+    a.swWaiting === b.swWaiting &&
+    a.latest?.buildId === b.latest?.buildId
+  );
+}
+
+function publishState(partial) {
+  const next = { ...updateState, ...partial };
+  if (statesMatch(updateState, next)) return;
+  updateState = next;
+  try {
+    window.dispatchEvent(
+      new CustomEvent(EVENT_NAME, { detail: { ...updateState } }),
+    );
+  } catch {
+    /* ignore */
+  }
 }
 
 export function getCurrentBuildMeta() {
@@ -133,24 +206,14 @@ export async function fetchLatestVersion() {
   };
 }
 
-function publishState(partial) {
-  updateState = { ...updateState, ...partial };
-  try {
-    window.dispatchEvent(
-      new CustomEvent(EVENT_NAME, { detail: { ...updateState } }),
-    );
-  } catch {
-    /* ignore */
-  }
-}
-
 export function getAppUpdateState() {
   return { ...updateState };
 }
 
 export function subscribeAppUpdate(listener) {
   if (typeof listener !== "function") return () => {};
-  const handler = (e) => listener(e?.detail || getAppUpdateState());
+  const handler = (event) =>
+    listener(event?.detail || getAppUpdateState());
   window.addEventListener(EVENT_NAME, handler);
   try {
     listener(getAppUpdateState());
@@ -164,159 +227,295 @@ export async function clearOldAppCache() {
   try {
     if ("caches" in window) {
       const keys = await caches.keys();
-      await Promise.all(keys.map((k) => caches.delete(k)));
+      await Promise.all(keys.map((key) => caches.delete(key)));
     }
-  } catch (e) {
-    console.warn("[update] clear caches", e);
+  } catch (error) {
+    console.warn("[update] clear caches", error);
   }
 }
 
-/**
- * @param {string} [targetBuildId]
- * @param {{ force?: boolean }} [opts]
- */
-export async function applyWebsiteUpdate(targetBuildId, opts = {}) {
-  const force = Boolean(opts.force);
-  const guard = safeGet(STORAGE_RELOAD_GUARD);
-  if (guard && !force) {
-    try {
-      const { at } = JSON.parse(guard);
-      if (now() - Number(at || 0) < RELOAD_GUARD_MS) {
-        console.warn("[update] reload guard active — skip");
-        return false;
-      }
-    } catch {
-      /* continue */
-    }
+function clearReloadWaiters() {
+  if (reloadFallbackTimer) {
+    clearTimeout(reloadFallbackTimer);
+    reloadFallbackTimer = null;
   }
-
-  safeSet(STORAGE_RELOAD_GUARD, JSON.stringify({ at: now() }));
-
-  const target =
-    targetBuildId ||
-    updateState.latest?.buildId ||
-    getCurrentBuildMeta().buildId;
-  safeSet(STORAGE_BUILD, target);
-
-  await clearOldAppCache();
-
-  if (typeof pendingSwApply === "function") {
-    try {
-      await pendingSwApply();
-      return true;
-    } catch (e) {
-      console.warn("[update] SW apply failed, hard reload", e);
-    }
+  if (controllerChangeListener) {
+    navigator.serviceWorker?.removeEventListener?.(
+      "controllerchange",
+      controllerChangeListener,
+    );
+    controllerChangeListener = null;
   }
+}
 
+function makeReloadUrl() {
   const url = new URL(window.location.href);
-  url.searchParams.set("_v", String(Date.now()));
-  window.location.replace(url.pathname + url.search + url.hash);
+  url.searchParams.set("_v", String(now()));
+  return url.pathname + url.search + url.hash;
+}
+
+function reloadExactlyOnce(targetBuildId, useReplace = false) {
+  if (updateState.phase === APP_UPDATE_PHASE.RELOADING) return false;
+
+  clearReloadWaiters();
+  safeSet(STORAGE_BUILD, targetBuildId || getCurrentBuildMeta().buildId);
+  publishState({ phase: APP_UPDATE_PHASE.RELOADING });
+
+  if (useReplace) {
+    window.location.replace(makeReloadUrl());
+  } else {
+    window.location.reload();
+  }
   return true;
 }
 
-/** Silent check — chấm hồng trên nút. Không auto reload. */
-export async function checkForAppUpdate() {
-  if (checking) return updateState.available;
-  if (typeof document !== "undefined" && document.hidden) {
-    return updateState.available;
-  }
+function armControllerReload(targetBuildId) {
+  clearReloadWaiters();
 
-  checking = true;
-  try {
-    const latest = await fetchLatestVersion();
-    const current = getCurrentBuildMeta();
+  controllerChangeListener = () => {
+    reloadExactlyOnce(targetBuildId, true);
+  };
+  navigator.serviceWorker?.addEventListener?.(
+    "controllerchange",
+    controllerChangeListener,
+    { once: true },
+  );
 
-    if (latest.buildId === current.buildId && !updateState.swWaiting) {
-      safeSet(STORAGE_BUILD, latest.buildId);
-      safeRemove(STORAGE_RELOAD_GUARD);
-      publishState({ available: false, latest: null });
-      return false;
-    }
-
-    if (latest.buildId === current.buildId && updateState.swWaiting) {
-      publishState({ available: true, latest });
-      return true;
-    }
-
-    publishState({ available: true, latest });
-    return true;
-  } catch (e) {
-    if (import.meta.env?.DEV) {
-      console.debug("[update] check skipped", e?.message || e);
-    }
-    return updateState.available;
-  } finally {
-    checking = false;
-  }
+  reloadFallbackTimer = setTimeout(() => {
+    console.warn(
+      "[update] controllerchange timeout, using one guarded reload",
+    );
+    reloadExactlyOnce(targetBuildId, true);
+  }, CONTROLLER_TIMEOUT_MS);
 }
 
-/**
- * Tự cập nhật CHỈ khi đã vắng web ≥ 30 phút.
- */
-export async function autoUpdateIfAvailable() {
-  if (autoUpdating) return false;
-  if (typeof document !== "undefined" && document.hidden) return false;
-
-  if (!hasBeenAwayLongEnough()) {
-    // Vẫn check để hiện chấm hồng, không reload
-    await checkForAppUpdate();
-    return false;
-  }
-
-  if (isUserBusy()) {
-    return false;
-  }
-
-  const guard = safeGet(STORAGE_RELOAD_GUARD);
-  if (guard) {
+async function withApplyLock(
+  targetBuildId,
+  task,
+  { userInitiated = false } = {},
+) {
+  const runWithGuard = async () => {
+    const guardToken = claimReloadGuard(targetBuildId, {
+      replaceExisting: userInitiated,
+    });
+    if (!guardToken) return { acquired: false, value: null };
     try {
-      const { at } = JSON.parse(guard);
-      if (now() - Number(at || 0) < RELOAD_GUARD_MS) return false;
-    } catch {
-      /* ignore */
+      const value = await task();
+      if (value === false) releaseReloadGuard(guardToken);
+      return { acquired: true, value };
+    } catch (error) {
+      releaseReloadGuard(guardToken);
+      throw error;
     }
+  };
+
+  if (typeof navigator !== "undefined" && navigator.locks?.request) {
+    if (userInitiated) {
+      return navigator.locks.request(
+        UPDATE_LOCK_NAME,
+        { mode: "exclusive" },
+        runWithGuard,
+      );
+    }
+
+    return navigator.locks.request(
+      UPDATE_LOCK_NAME,
+      { mode: "exclusive", ifAvailable: true },
+      async (lock) => {
+        if (!lock) return { acquired: false, value: null };
+        return runWithGuard();
+      },
+    );
   }
 
-  autoUpdating = true;
-  try {
-    const has = await checkForAppUpdate();
-    if (!has) return false;
-    const buildId = updateState.latest?.buildId;
-    console.log(
-      "[update] auto-apply after ≥30m away, build=",
-      buildId,
-    );
-    await applyWebsiteUpdate(buildId);
-    return true;
-  } catch (e) {
-    console.warn("[update] autoUpdate failed", e);
-    return false;
-  } finally {
-    autoUpdating = false;
-  }
+  return runWithGuard();
 }
 
 export function isUserBusy() {
   try {
     const postState = usePostStore.getState();
-    if (postState.selectedFile || postState.preview) return true;
+    if (
+      postState.selectedFile ||
+      postState.preview ||
+      postState.imageToCrop ||
+      postState.videoToCrop
+    ) {
+      return true;
+    }
 
     const uploadState = useUploadQueueStore.getState();
-    if (uploadState.isQueueRunning || uploadState.uploadItems.some(i => i.status === "uploading")) return true;
+    if (
+      uploadState.isQueueRunning ||
+      uploadState.uploadItems?.some(
+        (item) => item.status === "queued" || item.status === "uploading",
+      )
+    ) {
+      return true;
+    }
 
     const draftState = useMomentDraftStore.getState();
-    if (draftState.postingDraftId || draftState.syncing) return true;
-
+    if (
+      draftState.postingDraftId ||
+      draftState.pendingNewFile ||
+      draftState.loading
+    ) {
+      return true;
+    }
   } catch {
     /* ignore */
   }
   return false;
 }
 
+export function applyWebsiteUpdate(
+  targetBuildId,
+  { userInitiated = false } = {},
+) {
+  if (
+    updateState.phase === APP_UPDATE_PHASE.APPLYING ||
+    updateState.phase === APP_UPDATE_PHASE.RELOADING
+  ) {
+    return applyPromise || Promise.resolve(null);
+  }
+  if (applyPromise) return applyPromise;
+
+  applyPromise = (async () => {
+    if (isUserBusy()) return false;
+
+    const target =
+      targetBuildId ||
+      updateState.latest?.buildId ||
+      getCurrentBuildMeta().buildId;
+
+    const result = await withApplyLock(
+      target,
+      async () => {
+        if (isUserBusy()) return false;
+
+        publishState({ phase: APP_UPDATE_PHASE.APPLYING });
+        safeSet(STORAGE_BUILD, target);
+
+        if (typeof pendingSwApply === "function") {
+          armControllerReload(target);
+          try {
+            const applyWaitingWorker = pendingSwApply;
+            pendingSwApply = null;
+            const sent = await applyWaitingWorker();
+            if (sent !== false) return true;
+          } catch (error) {
+            console.warn("[update] service worker apply failed", error);
+          }
+          clearReloadWaiters();
+        }
+
+        reloadExactlyOnce(target, true);
+        return true;
+      },
+      { userInitiated },
+    );
+
+    if (!result.acquired) {
+      publishState({ phase: APP_UPDATE_PHASE.UPDATE_READY });
+      return null;
+    }
+    return result.value;
+  })().finally(() => {
+    applyPromise = null;
+  });
+
+  return applyPromise;
+}
+
+export function checkForAppUpdate() {
+  if (
+    updateState.phase === APP_UPDATE_PHASE.APPLYING ||
+    updateState.phase === APP_UPDATE_PHASE.RELOADING
+  ) {
+    return Promise.resolve(updateState.available);
+  }
+  if (checkingPromise) return checkingPromise;
+  if (typeof document !== "undefined" && document.hidden) {
+    return Promise.resolve(updateState.available);
+  }
+
+  checkingPromise = (async () => {
+    publishState({ phase: APP_UPDATE_PHASE.CHECKING });
+    try {
+      const latest = await fetchLatestVersion();
+      const current = getCurrentBuildMeta();
+      const available =
+        latest.buildId !== current.buildId || updateState.swWaiting;
+
+      if (!available) {
+        safeSet(STORAGE_BUILD, latest.buildId);
+        safeRemove(STORAGE_RELOAD_GUARD);
+        publishState({
+          phase: APP_UPDATE_PHASE.IDLE,
+          available: false,
+          latest: null,
+        });
+        return false;
+      }
+
+      publishState({
+        phase: APP_UPDATE_PHASE.UPDATE_READY,
+        available: true,
+        latest,
+      });
+      return true;
+    } catch (error) {
+      if (import.meta.env?.DEV) {
+        console.debug("[update] check skipped", error?.message || error);
+      }
+      publishState({
+        phase: updateState.available
+          ? APP_UPDATE_PHASE.UPDATE_READY
+          : APP_UPDATE_PHASE.IDLE,
+      });
+      return updateState.available;
+    }
+  })().finally(() => {
+    checkingPromise = null;
+  });
+
+  return checkingPromise;
+}
+
+export function autoUpdateIfAvailable() {
+  if (autoUpdatingPromise) return autoUpdatingPromise;
+  if (typeof document !== "undefined" && document.hidden) {
+    return Promise.resolve(false);
+  }
+
+  autoUpdatingPromise = (async () => {
+    if (!hasBeenAwayLongEnough()) {
+      await checkForAppUpdate();
+      return false;
+    }
+    if (isUserBusy()) return false;
+
+    const hasUpdate = await checkForAppUpdate();
+    if (!hasUpdate || isUserBusy()) return false;
+
+    const target = updateState.latest?.buildId;
+    if (isReloadGuardActive(target)) return false;
+
+    const result = await applyWebsiteUpdate(target);
+    return result !== false;
+  })()
+    .catch((error) => {
+      console.warn("[update] auto update failed", error);
+      return false;
+    })
+    .finally(() => {
+      autoUpdatingPromise = null;
+    });
+
+  return autoUpdatingPromise;
+}
+
 let userForceUpdatePromise = null;
 
-/** User bấm nút — cập nhật ngay, không cần chờ 30p */
 export function userForceUpdate() {
   if (userForceUpdatePromise) return userForceUpdatePromise;
   userForceUpdatePromise = (async () => {
@@ -325,52 +524,29 @@ export function userForceUpdate() {
         return "offline";
       }
 
-      let hasUpdate = false;
       try {
-        // Ép SW check update
-        if (navigator.serviceWorker) {
-          const regs = await navigator.serviceWorker.getRegistrations();
-          if (regs) {
-            for (const reg of regs) {
-              await reg.update().catch(() => {});
-            }
-          }
-        }
-        
-        // Kiểm tra version.json 3 lần: 0s, 1.5s, 3s
-        for (let i = 0; i < 3; i++) {
-          hasUpdate = await checkForAppUpdate();
-          if (hasUpdate) break;
-          if (i < 2) await new Promise((r) => setTimeout(r, 1500));
-        }
+        await serviceWorkerCheck?.();
       } catch {
-        return "error";
+        /* version.json remains the source of truth */
       }
 
-      if (!hasUpdate) {
-        return "latest";
-      }
+      const hasUpdate = await checkForAppUpdate();
+      if (!hasUpdate) return "latest";
 
       if (isUserBusy()) {
-        SonnerInfo("Đã có phiên bản mới", "Ứng dụng sẽ cập nhật sau khi bạn hoàn tất.");
+        SonnerInfo(
+          "Đã có phiên bản mới",
+          "Ứng dụng sẽ cập nhật sau khi bạn hoàn tất.",
+        );
         return "busy";
       }
 
-      const buildId = updateState.latest?.buildId;
-      const success = await applyWebsiteUpdate(buildId, { force: true });
-      
-      if (success) {
-        // Kiểm tra sau reload
-        setTimeout(async () => {
-          const current = getCurrentBuildMeta();
-          if (current.buildId !== buildId) {
-             // Thử cập nhật lại tối đa 1 lần nếu buildId chưa đổi
-             console.warn("[update] buildId mismatch after reload, retrying once...");
-             await applyWebsiteUpdate(buildId, { force: true });
-          }
-        }, 3000);
-      }
-      return success ? "updated" : "error";
+      const result = await applyWebsiteUpdate(
+        updateState.latest?.buildId,
+        { userInitiated: true },
+      );
+      if (result === null) return "applying";
+      return result ? "updated" : "error";
     } finally {
       userForceUpdatePromise = null;
     }
@@ -378,70 +554,13 @@ export function userForceUpdate() {
   return userForceUpdatePromise;
 }
 
-export function handleVisibilityUpdateCheck() {
-  if (document.visibilityState !== "visible") {
-    // Rời tab / ẩn app → ghi mốc away
-    markAway();
-    stopUpdateWatcher({ keepListeners: true });
-    return;
+export function handleServiceWorkerUpdate(applyWaitingWorker) {
+  if (typeof applyWaitingWorker === "function") {
+    pendingSwApply = applyWaitingWorker;
   }
 
-  // Quay lại tab
-  markActive();
-  if (started) ensurePoll();
-
-  // Chỉ auto nếu đã vắng ≥ 30 phút
-  autoUpdateIfAvailable();
-}
-
-export function handleOnlineUpdateCheck() {
-  if (typeof navigator !== "undefined" && navigator.onLine === false) return;
-  // Online lại: chỉ auto nếu đã vắng đủ lâu
-  autoUpdateIfAvailable();
-}
-
-export function handleServiceWorkerUpdate(updateSW) {
-  if (typeof updateSW === "function") {
-    pendingSwApply = async () => {
-      let reloaded = false;
-      let reloadFallbackTimer = null;
-      const onController = () => {
-        if (reloaded) return;
-        reloaded = true;
-        if (reloadFallbackTimer) clearTimeout(reloadFallbackTimer);
-        navigator.serviceWorker?.removeEventListener?.(
-          "controllerchange",
-          onController,
-        );
-        window.location.reload();
-      };
-      try {
-        navigator.serviceWorker?.addEventListener?.(
-          "controllerchange",
-          onController,
-        );
-      } catch {
-        /* ignore */
-      }
-      
-      // Gửi SKIP_WAITING
-      await updateSW(true);
-      
-      // Fallback reload sau 5s nếu SW không đổi
-      reloadFallbackTimer = setTimeout(() => {
-        if (!reloaded) {
-          reloaded = true;
-          console.warn("[update] controllerchange timeout, fallback to forced reload");
-          const url = new URL(window.location.href);
-          url.searchParams.set("_v", String(Date.now()));
-          window.location.replace(url.pathname + url.search + url.hash);
-        }
-      }, 5000);
-    };
-  }
-
-  // SW waiting → chỉ badge, không auto (trừ khi đã vắng ≥ 30p)
   publishState({
+    phase: APP_UPDATE_PHASE.UPDATE_READY,
     available: true,
     swWaiting: true,
     latest: updateState.latest || {
@@ -449,7 +568,17 @@ export function handleServiceWorkerUpdate(updateSW) {
       version: getCurrentBuildMeta().version,
     },
   });
-  checkForAppUpdate();
+  void checkForAppUpdate();
+}
+
+export function setServiceWorkerCheck(check) {
+  serviceWorkerCheck = typeof check === "function" ? check : null;
+}
+
+/** @deprecated Use handleServiceWorkerUpdate. */
+export function setPendingSwApply(applyWaitingWorker) {
+  pendingSwApply =
+    typeof applyWaitingWorker === "function" ? applyWaitingWorker : null;
 }
 
 function ensurePoll() {
@@ -458,43 +587,56 @@ function ensurePoll() {
   pollTimer = setInterval(() => {
     if (document.hidden) return;
     markActive();
-    // Poll chỉ cập nhật badge, không auto reload
-    checkForAppUpdate();
+    void checkForAppUpdate();
   }, POLL_MS);
+}
+
+export function handleVisibilityUpdateCheck() {
+  if (document.visibilityState !== "visible") {
+    markAway();
+    stopUpdateWatcher({ keepListeners: true });
+    return;
+  }
+
+  if (started) ensurePoll();
+  void autoUpdateIfAvailable().finally(markActive);
+}
+
+export function handleOnlineUpdateCheck() {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+  void autoUpdateIfAvailable();
+}
+
+function handleFocusUpdateCheck() {
+  if (document.visibilityState !== "visible") return;
+  markActive();
+  void checkForAppUpdate();
+}
+
+function handlePageHide() {
+  markAway();
+}
+
+function handlePageShow(event) {
+  if (!event.persisted) return;
+  void autoUpdateIfAvailable().finally(markActive);
 }
 
 export function startUpdateWatcher() {
   if (started || typeof window === "undefined") return;
   started = true;
 
-  window.addEventListener("load", () => {
-    setTimeout(() => safeRemove(STORAGE_RELOAD_GUARD), 2500);
-  });
-
-  // Session mở: thử auto chỉ nếu đã vắng ≥ 30p từ lần trước
-  autoUpdateIfAvailable().finally(() => {
-    markActive();
-  });
+  void autoUpdateIfAvailable().finally(markActive);
   ensurePoll();
 
-  document.addEventListener("visibilitychange", handleVisibilityUpdateCheck);
-  // focus: không auto mỗi lần focus — chỉ mark active + check badge
-  window.addEventListener("focus", () => {
-    if (document.visibilityState === "visible") {
-      markActive();
-      checkForAppUpdate();
-    }
-  });
+  document.addEventListener(
+    "visibilitychange",
+    handleVisibilityUpdateCheck,
+  );
+  window.addEventListener("focus", handleFocusUpdateCheck);
   window.addEventListener("online", handleOnlineUpdateCheck);
-
-  window.addEventListener("pagehide", () => {
-    markAway();
-  });
-  window.addEventListener("pageshow", (e) => {
-    if (e.persisted) {
-      autoUpdateIfAvailable().finally(() => markActive());
-    }
-  });
+  window.addEventListener("pagehide", handlePageHide);
+  window.addEventListener("pageshow", handlePageShow);
 }
 
 export function stopUpdateWatcher({ keepListeners = false } = {}) {
@@ -502,18 +644,18 @@ export function stopUpdateWatcher({ keepListeners = false } = {}) {
     clearInterval(pollTimer);
     pollTimer = null;
   }
-  if (!keepListeners) {
-    started = false;
-    document.removeEventListener(
-      "visibilitychange",
-      handleVisibilityUpdateCheck,
-    );
-    window.removeEventListener("online", handleOnlineUpdateCheck);
-  }
-}
+  if (keepListeners) return;
 
-export function setPendingSwApply(fn) {
-  pendingSwApply = typeof fn === "function" ? fn : null;
+  started = false;
+  document.removeEventListener(
+    "visibilitychange",
+    handleVisibilityUpdateCheck,
+  );
+  window.removeEventListener("focus", handleFocusUpdateCheck);
+  window.removeEventListener("online", handleOnlineUpdateCheck);
+  window.removeEventListener("pagehide", handlePageHide);
+  window.removeEventListener("pageshow", handlePageShow);
+  clearReloadWaiters();
 }
 
 /** @deprecated */

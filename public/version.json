@@ -1,6 +1,12 @@
 {
   "version": "1.4.0",
+<<<<<<< HEAD
   "buildId": "ms6b33ek-af8505de",
   "commitHash": "af8505de",
   "deployedAt": "2026-07-29T16:35:32.732Z"
+=======
+  "buildId": "ms60ep3i-fcdc97cc",
+  "commitHash": "fcdc97cc",
+  "deployedAt": "2026-07-29T11:36:38.286Z"
+>>>>>>> f30adf36317f60abd71c64ae3181e9c797382114
 }

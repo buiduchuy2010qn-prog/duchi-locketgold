@@ -13,32 +13,31 @@
   prefersdark: false;
   color-scheme: light;
 
-  --color-base-100: #fdfbfb;
-  --color-base-200: #f5f0f2;
-  --color-base-300: #fecfef;
-  --color-base-content: #4a4a4a;
+  --color-base-100: #ffd2e4;
+  --color-base-200: #ffb7d2;
+  --color-base-300: #ff8fbd;
+  --color-base-content: #4d102c;
 
-  /* Accent #d81b60 */
-  --color-primary: #d81b60;
+  --color-primary: #c2185b;
   --color-primary-content: #ffffff;
 
-  --color-secondary: #ff9a9e;
-  --color-secondary-content: #4a4a4a;
+  --color-secondary: #f43f8e;
+  --color-secondary-content: #ffffff;
 
-  --color-accent: #d81b60;
+  --color-accent: #e11d68;
   --color-accent-content: #ffffff;
 
-  --color-neutral: #4a4a4a;
-  --color-neutral-content: #fdfbfb;
+  --color-neutral: #3a1930;
+  --color-neutral-content: #fff5f9;
 
-  --color-info: oklch(75% 0.1 230);
-  --color-info-content: oklch(25% 0.04 230);
-  --color-success: oklch(72% 0.14 155);
-  --color-success-content: oklch(20% 0.04 155);
-  --color-warning: oklch(85% 0.12 85);
-  --color-warning-content: oklch(30% 0.05 85);
-  --color-error: oklch(65% 0.2 25);
-  --color-error-content: oklch(98% 0.01 25);
+  --color-info: #2563eb;
+  --color-info-content: #ffffff;
+  --color-success: #15803d;
+  --color-success-content: #ffffff;
+  --color-warning: #d97706;
+  --color-warning-content: #ffffff;
+  --color-error: #be123c;
+  --color-error-content: #ffffff;
 
   --radius-selector: 1rem;
   --radius-field: 0.75rem;
@@ -673,81 +672,70 @@ html[data-theme="pinksnow"],
 html[data-theme="pink-snow"] {
   color-scheme: light;
 
-  --pink-bg-start: #fdfbfb;
-  --pink-bg-end: #ebedee;
-  --pink-blob-1: #ff9a9e;
-  --pink-blob-2: #fecfef;
-  --pink-glass: rgba(255, 182, 193, 0.25);
-  --pink-glass-border: rgba(255, 255, 255, 0.4);
-  --pink-glass-shadow: rgba(255, 182, 193, 0.25);
-  --pink-accent: #d81b60;
-  --pink-text: #4a4a4a;
+  --pink-bg-start: #ffc1d9;
+  --pink-bg-mid: #ff93bd;
+  --pink-bg-end: #ff72a7;
+  --pink-glass: rgba(255, 255, 255, 0.58);
+  --pink-glass-strong: rgba(255, 244, 249, 0.76);
+  --pink-glass-border: rgba(255, 255, 255, 0.82);
+  --pink-glass-shadow: rgba(190, 24, 93, 0.2);
+  --pink-accent: #c2185b;
+  --pink-accent-strong: #9f123f;
+  --pink-text: #4d102c;
+  --pink-text-secondary: #6f1d45;
 
   --page-bg: var(--pink-bg-start);
   --surface: var(--pink-glass);
-  --surface-strong: rgba(255, 182, 193, 0.35);
-  --pink-soft: var(--pink-blob-2);
-  --pink-light: var(--pink-blob-1);
+  --surface-strong: var(--pink-glass-strong);
+  --pink-soft: #ffb7d2;
+  --pink-light: #ff8fbd;
   --pink-primary: var(--pink-accent);
-  --pink-strong: var(--pink-accent);
+  --pink-strong: var(--pink-accent-strong);
   --text-primary: var(--pink-text);
-  --text-secondary: #6b6b6b;
+  --text-secondary: var(--pink-text-secondary);
   --border-soft: var(--pink-glass-border);
   --accent: var(--pink-accent);
   --accent-contrast: #ffffff;
-  --shadow-pink: 0 8px 32px var(--pink-glass-shadow);
+  --shadow-pink: 0 10px 28px var(--pink-glass-shadow);
 
   --color-base-content: var(--pink-text);
   --color-primary: var(--pink-accent);
   --color-primary-content: #ffffff;
 }
 
-/* Page base: soft grey-white + two soft pink blobs (faded, not hard shapes) */
+/* Bright pink page base: one calm gradient, identical on desktop and mobile. */
 html[data-theme="pinksnow"],
 html[data-theme="pinksnow"] body,
 html[data-theme="pink-snow"],
 html[data-theme="pink-snow"] body {
   min-height: 100%;
   color: var(--pink-text);
-
-  background:
-    radial-gradient(
-      55% 45% at 12% 18%,
-      color-mix(in srgb, var(--pink-blob-1) 38%, transparent),
-      transparent 70%
-    ),
-    radial-gradient(
-      50% 42% at 88% 78%,
-      color-mix(in srgb, var(--pink-blob-2) 42%, transparent),
-      transparent 72%
-    ),
-    linear-gradient(
-      135deg,
-      var(--pink-bg-start) 0%,
-      var(--pink-bg-end) 100%
-    ) !important;
+  background: linear-gradient(
+    180deg,
+    var(--pink-bg-start) 0%,
+    var(--pink-bg-mid) 52%,
+    var(--pink-bg-end) 100%
+  ) !important;
   background-attachment: fixed;
 }
 
-/* Camera route: same palette, scroll attachment for mobile stability */
+html[data-theme="pinksnow"] #root,
+html[data-theme="pinksnow"] .bg-locket,
+html[data-theme="pinksnow"] main {
+  color: var(--pink-text);
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* Camera route keeps the same saturated palette with mobile-safe attachment. */
 html[data-theme="pinksnow"] body:has([data-locket-camera]),
 html[data-theme="pink-snow"] body:has([data-locket-camera]) {
-  background:
-    radial-gradient(
-      50% 40% at 14% 16%,
-      color-mix(in srgb, var(--pink-blob-1) 32%, transparent),
-      transparent 70%
-    ),
-    radial-gradient(
-      48% 40% at 90% 80%,
-      color-mix(in srgb, var(--pink-blob-2) 36%, transparent),
-      transparent 72%
-    ),
-    linear-gradient(
-      135deg,
-      var(--pink-bg-start) 0%,
-      var(--pink-bg-end) 100%
-    ) !important;
+  background: linear-gradient(
+    180deg,
+    var(--pink-bg-start) 0%,
+    var(--pink-bg-mid) 52%,
+    var(--pink-bg-end) 100%
+  ) !important;
   background-attachment: scroll !important;
 }
 
@@ -762,9 +750,9 @@ html[data-theme="pinksnow"] .historyChip,
 html[data-theme="pink-snow"] .historyChip {
   background: var(--pink-glass) !important;
   border: 1px solid var(--pink-glass-border) !important;
-  box-shadow: 0 8px 32px var(--pink-glass-shadow) !important;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-pink) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   color: var(--pink-text) !important;
 }
 
@@ -813,19 +801,42 @@ html[data-theme="pinksnow"] .pillSideBtn:disabled {
 }
 
 /* Header chrome â€” pink glass (no geometry) */
-html[data-theme="pinksnow"] header button.w-11,
-html[data-theme="pinksnow"] header .w-11.h-11.rounded-full,
-html[data-theme="pinksnow"] [data-header-profile="true"] > div.absolute,
-html[data-theme="pinksnow"] [data-header-chat="true"],
-html[data-theme="pinksnow"] [data-header-menu="true"],
-html[data-theme="pinksnow"] button.w-11.h-11,
-html[data-theme="pink-snow"] button.w-11.h-11 {
+html[data-theme="pinksnow"]
+  header
+  button.w-11.h-11:not([data-header-profile="true"]),
+html[data-theme="pink-snow"]
+  header
+  button.w-11.h-11:not([data-header-profile="true"]),
+html[data-theme="pinksnow"]
+  div.fixed.top-0.left-0.w-full
+  button.w-11.h-11:not([data-header-profile="true"]),
+html[data-theme="pink-snow"]
+  div.fixed.top-0.left-0.w-full
+  button.w-11.h-11:not([data-header-profile="true"]) {
   background: var(--pink-glass) !important;
   border: 1px solid var(--pink-glass-border) !important;
-  box-shadow: 0 8px 32px var(--pink-glass-shadow) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
+  box-shadow: var(--shadow-pink) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
   color: var(--pink-text) !important;
+}
+
+html[data-theme="pinksnow"] button[data-header-profile="true"],
+html[data-theme="pink-snow"] button[data-header-profile="true"] {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="pinksnow"] [data-header-profile="true"] > div.absolute,
+html[data-theme="pink-snow"] [data-header-profile="true"] > div.absolute {
+  background: var(--pink-glass) !important;
+  border: 1px solid var(--pink-glass-border) !important;
+  box-shadow: 0 8px 22px var(--pink-glass-shadow) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
 }
 
 /* Friends pill */
@@ -834,20 +845,20 @@ html[data-theme="pink-snow"] [data-friends-pill="true"],
 html[data-theme="pinksnow"] header button.absolute.rounded-3xl {
   background: var(--pink-glass) !important;
   border: 1px solid var(--pink-glass-border) !important;
-  box-shadow: 0 8px 32px var(--pink-glass-shadow) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
+  box-shadow: var(--shadow-pink) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
   color: var(--pink-text) !important;
 }
 
 /* Avatar disc behind profile image */
-html[data-theme="pinksnow"] header .bg-base-300\/70.rounded-full.absolute,
-html[data-theme="pinksnow"] .bg-base-300\/70.backdrop-blur-\[4px\] {
+html[data-theme="pinksnow"] [data-header-profile="true"] > .rounded-full.absolute,
+html[data-theme="pink-snow"] [data-header-profile="true"] > .rounded-full.absolute {
   background: var(--pink-glass) !important;
   border: 1px solid var(--pink-glass-border) !important;
-  box-shadow: 0 8px 24px var(--pink-glass-shadow) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
+  box-shadow: 0 8px 22px var(--pink-glass-shadow) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
 }
 
 /* Shutter ring â€” accent #d81b60 (color/shadow only) */
@@ -867,7 +878,7 @@ html[data-theme="pinksnow"] button[aria-label="Chá»¥p áº£nh"] .bg-white {
 
 /* Zoom rail â€” soft pink track / accent fill */
 html[data-theme="pinksnow"] [data-zoom-slider] .bg-white\/35 {
-  background-color: rgba(255, 182, 193, 0.45) !important;
+  background-color: rgba(255, 223, 237, 0.58) !important;
 }
 html[data-theme="pinksnow"] [data-zoom-slider] .bg-white\/90 {
   background-color: var(--pink-accent) !important;
@@ -879,12 +890,19 @@ html[data-theme="pinksnow"] [data-zoom-slider] .rounded-full.bg-white {
 }
 
 html[data-theme="pinksnow"] [data-zoom-badge="true"] > div {
-  background: var(--pink-glass) !important;
+  background: rgba(159, 18, 63, 0.9) !important;
   border: 1px solid var(--pink-glass-border) !important;
-  color: var(--pink-text) !important;
-  box-shadow: 0 4px 16px var(--pink-glass-shadow) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
+  color: #ffffff !important;
+  box-shadow: 0 5px 16px rgba(95, 10, 44, 0.24) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  text-shadow: 0 1px 2px rgba(77, 16, 44, 0.55);
+}
+
+html[data-theme="pinksnow"] [data-zoom-badge="true"] .text-white,
+html[data-theme="pinksnow"] [data-zoom-slider] .text-white,
+html[data-theme="pinksnow"] [data-zoom-slider] .text-white\/80 {
+  color: #ffffff !important;
 }
 
 /* Bottom nav active / history active */
@@ -904,19 +922,19 @@ html[data-theme="pinksnow"] .menuDrawer,
 html[data-theme="pink-snow"] .menuDrawer,
 html[data-theme="pinksnow"] .fixed.z-60.top-0.right-0.bg-base-100,
 html[data-theme="pinksnow"] .bg-base-100.flex.flex-col {
-  background: rgba(253, 251, 251, 0.72) !important;
+  background: var(--pink-glass-strong) !important;
   border-color: var(--pink-glass-border) !important;
-  box-shadow: -8px 0 32px var(--pink-glass-shadow) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
+  box-shadow: -8px 0 28px var(--pink-glass-shadow) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
   color: var(--pink-text) !important;
 }
 
 html[data-theme="pinksnow"] .menuBackdrop,
 html[data-theme="pinksnow"] .fixed.inset-0.bg-base-100\/10 {
-  background: rgba(74, 74, 74, 0.12) !important;
-  backdrop-filter: blur(2px) !important;
-  -webkit-backdrop-filter: blur(2px) !important;
+  background: rgba(77, 16, 44, 0.18) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 /* Active menu item */
@@ -930,11 +948,11 @@ html[data-theme="pinksnow"] .menu a[aria-current="page"] {
 html[data-theme="pinksnow"] .modal-box,
 html[data-theme="pinksnow"] [role="dialog"]:not([data-draft-library]),
 html[data-theme="pinksnow"] .bg-base-100:not(.draft-library-root) {
-  background: rgba(253, 251, 251, 0.78) !important;
+  background: var(--pink-glass-strong) !important;
   border: 1px solid var(--pink-glass-border) !important;
-  box-shadow: 0 8px 32px var(--pink-glass-shadow) !important;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-pink) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   color: var(--pink-text);
 }
 
@@ -958,6 +976,13 @@ html[data-theme="glass"] .draft-library-root[role="dialog"] {
   z-index: 320 !important;
 }
 
+html[data-theme="pinksnow"] .draft-library-root,
+html[data-theme="pinksnow"] .draft-library-root[role="dialog"] {
+  background: #ffc5dc !important;
+  background-color: #ffc5dc !important;
+  color: var(--pink-text) !important;
+}
+
 html[data-theme="dark"] .draft-library-root,
 html[data-theme="dark"] .draft-library-root[role="dialog"],
 html[data-theme="black"] .draft-library-root {
@@ -970,6 +995,11 @@ html[data-theme="black"] .draft-library-root {
   background: #f0ecec !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="pinksnow"] .draft-library-root .draft-library-card {
+  background: rgba(255, 245, 249, 0.82) !important;
+  color: var(--pink-text) !important;
 }
 
 html[data-theme="dark"] .draft-library-root .draft-library-card,
@@ -1009,25 +1039,7 @@ html[data-theme="pinksnow"] video.object-cover {
   border: none !important;
 }
 
-/* Valentine alias â€” same glass palette, no huge shapes */
-html.theme-pink-snow:not([data-theme="pinksnow"]):not([data-theme="pink-snow"]) body {
-  min-height: 100%;
-  background:
-    radial-gradient(
-      50% 40% at 15% 20%,
-      color-mix(in srgb, #ff9a9e 35%, transparent),
-      transparent 70%
-    ),
-    radial-gradient(
-      48% 40% at 85% 75%,
-      color-mix(in srgb, #fecfef 40%, transparent),
-      transparent 72%
-    ),
-    linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%) !important;
-  background-attachment: fixed;
-  color: #4a4a4a;
-}
-
+/* End Pink Snow theme. */
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Theme: Glass â€” surfaces + chrome (no full-screen blur)
    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
@@ -1538,27 +1550,27 @@ html[data-theme="pink-snow-ai"] video.object-cover {
   prefersdark: false;
   color-scheme: light;
 
-  --color-base-100: #e6f7ff;
-  --color-base-200: #bae6fd;
-  --color-base-300: #7dd3fc;
+  --color-base-100: #e5f7ff;
+  --color-base-200: #9bdcf7;
+  --color-base-300: #38bdf8;
   --color-base-content: #073b5c;
 
-  --color-primary: #0284c7;
+  --color-primary: #075985;
   --color-primary-content: #ffffff;
-  --color-secondary: #22d3ee;
-  --color-secondary-content: #083344;
-  --color-accent: #14b8a6;
-  --color-accent-content: #ffffff;
-  --color-neutral: #0c4a6e;
+  --color-secondary: #0284c7;
+  --color-secondary-content: #ffffff;
+  --color-accent: #38bdf8;
+  --color-accent-content: #073b5c;
+  --color-neutral: #075985;
   --color-neutral-content: #ffffff;
 
   --color-info: #38bdf8;
-  --color-info-content: #082f49;
-  --color-success: #10b981;
+  --color-info-content: #073b5c;
+  --color-success: #0f9f76;
   --color-success-content: #ffffff;
-  --color-warning: #fbbf24;
+  --color-warning: #f59e0b;
   --color-warning-content: #422006;
-  --color-error: #ef4444;
+  --color-error: #e5484d;
   --color-error-content: #ffffff;
 
   --radius-selector: 1rem;

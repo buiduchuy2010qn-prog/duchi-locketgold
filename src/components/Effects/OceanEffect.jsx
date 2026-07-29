@@ -1,393 +1,853 @@
-﻿import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { getPerfProfile } from "@/utils/device/perfProfile";
 
-/**
- * OceanEffect: Renders swimming fishes and rising bubbles using a single Canvas.
- * - Fishes swim horizontally and flip when changing direction.
- * - Bubbles rise from the bottom to the top.
- * - Reacts to prefers-reduced-motion and performance profiles.
- * - Stops animating when not visible to save battery.
- */
-const OceanEffect = ({ reduceMotion }) => {
+const TAU = Math.PI * 2;
+
+const FISH_VARIANTS = Object.freeze([
+  Object.freeze({
+    top: "#99f6e4",
+    middle: "#14b8a6",
+    bottom: "#0f766e",
+    fin: "#2dd4bf",
+    tail: "#0d9488",
+    pattern: "stripes",
+    patternColor: "rgba(224, 255, 250, 0.72)",
+    diagonalGradient: false,
+  }),
+  Object.freeze({
+    top: "#fed7aa",
+    middle: "#fb7c3c",
+    bottom: "#dc4f35",
+    fin: "#fb923c",
+    tail: "#f97356",
+    pattern: "dots",
+    patternColor: "rgba(255, 244, 214, 0.78)",
+    diagonalGradient: false,
+  }),
+  Object.freeze({
+    top: "#fde68a",
+    middle: "#a78bfa",
+    bottom: "#4338ca",
+    fin: "#8b5cf6",
+    tail: "#6366f1",
+    pattern: "gradient",
+    patternColor: "rgba(255, 255, 255, 0.42)",
+    diagonalGradient: true,
+  }),
+]);
+
+const randomBetween = (min, max) => min + Math.random() * (max - min);
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+const OceanEffect = ({ reduceMotion = false }) => {
   const canvasRef = useRef(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) return undefined;
+
     const ctx = canvas.getContext("2d", { alpha: true });
-    if (!ctx) return;
+    if (!ctx) return undefined;
 
-    let animationFrameId;
-    let width = 0;
-    let height = 0;
-    let isVisible = true;
-    let lastTime = performance.now();
-
-    // Performance configurations
     const perf = getPerfProfile();
-    let targetBubbles = 25;
-    let targetFishes = 4;
+    const deviceCompact = perf.isMobile || perf.isLowEnd;
+    const motionScale = reduceMotion ? 0.44 : 1;
+    const bubblePoolCount = reduceMotion ? 16 : 36;
+    const fishPoolCount = reduceMotion ? 3 : 7;
 
-    let maxFishSize = 48;
-    let minFishSize = 24;
+    let width = 1;
+    let height = 1;
+    let dpr = 1;
+    let rafId = 0;
+    let lastTimestamp = 0;
+    let disposed = false;
 
-    if (perf.isMobile || perf.isLowEnd) {
-      targetBubbles = 15;
-      targetFishes = 2;
-      maxFishSize = 36;
-      minFishSize = 20;
-    }
-    if (reduceMotion) {
-      targetBubbles = Math.floor(targetBubbles / 2);
-      targetFishes = 1;
-    }
+    const resizeCanvas = () => {
+      width = Math.max(1, window.innerWidth);
+      height = Math.max(1, window.innerHeight);
+      dpr = Math.min(window.devicePixelRatio || 1, 1.5);
 
-    // Limit DPR to 1.5
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      const pixelWidth = Math.max(1, Math.round(width * dpr));
+      const pixelHeight = Math.max(1, Math.round(height * dpr));
+      if (canvas.width !== pixelWidth) canvas.width = pixelWidth;
+      if (canvas.height !== pixelHeight) canvas.height = pixelHeight;
 
-    const resize = () => {
-      width = window.innerWidth;
-      height = window.innerHeight;
-      canvas.width = width * dpr;
-      canvas.height = height * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
     };
 
-    window.addEventListener("resize", resize);
-    resize();
+    resizeCanvas();
 
-    // ------------------- BUBBLES -------------------
-    class Bubble {
-      constructor(isChild = false, parent = null) {
-        this.isChild = isChild;
-        this.parent = parent;
-        this.reset(true);
-      }
-      reset(randomY = false) {
-        if (this.isChild && this.parent) {
-          this.x = this.parent.x + (Math.random() * 20 - 10);
-          this.y = this.parent.y + (Math.random() * 20 - 10);
-          this.size = this.parent.size * (Math.random() * 0.4 + 0.4);
-        } else {
-          this.x = Math.random() * width;
-          this.y = randomY ? Math.random() * height : height + Math.random() * 100 + 20;
-          this.size = Math.random() * 17 + 5; // 5 to 22
-        }
-        
-        // Bigger bubbles rise slower
-        const baseSpeed = 30 / this.size; 
-        this.speedY = (baseSpeed + Math.random() * 10) * (reduceMotion ? 0.3 : 1);
-        this.wobbleSpeed = Math.random() * 2 + 1;
-        this.wobbleAmp = Math.random() * 1.5 + 0.5;
-        this.angle = Math.random() * Math.PI * 2;
-        this.opacity = Math.random() * 0.45 + 0.35; // 0.35 to 0.8
-      }
-      update(dt) {
-        this.y -= this.speedY * dt;
-        this.angle += this.wobbleSpeed * dt;
-        if (this.y < -30) {
-          this.reset();
-        }
-      }
-      draw(ctx) {
-        const currentX = this.x + Math.sin(this.angle) * this.wobbleAmp;
-        
-        ctx.save();
-        ctx.translate(currentX, this.y);
-        ctx.globalAlpha = this.opacity;
-
-        // Base bubble gradient
-        const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, this.size);
-        grad.addColorStop(0, "rgba(255,255,255,0.05)");
-        grad.addColorStop(0.8, "rgba(200,240,255,0.2)");
-        grad.addColorStop(1, "rgba(255,255,255,0.8)");
-
-        ctx.beginPath();
-        ctx.arc(0, 0, this.size, 0, Math.PI * 2);
-        ctx.fillStyle = grad;
-        ctx.fill();
-        
-        // Border
-        ctx.lineWidth = 0.5;
-        ctx.strokeStyle = "rgba(255,255,255,0.9)";
-        ctx.stroke();
-
-        // Highlight top-left
-        ctx.beginPath();
-        ctx.ellipse(-this.size * 0.3, -this.size * 0.3, this.size * 0.2, this.size * 0.1, Math.PI / 4, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(255,255,255,0.8)";
-        ctx.fill();
-
-        // Reflection bottom-right
-        ctx.beginPath();
-        ctx.arc(0, 0, this.size * 0.8, 0, Math.PI / 2);
-        ctx.strokeStyle = "rgba(255,255,255,0.3)";
-        ctx.lineWidth = this.size * 0.15;
-        ctx.stroke();
-
-        ctx.restore();
-      }
-    }
-
-    // ------------------- FISHES -------------------
-    const fishColors = [
-      { primary: "#0d9488", secondary: "#14b8a6" }, // Teal
-      { primary: "#f43f5e", secondary: "#fb7185" }, // Coral/Pink-Red
-      { primary: "#eab308", secondary: "#fde047" }, // Yellow
-      { primary: "#6366f1", secondary: "#818cf8" }, // Purple-Blue
-      { primary: "#ec4899", secondary: "#f472b6" }  // Pink
-    ];
-    
-    const patterns = ["stripes", "dots", "gradient"];
-
-    class Fish {
-      constructor() {
-        this.reset(true);
-      }
-      reset(randomX = false) {
-        this.direction = Math.random() > 0.5 ? 1 : -1;
-        this.x = randomX
-          ? Math.random() * width
-          : this.direction === 1
-          ? -100
-          : width + 100;
-        this.y = Math.random() * (height * 0.7) + height * 0.15;
-        
-        // Depth perception (0 = back, 1 = front)
-        this.depth = Math.random();
-        
-        this.size = minFishSize + this.depth * (maxFishSize - minFishSize);
-        this.opacity = 0.4 + this.depth * 0.6; // 0.4 to 1.0 based on depth
-        
-        this.speedX = (this.depth * 40 + 30) * (reduceMotion ? 0.3 : 1);
-        this.wobbleSpeed = Math.random() * 2 + 1.5;
-        this.wobbleAmp = this.depth * 15 + 5;
-        
-        this.time = Math.random() * 100;
-        
-        const colorObj = fishColors[Math.floor(Math.random() * fishColors.length)];
-        this.primaryColor = colorObj.primary;
-        this.secondaryColor = colorObj.secondary;
-        this.pattern = patterns[Math.floor(Math.random() * patterns.length)];
-      }
-      
-      update(dt) {
-        this.time += dt;
-        this.x += this.speedX * this.direction * dt;
-        
-        if (
-          (this.direction === 1 && this.x > width + 100) ||
-          (this.direction === -1 && this.x < -100)
-        ) {
-          this.reset();
-        }
-      }
-      
-      draw(ctx) {
-        const currentY = this.y + Math.sin(this.time * this.wobbleSpeed) * this.wobbleAmp;
-        const swimCycle = Math.sin(this.time * this.wobbleSpeed * 3);
-        
-        ctx.save();
-        ctx.translate(this.x, currentY);
-        
-        if (this.direction === -1) {
-          ctx.scale(-1, 1);
-        }
-        
-        ctx.globalAlpha = this.opacity;
-        
-        const s = this.size;
-        
-        // Body pattern/gradient
-        let fillStyle = this.primaryColor;
-        if (this.pattern === "gradient") {
-          const grad = ctx.createLinearGradient(s*1.5, 0, -s, 0);
-          grad.addColorStop(0, this.primaryColor);
-          grad.addColorStop(1, this.secondaryColor);
-          fillStyle = grad;
-        }
-        
-        // Dorsal Fin
-        ctx.beginPath();
-        ctx.moveTo(s * 0.5, -s * 0.4);
-        ctx.quadraticCurveTo(s * 0.1, -s * 0.8 + swimCycle * s * 0.1, -s * 0.3, -s * 0.3);
-        ctx.fillStyle = this.secondaryColor;
-        ctx.fill();
-        
-        // Pelvic/Anal Fin
-        ctx.beginPath();
-        ctx.moveTo(s * 0.2, s * 0.4);
-        ctx.quadraticCurveTo(-s * 0.1, s * 0.7 - swimCycle * s * 0.1, -s * 0.4, s * 0.2);
-        ctx.fillStyle = this.secondaryColor;
-        ctx.fill();
-
-        // Tail (Two lobes)
-        const tailFlex = swimCycle * s * 0.3;
-        ctx.beginPath();
-        ctx.moveTo(-s * 0.7, 0);
-        ctx.quadraticCurveTo(-s * 1.2, -s * 0.6 + tailFlex, -s * 1.4, -s * 0.8 + tailFlex);
-        ctx.quadraticCurveTo(-s * 1.1, 0, -s * 1.3, s * 0.8 + tailFlex);
-        ctx.quadraticCurveTo(-s * 1.2, s * 0.6 + tailFlex, -s * 0.7, 0);
-        ctx.fillStyle = this.primaryColor;
-        ctx.fill();
-        
-        // Main Body (Bezier)
-        ctx.beginPath();
-        ctx.moveTo(s * 1.5, 0); // Nose
-        ctx.bezierCurveTo(s * 1.2, -s * 0.8, -s * 0.2, -s * 0.6, -s * 0.8, 0); // Top curve
-        ctx.bezierCurveTo(-s * 0.2, s * 0.6, s * 1.2, s * 0.8, s * 1.5, 0); // Bottom curve
-        ctx.fillStyle = fillStyle;
-        ctx.fill();
-        
-        // Patterns (Clip to body)
-        if (this.pattern === "stripes" || this.pattern === "dots") {
-          ctx.save();
-          ctx.clip();
-          ctx.fillStyle = this.secondaryColor;
-          ctx.globalAlpha = this.opacity * 0.6;
-          
-          if (this.pattern === "stripes") {
-            for (let i = -0.5; i < 1; i += 0.4) {
-              ctx.beginPath();
-              ctx.moveTo(s * i, -s);
-              ctx.quadraticCurveTo(s * (i - 0.2), 0, s * i, s);
-              ctx.lineWidth = s * 0.15;
-              ctx.strokeStyle = this.secondaryColor;
-              ctx.stroke();
-            }
-          } else if (this.pattern === "dots") {
-            for (let i = 0; i < 4; i++) {
-              ctx.beginPath();
-              ctx.arc(s * (Math.random() - 0.2), s * (Math.random() * 0.8 - 0.4), s * 0.1, 0, Math.PI*2);
-              ctx.fill();
-            }
-          }
-          ctx.restore();
-        }
-
-        // Highlight back & Shadow belly
-        ctx.save();
-        ctx.clip();
-        ctx.beginPath();
-        ctx.moveTo(s * 1.5, 0);
-        ctx.bezierCurveTo(s * 1.2, -s * 0.8, -s * 0.2, -s * 0.6, -s * 0.8, 0);
-        ctx.lineWidth = s * 0.15;
-        ctx.strokeStyle = "rgba(255,255,255,0.4)";
-        ctx.stroke();
-        
-        ctx.beginPath();
-        ctx.moveTo(s * 1.5, 0);
-        ctx.bezierCurveTo(-s * 0.2, s * 0.6, s * 1.2, s * 0.8, s * 1.5, 0);
-        ctx.strokeStyle = "rgba(0,0,0,0.2)";
-        ctx.stroke();
-        ctx.restore();
-
-        // Gill Line
-        ctx.beginPath();
-        ctx.moveTo(s * 0.7, -s * 0.3);
-        ctx.quadraticCurveTo(s * 0.5, 0, s * 0.7, s * 0.3);
-        ctx.lineWidth = s * 0.05;
-        ctx.strokeStyle = "rgba(0,0,0,0.15)";
-        ctx.stroke();
-
-        // Pectoral Fin (animates with swimCycle)
-        ctx.beginPath();
-        ctx.moveTo(s * 0.5, s * 0.1);
-        ctx.quadraticCurveTo(s * 0.1, s * 0.3 - swimCycle * s * 0.2, s * 0.3, s * 0.5 - swimCycle * s * 0.1);
-        ctx.quadraticCurveTo(s * 0.4, s * 0.3, s * 0.5, s * 0.1);
-        ctx.fillStyle = this.secondaryColor;
-        ctx.fill();
-
-        // Eye
-        const eyeX = s * 1.1;
-        const eyeY = -s * 0.15;
-        ctx.beginPath();
-        ctx.arc(eyeX, eyeY, s * 0.15, 0, Math.PI * 2);
-        ctx.fillStyle = "#ffffff";
-        ctx.fill();
-        
-        // Pupil
-        ctx.beginPath();
-        ctx.arc(eyeX + s*0.03, eyeY, s * 0.07, 0, Math.PI * 2);
-        ctx.fillStyle = "#000000";
-        ctx.fill();
-        
-        // Eye Highlight
-        ctx.beginPath();
-        ctx.arc(eyeX + s*0.05, eyeY - s*0.03, s * 0.03, 0, Math.PI * 2);
-        ctx.fillStyle = "#ffffff";
-        ctx.fill();
-
-        ctx.restore();
-      }
-    }
+    let compactMode = deviceCompact || width <= 640;
+    let activeBubbleCount = compactMode
+      ? reduceMotion
+        ? 10
+        : 20
+      : bubblePoolCount;
+    let activeFishCount = compactMode
+      ? reduceMotion
+        ? 2
+        : 3
+      : reduceMotion
+        ? 3
+        : width >= 1100
+          ? 7
+          : 6;
+    let minFishLength = compactMode ? 20 : 27;
+    let maxFishLength = compactMode ? 38 : 52;
 
     const bubbles = [];
-    for(let i=0; i<targetBubbles; i++) {
-      const b = new Bubble();
-      bubbles.push(b);
-      // 30% chance to have a cluster of 1-2 child bubbles
-      if (Math.random() < 0.3) {
-        bubbles.push(new Bubble(true, b));
-        if (Math.random() < 0.5) bubbles.push(new Bubble(true, b));
-      }
-    }
-    
-    const fishes = Array.from({ length: targetFishes }, () => new Fish());
+    const bubbleClusters = [];
 
-    // ------------------- ANIMATION LOOP -------------------
-    const render = (time) => {
-      if (!isVisible) return;
-      
-      const dt = (time - lastTime) / 1000 || 0;
-      lastTime = time;
+    const makeBubble = (poolIndex) => ({
+      poolIndex,
+      diameter: 8,
+      radius: 4,
+      x: 0,
+      y: 0,
+      speed: 40,
+      phase: 0,
+      wobbleRate: 1,
+      wobbleAmount: 1,
+      opacity: 0.5,
+    });
+
+    let remainingBubbles = bubblePoolCount;
+    while (remainingBubbles > 0) {
+      const firstCluster = bubbleClusters.length === 0;
+      const clustered =
+        remainingBubbles >= 2 && (firstCluster || Math.random() < 0.46);
+      const memberCount = firstCluster
+        ? Math.min(3, remainingBubbles)
+        : clustered
+          ? Math.min(remainingBubbles, Math.random() < 0.55 ? 2 : 3)
+          : 1;
+      const cluster = { members: [] };
+
+      for (let memberIndex = 0; memberIndex < memberCount; memberIndex += 1) {
+        const bubble = makeBubble(bubbles.length);
+        bubbles.push(bubble);
+        cluster.members.push(bubble);
+      }
+
+      bubbleClusters.push(cluster);
+      remainingBubbles -= memberCount;
+    }
+
+    const resetBubbleCluster = (cluster, initial) => {
+      const clustered = cluster.members.length > 1;
+      const edgePadding = clustered ? 22 : 10;
+      const anchorX = randomBetween(
+        edgePadding,
+        Math.max(edgePadding + 1, width - edgePadding),
+      );
+      const anchorY = initial
+        ? randomBetween(64, Math.max(65, height - 18))
+        : height + randomBetween(18, 76);
+      const clusterSpeedFactor = randomBetween(0.94, 1.06);
+
+      for (
+        let memberIndex = 0;
+        memberIndex < cluster.members.length;
+        memberIndex += 1
+      ) {
+        const bubble = cluster.members[memberIndex];
+        const diameter = randomBetween(6, 24);
+        const horizontalOffset = clustered ? randomBetween(-13, 13) : 0;
+        const verticalOffset = clustered ? randomBetween(-11, 11) : 0;
+
+        bubble.diameter = diameter;
+        bubble.radius = diameter * 0.5;
+        bubble.x = clamp(
+          anchorX + horizontalOffset,
+          bubble.radius + 1,
+          width - bubble.radius - 1,
+        );
+        bubble.y = anchorY + verticalOffset;
+        bubble.speed =
+          (82 - diameter * 2.15) * clusterSpeedFactor * motionScale;
+        bubble.phase = randomBetween(0, TAU);
+        bubble.wobbleRate = randomBetween(0.8, 1.8) * motionScale;
+        bubble.wobbleAmount = randomBetween(0.8, 3.2);
+        bubble.opacity = randomBetween(0.42, 0.86);
+      }
+    };
+
+    for (
+      let clusterIndex = 0;
+      clusterIndex < bubbleClusters.length;
+      clusterIndex += 1
+    ) {
+      resetBubbleCluster(bubbleClusters[clusterIndex], true);
+    }
+
+    const updateBubbles = (deltaTime) => {
+      for (
+        let clusterIndex = 0;
+        clusterIndex < bubbleClusters.length;
+        clusterIndex += 1
+      ) {
+        const cluster = bubbleClusters[clusterIndex];
+        let hasVisibleMember = false;
+
+        for (
+          let memberIndex = 0;
+          memberIndex < cluster.members.length;
+          memberIndex += 1
+        ) {
+          const bubble = cluster.members[memberIndex];
+          if (bubble.poolIndex >= activeBubbleCount) continue;
+
+          bubble.y -= bubble.speed * deltaTime;
+          bubble.phase += bubble.wobbleRate * deltaTime;
+          if (bubble.y + bubble.radius > -20) hasVisibleMember = true;
+        }
+
+        const hasActiveMember =
+          cluster.members[0]?.poolIndex < activeBubbleCount;
+        if (hasActiveMember && !hasVisibleMember) {
+          resetBubbleCluster(cluster, false);
+        }
+      }
+    };
+
+    const drawBubble = (bubble) => {
+      const radius = bubble.radius;
+      const drawX =
+        bubble.x + Math.sin(bubble.phase) * bubble.wobbleAmount;
+
+      ctx.save();
+      ctx.translate(drawX, bubble.y);
+      ctx.globalAlpha = bubble.opacity;
+
+      // Gradients use the coordinate space from their creation time. Create
+      // this after translate so the transparent interior follows the bubble.
+      const interior = ctx.createRadialGradient(
+        -radius * 0.28,
+        -radius * 0.32,
+        radius * 0.05,
+        0,
+        0,
+        radius,
+      );
+      interior.addColorStop(0, "rgba(255, 255, 255, 0.28)");
+      interior.addColorStop(0.34, "rgba(226, 248, 255, 0.08)");
+      interior.addColorStop(0.72, "rgba(186, 230, 253, 0.06)");
+      interior.addColorStop(1, "rgba(125, 211, 252, 0.3)");
+
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, TAU);
+      ctx.fillStyle = interior;
+      ctx.fill();
+      ctx.lineWidth = clamp(radius * 0.1, 0.65, 1.15);
+      ctx.strokeStyle = "rgba(222, 249, 255, 0.95)";
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.ellipse(
+        -radius * 0.33,
+        -radius * 0.35,
+        Math.max(0.7, radius * 0.2),
+        Math.max(0.45, radius * 0.1),
+        -Math.PI / 4,
+        0,
+        TAU,
+      );
+      ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(
+        0,
+        radius * 0.02,
+        radius * 0.72,
+        Math.PI * 0.18,
+        Math.PI * 0.82,
+      );
+      ctx.lineWidth = clamp(radius * 0.09, 0.55, 1);
+      ctx.strokeStyle = "rgba(170, 231, 250, 0.5)";
+      ctx.stroke();
+
+      ctx.restore();
+    };
+
+    const traceFishBody = (length, halfHeight) => {
+      ctx.beginPath();
+      ctx.moveTo(-length * 0.32, 0);
+      ctx.bezierCurveTo(
+        -length * 0.2,
+        -halfHeight * 0.94,
+        length * 0.28,
+        -halfHeight * 1.06,
+        length * 0.48,
+        0,
+      );
+      ctx.bezierCurveTo(
+        length * 0.28,
+        halfHeight * 1.06,
+        -length * 0.2,
+        halfHeight * 0.94,
+        -length * 0.32,
+        0,
+      );
+      ctx.closePath();
+    };
+
+    const makeFish = (slot, depth) => ({
+      slot,
+      depth,
+      cycle: 0,
+      direction: 1,
+      x: 0,
+      y: 0,
+      length: minFishLength,
+      opacity: 0.6,
+      speed: 20,
+      time: randomBetween(0, TAU),
+      bobRate: 1,
+      bobAmount: 2,
+      tailRate: 6,
+      verticalSpeed: 0,
+      driftPhase: randomBetween(0, TAU),
+      driftRate: 1,
+      entryDelay: 0,
+      variant: FISH_VARIANTS[slot % FISH_VARIANTS.length],
+      spotX: new Float32Array(6),
+      spotY: new Float32Array(6),
+      spotRadius: new Float32Array(6),
+    });
+
+    const fishes = [];
+    for (let fishIndex = 0; fishIndex < fishPoolCount; fishIndex += 1) {
+      fishes.push(makeFish(fishIndex, 0.5));
+    }
+
+    const updateFishDepths = () => {
+      for (let fishIndex = 0; fishIndex < fishes.length; fishIndex += 1) {
+        fishes[fishIndex].depth =
+          activeFishCount === 1
+            ? 0.62
+            : 0.2 +
+              (Math.min(fishIndex, activeFishCount - 1) /
+                Math.max(1, activeFishCount - 1)) *
+                0.75;
+      }
+    };
+
+    const resetFish = (fish, initial) => {
+      const depthStep =
+        activeFishCount === 1
+          ? 0.5
+          : ((fish.slot + fish.cycle) % activeFishCount) /
+            Math.max(1, activeFishCount - 1);
+      fish.depth = clamp(
+        (activeFishCount === 1 ? 0.62 : 0.2 + depthStep * 0.75) +
+          randomBetween(-0.07, 0.07),
+        0.18,
+        0.96,
+      );
+
+      const depthLength =
+        minFishLength + fish.depth * (maxFishLength - minFishLength);
+      fish.direction = Math.random() < 0.5 ? -1 : 1;
+      fish.length = clamp(
+        depthLength * randomBetween(0.92, 1.07),
+        minFishLength,
+        maxFishLength,
+      );
+      fish.opacity = 0.4 + fish.depth * 0.55;
+      fish.speed =
+        (14 + fish.depth * 18 + randomBetween(-2, 3.5)) * motionScale;
+      fish.bobRate = randomBetween(0.72, 1.18) * motionScale;
+      fish.bobAmount = 1.4 + fish.depth * 2.8;
+      fish.tailRate = randomBetween(5.6, 7.4) * motionScale;
+      fish.time = randomBetween(0, TAU);
+      fish.verticalSpeed = randomBetween(-4.8, 4.8) * motionScale;
+      fish.driftPhase = randomBetween(0, TAU);
+      fish.driftRate = randomBetween(0.42, 0.88) * motionScale;
+      fish.entryDelay = initial ? 0 : randomBetween(0.12, 0.9);
+
+      const laneCount = Math.max(1, activeFishCount);
+      const randomLaneOffset = initial
+        ? 0
+        : Math.floor(randomBetween(1, laneCount + 1));
+      const laneIndex =
+        (fish.slot + fish.cycle * 2 + randomLaneOffset) % laneCount;
+      const laneProgress =
+        laneCount === 1 ? 0.5 : laneIndex / Math.max(1, laneCount - 1);
+      const laneTop = compactMode ? 0.2 : 0.15;
+      const laneBottom = compactMode ? 0.76 : 0.79;
+      const laneY =
+        height * (laneTop + (laneBottom - laneTop) * laneProgress);
+      fish.y = clamp(
+        laneY + randomBetween(-height * 0.06, height * 0.06),
+        height * 0.12,
+        height * 0.84,
+      );
+
+      const laneWidth = width / laneCount;
+      const laneX = laneWidth * (laneIndex + 0.5);
+      fish.x = initial
+        ? clamp(
+            laneX + randomBetween(-laneWidth * 0.34, laneWidth * 0.34),
+            0,
+            width,
+          )
+        : fish.direction > 0
+          ? -fish.length
+          : width + fish.length;
+
+      fish.variant =
+        FISH_VARIANTS[
+          (fish.slot +
+            fish.cycle +
+            Math.floor(randomBetween(0, FISH_VARIANTS.length))) %
+            FISH_VARIANTS.length
+        ];
+      fish.cycle += 1;
+
+      for (let spotIndex = 0; spotIndex < fish.spotX.length; spotIndex += 1) {
+        fish.spotX[spotIndex] = randomBetween(-0.18, 0.28);
+        fish.spotY[spotIndex] = randomBetween(-0.1, 0.1);
+        fish.spotRadius[spotIndex] = randomBetween(0.018, 0.032);
+      }
+    };
+
+    updateFishDepths();
+    for (let fishIndex = 0; fishIndex < fishes.length; fishIndex += 1) {
+      resetFish(fishes[fishIndex], true);
+    }
+
+    const updateFish = (fish, deltaTime) => {
+      if (fish.entryDelay > 0) {
+        fish.entryDelay = Math.max(0, fish.entryDelay - deltaTime);
+        return;
+      }
+
+      fish.time += deltaTime;
+      fish.driftPhase += fish.driftRate * deltaTime;
+      fish.x += fish.speed * fish.direction * deltaTime;
+      fish.y +=
+        (fish.verticalSpeed + Math.sin(fish.driftPhase) * 1.25) * deltaTime;
+
+      const swimTop = height * 0.11;
+      const swimBottom = height * 0.86;
+      if (fish.y <= swimTop || fish.y >= swimBottom) {
+        fish.y = clamp(fish.y, swimTop, swimBottom);
+        fish.verticalSpeed *= -1;
+      }
+
+      if (
+        (fish.direction > 0 && fish.x - fish.length * 0.52 > width) ||
+        (fish.direction < 0 && fish.x + fish.length * 0.52 < 0)
+      ) {
+        resetFish(fish, false);
+      }
+    };
+
+    const drawFish = (fish) => {
+      if (fish.entryDelay > 0) return;
+
+      const length = fish.length;
+      const halfHeight = length * 0.18;
+      const tailWave = Math.sin(fish.time * fish.tailRate) * length * 0.045;
+      const finWave =
+        Math.sin(fish.time * fish.tailRate + 1.2) * length * 0.012;
+      const bob =
+        Math.sin(fish.time * fish.bobRate + fish.slot) * fish.bobAmount;
+      const variant = fish.variant;
+
+      ctx.save();
+      ctx.translate(fish.x, fish.y + bob);
+      if (fish.direction < 0) ctx.scale(-1, 1);
+      const swimTilt = clamp(
+        fish.verticalSpeed / Math.max(1, fish.speed),
+        -0.08,
+        0.08,
+      );
+      ctx.rotate(
+        Math.sin(fish.time * fish.bobRate * 0.7) * 0.018 +
+          swimTilt * fish.direction,
+      );
+      ctx.globalAlpha = fish.opacity;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+
+      // Build the body gradient inside the fish transform so direction flips
+      // the whole fish, including its lighting.
+      const bodyGradient = variant.diagonalGradient
+        ? ctx.createLinearGradient(
+            -length * 0.28,
+            -length * 0.18,
+            length * 0.42,
+            length * 0.18,
+          )
+        : ctx.createLinearGradient(
+            0,
+            -length * 0.18,
+            0,
+            length * 0.18,
+          );
+      bodyGradient.addColorStop(0, variant.top);
+      bodyGradient.addColorStop(0.48, variant.middle);
+      bodyGradient.addColorStop(1, variant.bottom);
+
+      ctx.beginPath();
+      ctx.moveTo(-length * 0.31, -halfHeight * 0.2);
+      ctx.bezierCurveTo(
+        -length * 0.39,
+        -halfHeight * 0.7 + tailWave,
+        -length * 0.47,
+        -halfHeight * 1.05 + tailWave,
+        -length * 0.52,
+        -halfHeight * 0.9 + tailWave,
+      );
+      ctx.bezierCurveTo(
+        -length * 0.49,
+        -halfHeight * 0.34 + tailWave * 0.65,
+        -length * 0.44,
+        -halfHeight * 0.08 + tailWave * 0.35,
+        -length * 0.41,
+        tailWave * 0.3,
+      );
+      ctx.bezierCurveTo(
+        -length * 0.44,
+        halfHeight * 0.08 + tailWave * 0.35,
+        -length * 0.49,
+        halfHeight * 0.34 + tailWave * 0.65,
+        -length * 0.52,
+        halfHeight * 0.9 + tailWave,
+      );
+      ctx.bezierCurveTo(
+        -length * 0.47,
+        halfHeight * 1.05 + tailWave,
+        -length * 0.39,
+        halfHeight * 0.7 + tailWave,
+        -length * 0.31,
+        halfHeight * 0.2,
+      );
+      ctx.closePath();
+      ctx.fillStyle = variant.tail;
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(-length * 0.16, -halfHeight * 0.72);
+      ctx.bezierCurveTo(
+        -length * 0.08,
+        -halfHeight * 1.45 + finWave,
+        length * 0.07,
+        -halfHeight * 1.35 + finWave,
+        length * 0.13,
+        -halfHeight * 0.72,
+      );
+      ctx.bezierCurveTo(
+        length * 0.03,
+        -halfHeight * 0.88,
+        -length * 0.08,
+        -halfHeight * 0.86,
+        -length * 0.16,
+        -halfHeight * 0.72,
+      );
+      ctx.fillStyle = variant.fin;
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(-length * 0.11, halfHeight * 0.72);
+      ctx.bezierCurveTo(
+        -length * 0.04,
+        halfHeight * 1.3 - finWave,
+        length * 0.08,
+        halfHeight * 1.2 - finWave,
+        length * 0.13,
+        halfHeight * 0.68,
+      );
+      ctx.bezierCurveTo(
+        length * 0.04,
+        halfHeight * 0.82,
+        -length * 0.04,
+        halfHeight * 0.84,
+        -length * 0.11,
+        halfHeight * 0.72,
+      );
+      ctx.fillStyle = variant.fin;
+      ctx.fill();
+
+      traceFishBody(length, halfHeight);
+      ctx.fillStyle = bodyGradient;
+      ctx.fill();
+
+      if (variant.pattern === "stripes") {
+        ctx.save();
+        traceFishBody(length, halfHeight);
+        ctx.clip();
+        ctx.lineWidth = Math.max(1, length * 0.045);
+        ctx.strokeStyle = variant.patternColor;
+
+        for (let stripeIndex = 0; stripeIndex < 3; stripeIndex += 1) {
+          const stripeX = -length * 0.14 + stripeIndex * length * 0.14;
+          ctx.beginPath();
+          ctx.moveTo(stripeX - length * 0.035, -halfHeight * 1.05);
+          ctx.bezierCurveTo(
+            stripeX + length * 0.04,
+            -halfHeight * 0.28,
+            stripeX - length * 0.055,
+            halfHeight * 0.35,
+            stripeX + length * 0.02,
+            halfHeight * 1.06,
+          );
+          ctx.stroke();
+        }
+        ctx.restore();
+      } else if (variant.pattern === "dots") {
+        ctx.save();
+        traceFishBody(length, halfHeight);
+        ctx.clip();
+        ctx.fillStyle = variant.patternColor;
+
+        for (let spotIndex = 0; spotIndex < fish.spotX.length; spotIndex += 1) {
+          ctx.beginPath();
+          ctx.arc(
+            fish.spotX[spotIndex] * length,
+            fish.spotY[spotIndex] * length,
+            fish.spotRadius[spotIndex] * length,
+            0,
+            TAU,
+          );
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      ctx.beginPath();
+      ctx.moveTo(-length * 0.2, -halfHeight * 0.66);
+      ctx.bezierCurveTo(
+        -length * 0.02,
+        -halfHeight * 0.97,
+        length * 0.3,
+        -halfHeight * 0.82,
+        length * 0.43,
+        -halfHeight * 0.22,
+      );
+      ctx.lineWidth = Math.max(0.7, length * 0.022);
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.42)";
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(-length * 0.18, halfHeight * 0.6);
+      ctx.bezierCurveTo(
+        length * 0.02,
+        halfHeight * 0.92,
+        length * 0.29,
+        halfHeight * 0.75,
+        length * 0.42,
+        halfHeight * 0.2,
+      );
+      ctx.strokeStyle = "rgba(3, 59, 92, 0.2)";
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(length * 0.04, halfHeight * 0.08);
+      ctx.bezierCurveTo(
+        -length * 0.02,
+        halfHeight * 0.35 + finWave,
+        length * 0.01,
+        halfHeight * 0.7 + finWave,
+        length * 0.15,
+        halfHeight * 0.43,
+      );
+      ctx.bezierCurveTo(
+        length * 0.11,
+        halfHeight * 0.22,
+        length * 0.08,
+        halfHeight * 0.12,
+        length * 0.04,
+        halfHeight * 0.08,
+      );
+      ctx.fillStyle = variant.fin;
+      ctx.globalAlpha = fish.opacity * 0.86;
+      ctx.fill();
+      ctx.globalAlpha = fish.opacity;
+
+      ctx.beginPath();
+      ctx.moveTo(length * 0.25, -halfHeight * 0.42);
+      ctx.bezierCurveTo(
+        length * 0.2,
+        -halfHeight * 0.14,
+        length * 0.2,
+        halfHeight * 0.14,
+        length * 0.25,
+        halfHeight * 0.4,
+      );
+      ctx.lineWidth = Math.max(0.65, length * 0.018);
+      ctx.strokeStyle = "rgba(3, 59, 92, 0.42)";
+      ctx.stroke();
+
+      const eyeX = length * 0.35;
+      const eyeY = -halfHeight * 0.28;
+      ctx.beginPath();
+      ctx.arc(eyeX, eyeY, length * 0.046, 0, TAU);
+      ctx.fillStyle = "#ffffff";
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(
+        eyeX + length * 0.009,
+        eyeY + length * 0.002,
+        length * 0.023,
+        0,
+        TAU,
+      );
+      ctx.fillStyle = "#082f49";
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(
+        eyeX + length * 0.016,
+        eyeY - length * 0.012,
+        Math.max(0.55, length * 0.009),
+        0,
+        TAU,
+      );
+      ctx.fillStyle = "#ffffff";
+      ctx.fill();
+
+      ctx.restore();
+    };
+
+    const handleResize = () => {
+      resizeCanvas();
+
+      const nextCompactMode = deviceCompact || width <= 640;
+      const nextBubbleCount = nextCompactMode
+        ? reduceMotion
+          ? 10
+          : 20
+        : bubblePoolCount;
+      const nextFishCount = nextCompactMode
+        ? reduceMotion
+          ? 2
+          : 3
+        : reduceMotion
+          ? 3
+          : width >= 1100
+            ? 7
+            : 6;
+      const nextMinFishLength = nextCompactMode ? 20 : 27;
+      const nextMaxFishLength = nextCompactMode ? 38 : 52;
+      const profileChanged =
+        nextCompactMode !== compactMode ||
+        nextBubbleCount !== activeBubbleCount ||
+        nextFishCount !== activeFishCount;
+
+      compactMode = nextCompactMode;
+      activeBubbleCount = nextBubbleCount;
+      activeFishCount = nextFishCount;
+      minFishLength = nextMinFishLength;
+      maxFishLength = nextMaxFishLength;
+
+      if (profileChanged) {
+        updateFishDepths();
+        for (
+          let clusterIndex = 0;
+          clusterIndex < bubbleClusters.length;
+          clusterIndex += 1
+        ) {
+          resetBubbleCluster(bubbleClusters[clusterIndex], true);
+        }
+        for (let fishIndex = 0; fishIndex < fishes.length; fishIndex += 1) {
+          resetFish(fishes[fishIndex], true);
+        }
+        return;
+      }
+
+      for (let bubbleIndex = 0; bubbleIndex < bubbles.length; bubbleIndex += 1) {
+        const bubble = bubbles[bubbleIndex];
+        bubble.x = clamp(
+          bubble.x,
+          bubble.radius + 1,
+          width - bubble.radius - 1,
+        );
+        bubble.y = Math.min(bubble.y, height + 76);
+      }
+      for (let fishIndex = 0; fishIndex < fishes.length; fishIndex += 1) {
+        fishes[fishIndex].y = clamp(
+          fishes[fishIndex].y,
+          height * 0.11,
+          height * 0.86,
+        );
+      }
+    };
+
+    const frame = (timestamp) => {
+      rafId = 0;
+      if (disposed || document.hidden) return;
+
+      const elapsed = lastTimestamp
+        ? (timestamp - lastTimestamp) / 1000
+        : 0;
+      const deltaTime = clamp(elapsed, 0, 0.05);
+      lastTimestamp = timestamp;
 
       ctx.clearRect(0, 0, width, height);
+      updateBubbles(deltaTime);
+      for (
+        let bubbleIndex = 0;
+        bubbleIndex < activeBubbleCount;
+        bubbleIndex += 1
+      ) {
+        drawBubble(bubbles[bubbleIndex]);
+      }
 
-      // Draw bubbles behind fishes
-      bubbles.forEach((b) => {
-        b.update(dt);
-        b.draw(ctx);
-      });
+      for (
+        let fishIndex = 0;
+        fishIndex < activeFishCount;
+        fishIndex += 1
+      ) {
+        updateFish(fishes[fishIndex], deltaTime);
+        drawFish(fishes[fishIndex]);
+      }
 
-      // Draw fishes sorted by depth
-      fishes.sort((a,b) => a.depth - b.depth).forEach((f) => {
-        f.update(dt);
-        f.draw(ctx);
-      });
-
-      animationFrameId = requestAnimationFrame(render);
-    };
-
-    if (isVisible) {
-      animationFrameId = requestAnimationFrame(render);
-    }
-
-    // ------------------- VISIBILITY / OBSERVER -------------------
-    const handleVisibilityChange = () => {
-      isVisible = document.visibilityState === "visible";
-      if (isVisible) {
-        lastTime = performance.now();
-        animationFrameId = requestAnimationFrame(render);
-      } else {
-        cancelAnimationFrame(animationFrameId);
+      if (!disposed && !document.hidden) {
+        rafId = window.requestAnimationFrame(frame);
       }
     };
+
+    const start = () => {
+      if (disposed || document.hidden || rafId) return;
+      lastTimestamp = 0;
+      rafId = window.requestAnimationFrame(frame);
+    };
+
+    const stop = () => {
+      if (rafId) window.cancelAnimationFrame(rafId);
+      rafId = 0;
+      lastTimestamp = 0;
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) stop();
+      else start();
+    };
+
+    window.addEventListener("resize", handleResize);
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    start();
 
     return () => {
-      window.removeEventListener("resize", resize);
+      disposed = true;
+      stop();
+      window.removeEventListener("resize", handleResize);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      cancelAnimationFrame(animationFrameId);
     };
   }, [reduceMotion]);
 
   return (
     <canvas
       ref={canvasRef}
+      className="ocean-effect-layer"
       aria-hidden="true"
       data-decorative-fx="true"
-      className="ocean-effect-layer fixed inset-0 w-full h-full pointer-events-none z-[15]"
     />
   );
 };
