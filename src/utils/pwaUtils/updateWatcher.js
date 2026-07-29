@@ -28,6 +28,8 @@ let pollTimer = null;
 let started = false;
 let checking = false;
 let autoUpdating = false;
+let reloadFallbackTimer = null;
+let reloadRequested = false;
 /** @type {null | (() => void | Promise<void>)} */
 let pendingSwApply = null;
 /** @type {{ available: boolean, latest: object | null, swWaiting: boolean }} */
@@ -171,14 +173,35 @@ export async function clearOldAppCache() {
   }
 }
 
+function reloadForUpdateOnce() {
+  if (reloadRequested) return false;
+  reloadRequested = true;
+  if (reloadFallbackTimer) {
+    clearTimeout(reloadFallbackTimer);
+    reloadFallbackTimer = null;
+  }
+
+  const url = new URL(window.location.href);
+  url.searchParams.set("_v", String(Date.now()));
+  window.location.replace(url.pathname + url.search + url.hash);
+  return true;
+}
+
+function scheduleReloadFallback(delayMs = 5000) {
+  if (reloadRequested || reloadFallbackTimer) return;
+  reloadFallbackTimer = setTimeout(() => {
+    reloadFallbackTimer = null;
+    console.warn("[update] SW activation timeout — one hard reload");
+    reloadForUpdateOnce();
+  }, delayMs);
+}
+
 /**
  * @param {string} [targetBuildId]
- * @param {{ force?: boolean }} [opts]
  */
-export async function applyWebsiteUpdate(targetBuildId, opts = {}) {
-  const force = Boolean(opts.force);
+export async function applyWebsiteUpdate(targetBuildId) {
   const guard = safeGet(STORAGE_RELOAD_GUARD);
-  if (guard && !force) {
+  if (guard) {
     try {
       const { at } = JSON.parse(guard);
       if (now() - Number(at || 0) < RELOAD_GUARD_MS) {
@@ -203,16 +226,16 @@ export async function applyWebsiteUpdate(targetBuildId, opts = {}) {
   if (typeof pendingSwApply === "function") {
     try {
       await pendingSwApply();
+      // vite-plugin-pwa reloads on its `controlling` event. This is only a
+      // single fallback for cases where a waiting worker never takes control.
+      scheduleReloadFallback();
       return true;
     } catch (e) {
       console.warn("[update] SW apply failed, hard reload", e);
     }
   }
 
-  const url = new URL(window.location.href);
-  url.searchParams.set("_v", String(Date.now()));
-  window.location.replace(url.pathname + url.search + url.hash);
-  return true;
+  return reloadForUpdateOnce();
 }
 
 /** Silent check — chấm hồng trên nút. Không auto reload. */
@@ -357,19 +380,7 @@ export function userForceUpdate() {
       }
 
       const buildId = updateState.latest?.buildId;
-      const success = await applyWebsiteUpdate(buildId, { force: true });
-      
-      if (success) {
-        // Kiểm tra sau reload
-        setTimeout(async () => {
-          const current = getCurrentBuildMeta();
-          if (current.buildId !== buildId) {
-             // Thử cập nhật lại tối đa 1 lần nếu buildId chưa đổi
-             console.warn("[update] buildId mismatch after reload, retrying once...");
-             await applyWebsiteUpdate(buildId, { force: true });
-          }
-        }, 3000);
-      }
+      const success = await applyWebsiteUpdate(buildId);
       return success ? "updated" : "error";
     } finally {
       userForceUpdatePromise = null;
@@ -402,42 +413,9 @@ export function handleOnlineUpdateCheck() {
 
 export function handleServiceWorkerUpdate(updateSW) {
   if (typeof updateSW === "function") {
-    pendingSwApply = async () => {
-      let reloaded = false;
-      let reloadFallbackTimer = null;
-      const onController = () => {
-        if (reloaded) return;
-        reloaded = true;
-        if (reloadFallbackTimer) clearTimeout(reloadFallbackTimer);
-        navigator.serviceWorker?.removeEventListener?.(
-          "controllerchange",
-          onController,
-        );
-        window.location.reload();
-      };
-      try {
-        navigator.serviceWorker?.addEventListener?.(
-          "controllerchange",
-          onController,
-        );
-      } catch {
-        /* ignore */
-      }
-      
-      // Gửi SKIP_WAITING
-      await updateSW(true);
-      
-      // Fallback reload sau 5s nếu SW không đổi
-      reloadFallbackTimer = setTimeout(() => {
-        if (!reloaded) {
-          reloaded = true;
-          console.warn("[update] controllerchange timeout, fallback to forced reload");
-          const url = new URL(window.location.href);
-          url.searchParams.set("_v", String(Date.now()));
-          window.location.replace(url.pathname + url.search + url.hash);
-        }
-      }, 5000);
-    };
+    // virtual:pwa-register already reloads once when the waiting worker takes
+    // control. Do not add another controllerchange reload here.
+    pendingSwApply = async () => updateSW(true);
   }
 
   // SW waiting → chỉ badge, không auto (trừ khi đã vắng ≥ 30p)

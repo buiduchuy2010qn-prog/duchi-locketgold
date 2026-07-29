@@ -35,15 +35,7 @@ export function initPWA() {
       if (!registration) return;
 
       setPendingSwApply(async () => {
-        let done = false;
-        const reload = () => {
-          if (done) return;
-          done = true;
-          window.location.reload();
-        };
-        navigator.serviceWorker?.addEventListener?.("controllerchange", reload);
         await updateSW?.(true);
-        setTimeout(reload, 2000);
       });
 
       if (registration.waiting) {

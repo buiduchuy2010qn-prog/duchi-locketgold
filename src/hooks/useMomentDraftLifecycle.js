@@ -18,8 +18,6 @@ export function useMomentDraftLifecycle() {
   const checkAndOfferRestore = useMomentDraftStore((s) => s.checkAndOfferRestore);
   const flushMetaSave = useMomentDraftStore((s) => s.flushMetaSave);
   const scheduleMetaSave = useMomentDraftStore((s) => s.scheduleMetaSave);
-  const draftCount = useMomentDraftStore((s) => s.draftCount);
-  const hasDraft = useMomentDraftStore((s) => s.hasDraft);
   const refreshDraftPresence = useMomentDraftStore((s) => s.refreshDraftPresence);
   const isOffline = useConnectivityStore((s) => s.isOffline);
   const serverReachable = useConnectivityStore((s) => s.serverReachable);
@@ -104,15 +102,15 @@ export function useMomentDraftLifecycle() {
   useEffect(() => {
     const onBeforeUnload = (e) => {
       const post = usePostStore.getState();
-      if (!hasDraft && !draftCount && !post.selectedFile) return;
-      if (post.selectedFile || hasDraft || draftCount) {
-        e.preventDefault();
-        e.returnValue = "";
-      }
+      // Drafts already in the library are persisted and must not block an app
+      // update. Only warn while media is actively open in the editor.
+      if (!post.selectedFile && !post.preview) return;
+      e.preventDefault();
+      e.returnValue = "";
     };
     window.addEventListener("beforeunload", onBeforeUnload);
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
-  }, [hasDraft, draftCount]);
+  }, []);
 
   useEffect(() => {
     if (!isAuth) return;
