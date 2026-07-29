@@ -1531,3 +1531,38 @@ html[data-theme="pink-snow-ai"] video.object-cover {
   background: transparent !important;
   backdrop-filter: none !important;
 }
+
+@plugin "daisyui/theme" {
+  name: "ocean-blue";
+  default: false;
+  prefersdark: false;
+  color-scheme: light;
+
+  --color-base-100: #e6f7ff;
+  --color-base-200: #bae6fd;
+  --color-base-300: #7dd3fc;
+  --color-base-content: #073b5c;
+
+  --color-primary: #0284c7;
+  --color-primary-content: #ffffff;
+  --color-secondary: #22d3ee;
+  --color-secondary-content: #083344;
+  --color-accent: #14b8a6;
+  --color-accent-content: #ffffff;
+  --color-neutral: #0c4a6e;
+  --color-neutral-content: #ffffff;
+
+  --color-info: #38bdf8;
+  --color-info-content: #082f49;
+  --color-success: #10b981;
+  --color-success-content: #ffffff;
+  --color-warning: #fbbf24;
+  --color-warning-content: #422006;
+  --color-error: #ef4444;
+  --color-error-content: #ffffff;
+
+  --radius-selector: 1rem;
+  --radius-field: 0.75rem;
+  --radius-box: 1.25rem;
+}
+

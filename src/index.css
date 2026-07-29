@@ -539,16 +539,192 @@ body.theme-pink-snow-ai,
 .theme-pink-snow-ai button.w-11.h-11 {
   border-radius: 50% !important;
 }
-/* ?????? THEME OCEAN BLUE ?????? */
+/* 🌊🌊🌊 THEME OCEAN BLUE 🌊🌊🌊 */
 html[data-theme="ocean-blue"] {
-  --fallback-b1: 223 100% 95%; /* #dff7ff */
+  color-scheme: light;
+  
+  --ocean-bg-start: #e6f7ff;
+  --ocean-bg-mid: #bae6fd;
+  --ocean-bg-end: #38bdf8;
+  --ocean-blue: #0284c7;
+  --ocean-blue-soft: #38bdf8;
+  --ocean-text: #073b5c;
+  --ocean-text-sec: #0c4a6e;
+  
+  --ocean-glass: rgba(255, 255, 255, 0.58);
+  --ocean-glass-border: rgba(255, 255, 255, 0.78);
+  --ocean-glass-shadow: 0 12px 32px rgba(2, 132, 199, 0.18);
 }
 
-body.theme-ocean-blue,
-html[data-theme="ocean-blue"] {
-  background: linear-gradient(180deg, #dff7ff 0%, #7dd3fc 40%, #0284c7 100%) !important;
-  background-attachment: fixed !important;
-  color: #073b5c;
+html[data-theme="ocean-blue"],
+html[data-theme="ocean-blue"] body {
+  min-height: 100%;
+  color: var(--ocean-text);
+  background:
+    radial-gradient(
+      50% 40% at 10% 15%,
+      color-mix(in srgb, var(--ocean-blue-soft) 22%, transparent),
+      transparent 65%
+    ),
+    radial-gradient(
+      45% 38% at 90% 80%,
+      color-mix(in srgb, var(--ocean-blue) 16%, transparent),
+      transparent 68%
+    ),
+    linear-gradient(
+      180deg,
+      var(--ocean-bg-start) 0%,
+      var(--ocean-bg-mid) 40%,
+      var(--ocean-bg-end) 100%
+    ) !important;
+  background-attachment: fixed;
+}
+
+html[data-theme="ocean-blue"] body:has([data-locket-camera]) {
+  background:
+    radial-gradient(
+      48% 38% at 12% 14%,
+      color-mix(in srgb, var(--ocean-blue-soft) 18%, transparent),
+      transparent 62%
+    ),
+    radial-gradient(
+      42% 36% at 88% 82%,
+      color-mix(in srgb, var(--ocean-blue) 12%, transparent),
+      transparent 65%
+    ),
+    linear-gradient(
+      180deg,
+      var(--ocean-bg-start) 0%,
+      var(--ocean-bg-mid) 40%,
+      var(--ocean-bg-end) 100%
+    ) !important;
+  background-attachment: scroll !important;
+}
+
+/* Base Surfaces */
+html[data-theme="ocean-blue"] .pinkSnowSurface,
+html[data-theme="ocean-blue"] .cameraControlPill,
+html[data-theme="ocean-blue"] .cameraBottomNav,
+html[data-theme="ocean-blue"] .historyChip {
+  background: var(--ocean-glass) !important;
+  border: 1px solid var(--ocean-glass-border) !important;
+  box-shadow: var(--ocean-glass-shadow) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: var(--ocean-text) !important;
+}
+
+html[data-theme="ocean-blue"] .cameraControlPill::before {
+  background: linear-gradient(
+    110deg,
+    rgba(255, 255, 255, 0.4),
+    transparent 38%,
+    transparent 68%,
+    rgba(2, 132, 199, 0.15)
+  ) !important;
+}
+
+/* Side Buttons */
+html[data-theme="ocean-blue"] .pillSideBtn,
+html[data-theme="ocean-blue"] .cameraSideBtn {
+  background: transparent !important;
+  border-color: transparent !important;
+  color: var(--ocean-text) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="ocean-blue"] .pillSideBtn svg,
+html[data-theme="ocean-blue"] .cameraSideBtn svg {
+  color: var(--ocean-text) !important;
+  stroke: var(--ocean-text);
+}
+
+html[data-theme="ocean-blue"] .pillSideBtn:active:not(:disabled),
+html[data-theme="ocean-blue"] .cameraSideBtn:active:not(:disabled) {
+  color: var(--ocean-blue) !important;
+}
+
+html[data-theme="ocean-blue"] .pillSideBtn:active:not(:disabled) svg {
+  color: var(--ocean-blue) !important;
+  stroke: var(--ocean-blue);
+}
+
+html[data-theme="ocean-blue"] .pillSideBtn:disabled {
+  opacity: 0.42;
+}
+
+/* Header & Profile */
+html[data-theme="ocean-blue"] header button.w-11,
+html[data-theme="ocean-blue"] header .w-11.h-11.rounded-full,
+html[data-theme="ocean-blue"] [data-header-profile="true"] > div.absolute,
+html[data-theme="ocean-blue"] [data-header-chat="true"],
+html[data-theme="ocean-blue"] [data-header-menu="true"],
+html[data-theme="ocean-blue"] button.w-11.h-11,
+html[data-theme="ocean-blue"] [data-friends-pill="true"],
+html[data-theme="ocean-blue"] header button.absolute.rounded-3xl,
+html[data-theme="ocean-blue"] header .bg-base-300\/70.rounded-full.absolute,
+html[data-theme="ocean-blue"] .bg-base-300\/70.backdrop-blur-\[4px\] {
+  background: var(--ocean-glass) !important;
+  border: 1px solid var(--ocean-glass-border) !important;
+  box-shadow: var(--ocean-glass-shadow) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  color: var(--ocean-text) !important;
+}
+
+/* Modals & Dialogs */
+html[data-theme="ocean-blue"] .modal-box,
+html[data-theme="ocean-blue"] [role="dialog"]:not([data-draft-library]),
+html[data-theme="ocean-blue"] .bg-base-100:not(.draft-library-root),
+html[data-theme="ocean-blue"] .menuDrawer,
+html[data-theme="ocean-blue"] .fixed.z-60.top-0.right-0.bg-base-100,
+html[data-theme="ocean-blue"] .bg-base-100.flex.flex-col {
+  background: rgba(230, 247, 255, 0.82) !important;
+  border: 1px solid var(--ocean-glass-border) !important;
+  box-shadow: var(--ocean-glass-shadow) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: var(--ocean-text) !important;
+}
+
+html[data-theme="ocean-blue"] .draft-library-root,
+html[data-theme="ocean-blue"] .draft-library-root[role="dialog"] {
+  background: #e6f7ff !important;
+  background-color: #e6f7ff !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  opacity: 1 !important;
+  isolation: isolate;
+  z-index: 320 !important;
+}
+
+/* Camera Shutter */
+html[data-theme="ocean-blue"] .border-camera-custome,
+html[data-theme="ocean-blue"] .cameraShutterRing {
+  color: var(--ocean-blue) !important;
+  box-shadow: 0 0 0 5px var(--ocean-blue) !important;
+}
+
+html[data-theme="ocean-blue"] .cameraShutterCore,
+html[data-theme="ocean-blue"] button[aria-label="Chụp ảnh"] .bg-white {
+  background: #ffffff !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+/* Bottom Nav Active State */
+html[data-theme="ocean-blue"] .cameraBottomNavBtn {
+  color: var(--ocean-text-sec) !important;
+}
+html[data-theme="ocean-blue"] .cameraBottomNavBtn.is-active,
+html[data-theme="ocean-blue"] .glassButtonActive {
+  background: color-mix(in srgb, var(--ocean-blue) 18%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--ocean-blue) 35%, transparent) !important;
+  color: var(--ocean-blue) !important;
+  box-shadow: none !important;
 }
 
 /* ?? Protect Camera View ?? */
@@ -561,6 +737,8 @@ html[data-theme="ocean-blue"] video.object-cover {
   mix-blend-mode: normal !important;
   background: transparent !important;
   backdrop-filter: none !important;
+  box-shadow: none !important;
+  border: none !important;
 }
 
 /* ?? Zoom Badge Protection ?? */
@@ -577,3 +755,23 @@ html[data-theme="ocean-blue"] [data-zoom-slider="true"] .text-white,
 html[data-theme="ocean-blue"] [data-zoom-slider="true"] .text-white\/80 {
   color: #ffffff !important;
 }
+
+html[data-theme="ocean-blue"] [data-zoom-slider] .bg-white\/35 {
+  background-color: rgba(2, 132, 199, 0.35) !important;
+}
+html[data-theme="ocean-blue"] [data-zoom-slider] .bg-white\/90 {
+  background-color: var(--ocean-blue) !important;
+}
+html[data-theme="ocean-blue"] [data-zoom-slider] .rounded-full.bg-white {
+  background: #ffffff !important;
+  border: 1px solid var(--ocean-glass-border) !important;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.14) !important;
+}
+
+/* Basic DaisyUI Override for buttons */
+html[data-theme="ocean-blue"] .btn-primary {
+  background: var(--ocean-blue) !important;
+  border-color: var(--ocean-blue) !important;
+  color: #ffffff !important;
+}
+

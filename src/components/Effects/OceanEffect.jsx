@@ -60,12 +60,11 @@ const OceanEffect = ({ reduceMotion }) => {
         this.x = Math.random() * width;
         this.y = randomY ? Math.random() * height : height + 10;
         this.size = Math.random() * 4 + 2; // 2px to 6px
-        // Speed adjusted for reduced motion
         this.speedY = (Math.random() * 0.8 + 0.4) * (reduceMotion ? 0.3 : 1);
         this.wobbleSpeed = Math.random() * 0.02 + 0.01;
         this.wobbleAmp = Math.random() * 1.5 + 0.5;
         this.angle = Math.random() * Math.PI * 2;
-        this.opacity = Math.random() * 0.3 + 0.2;
+        this.opacity = Math.random() * 0.3 + 0.4; // 0.4 to 0.7 for better visibility
       }
       update() {
         this.y -= this.speedY;
@@ -98,15 +97,15 @@ const OceanEffect = ({ reduceMotion }) => {
           ? -50
           : width + 50;
         this.y = Math.random() * (height * 0.7) + height * 0.15; // Swim within middle 70%
-        // Fish size: 10 to 18
-        this.size = Math.random() * 8 + 10;
+        // Fish size: 12 to 24
+        this.size = Math.random() * 12 + 12;
         // Speed: 0.5 to 1.5
         this.speedX = (Math.random() * 1 + 0.5) * (reduceMotion ? 0.3 : 1);
         this.wobbleSpeed = Math.random() * 0.02 + 0.01;
         this.wobbleAmp = Math.random() * 0.5 + 0.2;
         this.angle = Math.random() * Math.PI * 2;
         this.color = fishColors[Math.floor(Math.random() * fishColors.length)];
-        this.opacity = Math.random() * 0.4 + 0.6; // Higher opacity to be visible
+        this.opacity = Math.random() * 0.2 + 0.8; // Higher opacity to be visible
       }
       update() {
         this.x += this.speedX * this.direction;
@@ -166,10 +165,8 @@ const OceanEffect = ({ reduceMotion }) => {
 
     // ------------------- ANIMATION LOOP -------------------
     const render = () => {
-      if (!isVisible) {
-        animationFrameId = requestAnimationFrame(render);
-        return;
-      }
+      if (!isVisible) return; // Stop drawing when hidden
+
       ctx.clearRect(0, 0, width, height);
 
       bubbles.forEach((b) => {
@@ -185,11 +182,18 @@ const OceanEffect = ({ reduceMotion }) => {
       animationFrameId = requestAnimationFrame(render);
     };
 
-    render();
+    if (isVisible) {
+      render();
+    }
 
     // ------------------- VISIBILITY / OBSERVER -------------------
     const handleVisibilityChange = () => {
       isVisible = document.visibilityState === "visible";
+      if (isVisible) {
+        render();
+      } else {
+        cancelAnimationFrame(animationFrameId);
+      }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
@@ -203,7 +207,9 @@ const OceanEffect = ({ reduceMotion }) => {
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 w-full h-full pointer-events-none z-0"
+      aria-hidden="true"
+      data-decorative-fx="true"
+      className="ocean-effect-layer fixed inset-0 w-full h-full pointer-events-none z-[15]"
     />
   );
 };
