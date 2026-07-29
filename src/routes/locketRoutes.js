@@ -1,9 +1,10 @@
 import { CONFIG } from "@/config";
 import React from "react";
 // import CameraCaptureBeta from "../pages/LocketCameraBeta";
+import CameraCaptureBeta from "../pages/LocketCameraBeta";
 
 // const CameraCapture = React.lazy(() => import("../pages/LocketCamera"));
-const CameraCaptureBeta = React.lazy(() => import("../pages/LocketCameraBeta"));
+// Camera is critical, eagerly load it to avoid loading spinner on mount
 
 const APP_NAME = CONFIG.app.fullName;
 

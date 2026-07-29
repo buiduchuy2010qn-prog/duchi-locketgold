@@ -1,30 +1,22 @@
-import React, { Suspense, lazy, useState } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLanguageStore } from "@/stores";
 import LanguagePopup from "@/features/LanguagePopup";
 import LanguageSetting from "./LanguageSetting";
 import { LANGUAGE_NAMES } from "@/constants";
 
-// Lazy load components
-const ThemeViewSelect = lazy(() => import("./ThemeViewSelect"));
-const ThemeSelector = lazy(() => import("@/components/Theme/ThemeSelector"));
-const SettingsExtras = lazy(() => import("./SettingExtras"));
-const CameraFrameSelector = lazy(() => import("./CameraFrameSelector"));
-const CameraBackground = lazy(() => import("./CameraBackground"));
-const GoogleDriveBackup = lazy(() => import("./GoogleDriveBackup"));
+// Static load components to prevent waterfall loading in Settings
+import ThemeViewSelect from "./ThemeViewSelect";
+import ThemeSelector from "@/components/Theme/ThemeSelector";
+import SettingsExtras from "./SettingExtras";
+import CameraFrameSelector from "./CameraFrameSelector";
+import CameraBackground from "./CameraBackground";
+import GoogleDriveBackup from "./GoogleDriveBackup";
 
 const SuspenseCard = ({ children }) => (
-  <Suspense
-    fallback={
-      <div className="bg-base-300 rounded-2xl shadow-md p-4 h-[200px] flex items-center justify-center">
-        <span className="loading loading-spinner text-primary"></span>
-      </div>
-    }
-  >
-    <div className="bg-base-300 rounded-2xl shadow-md p-4 h-full flex flex-col">
-      {children}
-    </div>
-  </Suspense>
+  <div className="bg-base-300 rounded-2xl shadow-md p-4 h-full flex flex-col">
+    {children}
+  </div>
 );
 
 export default function Settings() {
