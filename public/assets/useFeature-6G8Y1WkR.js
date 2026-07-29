@@ -1,5 +1,0 @@
-<<<<<<<< HEAD:public/assets/useFeature-6G8Y1WkR.js
-import"./vendor-B9JIdPzu.js";import{u as a}from"./index-CokfkP72.js";const m=!0,t={maxImageSizeMB:25,maxVideoSizeMB:50,storage_limit_mb:99999,video_record_max_length:15},_=e=>!0,u=()=>{var o;const e=a(r=>r.userPlan);return(o=e==null?void 0:e.user)==null?void 0:o.customer_code},n=()=>({maxImageSizeMB:t.maxImageSizeMB,maxVideoSizeMB:t.maxVideoSizeMB,storage_limit_mb:t.storage_limit_mb}),c=()=>t.video_record_max_length;export{m as F,u as a,c as b,n as g,_ as u};
-========
-import"./vendor-CQZzD-j3.js";import{u as a}from"./index-Cjth9u-S.js";const m=!0,t={maxImageSizeMB:25,maxVideoSizeMB:50,storage_limit_mb:99999,video_record_max_length:15},_=e=>!0,u=()=>{var o;const e=a(r=>r.userPlan);return(o=e==null?void 0:e.user)==null?void 0:o.customer_code},n=()=>({maxImageSizeMB:t.maxImageSizeMB,maxVideoSizeMB:t.maxVideoSizeMB,storage_limit_mb:t.storage_limit_mb}),c=()=>t.video_record_max_length;export{m as F,u as a,c as b,n as g,_ as u};
->>>>>>>> f30adf36317f60abd71c64ae3181e9c797382114:public/assets/useFeature-DGdfSTIc.js
