@@ -18,7 +18,7 @@ const STORAGE_LAST_AWAY = "app_last_away_at";
 /** Lần cuối user đang active trên web */
 const STORAGE_LAST_ACTIVE = "app_last_active_at";
 
-const POLL_MS = 5 * 60 * 1000;
+const POLL_MS = 30 * 1000;
 /** Chỉ auto-update nếu đã vắng ≥ 30 phút */
 const AWAY_AUTO_UPDATE_MS = 30 * 60 * 1000;
 const RELOAD_GUARD_MS = 20 * 1000;
@@ -308,46 +308,74 @@ export function isUserBusy() {
     const draftState = useMomentDraftStore.getState();
     if (draftState.postingDraftId || draftState.syncing) return true;
 
-  } catch (e) {
+  } catch {
     /* ignore */
   }
   return false;
 }
 
+let userForceUpdatePromise = null;
+
 /** User bấm nút — cập nhật ngay, không cần chờ 30p */
-export async function userForceUpdate() {
-  if (typeof navigator !== "undefined" && navigator.onLine === false) {
-    return "offline";
-  }
-
-  let hasUpdate = false;
-  try {
-    // Ép SW check update
-    if (navigator.serviceWorker) {
-      const regs = await navigator.serviceWorker.getRegistrations();
-      if (regs) {
-        for (const reg of regs) {
-          reg.update().catch(() => {});
-        }
+export function userForceUpdate() {
+  if (userForceUpdatePromise) return userForceUpdatePromise;
+  userForceUpdatePromise = (async () => {
+    try {
+      if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        return "offline";
       }
+
+      let hasUpdate = false;
+      try {
+        // Ép SW check update
+        if (navigator.serviceWorker) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          if (regs) {
+            for (const reg of regs) {
+              await reg.update().catch(() => {});
+            }
+          }
+        }
+        
+        // Kiểm tra version.json 3 lần: 0s, 1.5s, 3s
+        for (let i = 0; i < 3; i++) {
+          hasUpdate = await checkForAppUpdate();
+          if (hasUpdate) break;
+          if (i < 2) await new Promise((r) => setTimeout(r, 1500));
+        }
+      } catch {
+        return "error";
+      }
+
+      if (!hasUpdate) {
+        return "latest";
+      }
+
+      if (isUserBusy()) {
+        SonnerInfo("Đã có phiên bản mới", "Ứng dụng sẽ cập nhật sau khi bạn hoàn tất.");
+        return "busy";
+      }
+
+      const buildId = updateState.latest?.buildId;
+      const success = await applyWebsiteUpdate(buildId, { force: true });
+      
+      if (success) {
+        // Kiểm tra sau reload
+        setTimeout(async () => {
+          const current = getCurrentBuildMeta();
+          if (current.buildId !== buildId) {
+             // Thử cập nhật lại tối đa 1 lần nếu buildId chưa đổi
+             console.warn("[update] buildId mismatch after reload, retrying once...");
+             await applyWebsiteUpdate(buildId, { force: true });
+          }
+        }, 3000);
+      }
+      return success ? "updated" : "error";
+    } finally {
+      userForceUpdatePromise = null;
     }
-    hasUpdate = await checkForAppUpdate();
-  } catch (e) {
-    return "error";
-  }
-
-  if (!hasUpdate) {
-    return "latest";
-  }
-
-  if (isUserBusy()) {
-    SonnerInfo("Đã có phiên bản mới", "Ứng dụng sẽ cập nhật sau khi bạn hoàn tất.");
-    return "busy";
-  }
-
-  const buildId = updateState.latest?.buildId;
-  const success = await applyWebsiteUpdate(buildId, { force: true });
-  return success ? "updated" : "error";
+  })();
+  return userForceUpdatePromise;
 }
 
 export function handleVisibilityUpdateCheck() {
@@ -376,9 +404,11 @@ export function handleServiceWorkerUpdate(updateSW) {
   if (typeof updateSW === "function") {
     pendingSwApply = async () => {
       let reloaded = false;
+      let reloadFallbackTimer = null;
       const onController = () => {
         if (reloaded) return;
         reloaded = true;
+        if (reloadFallbackTimer) clearTimeout(reloadFallbackTimer);
         navigator.serviceWorker?.removeEventListener?.(
           "controllerchange",
           onController,
@@ -393,13 +423,20 @@ export function handleServiceWorkerUpdate(updateSW) {
       } catch {
         /* ignore */
       }
+      
+      // Gửi SKIP_WAITING
       await updateSW(true);
-      setTimeout(() => {
+      
+      // Fallback reload sau 5s nếu SW không đổi
+      reloadFallbackTimer = setTimeout(() => {
         if (!reloaded) {
           reloaded = true;
-          window.location.reload();
+          console.warn("[update] controllerchange timeout, fallback to forced reload");
+          const url = new URL(window.location.href);
+          url.searchParams.set("_v", String(Date.now()));
+          window.location.replace(url.pathname + url.search + url.hash);
         }
-      }, 2500);
+      }, 5000);
     };
   }
 

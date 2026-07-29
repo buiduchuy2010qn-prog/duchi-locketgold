@@ -1,4 +1,4 @@
-﻿import fs from "fs";
+import fs from "fs";
 import path from "path";
 
 function rimraf(dir) {
@@ -22,43 +22,52 @@ function copyDir(src, dest) {
 }
 
 if (!fs.existsSync("dist/index.html")) {
-  console.error("[prepare-static] dist/ missing — run npm run build first");
+  console.error("[prepare-static] dist/ missing - run vite build first");
   process.exit(1);
 }
 
-// Giữ static gốc (icons/images/...) — chỉ thay artifact build
+// Preserve original static resources (icons/images/...)
 const STATIC_KEEP = ["fonts", "icons", "images", "pwa-icons", "svg"];
 const backup = path.join(".tmp-static-keep");
 rimraf(backup);
 fs.mkdirSync(backup, { recursive: true });
+
 for (const d of STATIC_KEEP) {
   const src = path.join("public", d);
   if (fs.existsSync(src)) copyDir(src, path.join(backup, d));
 }
 
+// Prepare 'public' for Railway
 rimraf("public");
 copyDir("dist", "public");
 
-// Khôi phục static nếu dist thiếu (vite đã copy publicDir, thường đã có)
+// Prepare 'vercel-static' for Vercel
+rimraf("vercel-static");
+copyDir("dist", "vercel-static");
+
+// Restore preserved static assets to both destinations if they were missing from dist
 for (const d of STATIC_KEEP) {
   const fromBackup = path.join(backup, d);
-  const dest = path.join("public", d);
-  if (fs.existsSync(fromBackup) && !fs.existsSync(dest)) {
-    copyDir(fromBackup, dest);
+  const destPublic = path.join("public", d);
+  const destVercel = path.join("vercel-static", d);
+  if (fs.existsSync(fromBackup)) {
+    if (!fs.existsSync(destPublic)) copyDir(fromBackup, destPublic);
+    if (!fs.existsSync(destVercel)) copyDir(fromBackup, destVercel);
   }
 }
 rimraf(backup);
 
+// Add _redirects to both
 fs.writeFileSync("public/_redirects", "/*    /index.html   200\n");
+fs.writeFileSync("vercel-static/_redirects", "/*    /index.html   200\n");
 
-// Ensure version.json is never swallowed by SPA rewrite on hosts that use _redirects
-// (Netlify: explicit file still wins; keep a copy from dist if present)
-if (fs.existsSync("dist/version.json") && !fs.existsSync("public/version.json")) {
-  fs.copyFileSync("dist/version.json", "public/version.json");
+// Ensure version.json is copied correctly if SPA rewrite swallowed it previously
+if (fs.existsSync("dist/version.json")) {
+  if (!fs.existsSync("public/version.json")) fs.copyFileSync("dist/version.json", "public/version.json");
+  if (!fs.existsSync("vercel-static/version.json")) fs.copyFileSync("dist/version.json", "vercel-static/version.json");
 }
 
-const assetCount = fs.existsSync("public/assets")
-  ? fs.readdirSync("public/assets").length
-  : 0;
-console.log(`[prepare-static] OK: dist -> public (${assetCount} assets)`);
-
+const assetCountPublic = fs.existsSync("public/assets") ? fs.readdirSync("public/assets").length : 0;
+const assetCountVercel = fs.existsSync("vercel-static/assets") ? fs.readdirSync("vercel-static/assets").length : 0;
+console.log(`[prepare-static] OK: dist -> public (${assetCountPublic} assets)`);
+console.log(`[prepare-static] OK: dist -> vercel-static (${assetCountVercel} assets)`);

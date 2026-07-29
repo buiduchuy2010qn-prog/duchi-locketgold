@@ -32,7 +32,7 @@ export default function AppUpdateButton({ className = "" }) {
     try {
       const status = await userForceUpdate();
       if (status === "latest") {
-        SonnerInfo("Bạn đang dùng phiên bản mới nhất");
+        SonnerInfo("Chưa thấy bản deploy mới trên máy chủ", "Hệ thống sẽ tiếp tục kiểm tra tự động");
         setLoading(false);
       } else if (status === "offline") {
         SonnerError("Đang ngoại tuyến", "Vui lòng kiểm tra kết nối mạng.");
@@ -44,6 +44,7 @@ export default function AppUpdateButton({ className = "" }) {
         setLoading(false);
       } else {
         // "updated" - reloading
+        SonnerInfo("Đã tìm thấy phiên bản mới", "Đang cập nhật…");
         setTimeout(() => setLoading(false), 4000);
       }
     } catch (err) {

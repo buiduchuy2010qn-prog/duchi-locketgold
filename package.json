@@ -9,9 +9,9 @@
     "start": "node server.mjs",
     "dev": "vite",
     "build": "node scripts/vercel-prebuilt.mjs",
-    "build:vite": "node scripts/write-version.mjs && node scripts/clean-public-build.mjs && vite build",
-    "build:vercel-static": "npm run build:vite && node -e \"const fs=require('fs');const{cpSync,rmSync,existsSync}=fs;const d='vercel-static';if(existsSync(d))rmSync(d,{recursive:true});cpSync('dist',d,{recursive:true});console.log('synced dist -> vercel-static')\"",
-    "build:static": "node scripts/write-version.mjs && node scripts/clean-public-build.mjs && vite build && node scripts/prepare-static.mjs",
+    "build:deploy": "node scripts/write-version.mjs && node scripts/clean-public-build.mjs && vite build && node scripts/prepare-static.mjs && node scripts/verify-deploy-artifacts.mjs",
+    "build:vercel-static": "npm run build:deploy",
+    "build:static": "npm run build:deploy",
     "lint": "eslint .",
     "preview": "vite preview",
     "serve": "node server.mjs"
@@ -66,5 +66,10 @@
     "tailwindcss": "4.1.13",
     "vite": "^6.2.5",
     "vite-plugin-pwa": "^1.0.0"
+  },
+  "allowScripts": {
+    "@swc/core@1.11.24": true,
+    "@tailwindcss/oxide@4.1.13": true,
+    "esbuild@0.25.4": true
   }
 }

@@ -122,7 +122,7 @@ function serveStatic(req, res) {
     ext === ".webmanifest" ||
     base === "sw.js" ||
     base === "version.json"
-      ? base === "version.json"
+      ? (base === "version.json" || base === "sw.js")
         ? "no-store, no-cache, must-revalidate"
         : "no-cache"
       : "public, max-age=31536000, immutable";

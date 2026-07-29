@@ -18,7 +18,7 @@
 1. **Google Drive backup** (`server.mjs` OAuth + Neon, `utils/googleDrive.js`, admin-only UI)
 2. **Weather real data** (Dio API + Open-Meteo fallback)
 3. **pinksnow** theme + snow effects
-4. Deploy scripts: `npm run build:static`, `server.mjs`, Dockerfile
+4. Deploy scripts: `npm run build:deploy`, `server.mjs`, Dockerfile
 5. **Music caption (KNOWN GOOD — user confirmed 2026-07-14)** — do not “simplify” or rewrite casually
 
 ### Music / ISRC — baseline ổn định (đừng phá)
@@ -64,7 +64,7 @@ User: *“bản này được rồi ngon lắm”* — giữ hành vi này.
 
 Repo: `https://github.com/buiduchuy2010qn-prog/locket-dio.git` · branch **main**
 
-After production changes: `npm run build:static` → commit `public/` + source → `git push origin main`  
+After production changes: `npm run build:deploy` → commit `public/` + source → `git push origin main`  
 → Railway auto-deploy (Render: **tắt Auto-Deploy** trên Dashboard để khỏi spam lỗi pipeline minutes).
 
 ### Tắt auto-deploy Render (1 lần)
