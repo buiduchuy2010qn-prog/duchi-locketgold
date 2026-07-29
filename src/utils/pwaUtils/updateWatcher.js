@@ -103,8 +103,12 @@ function isReloadGuardActive(targetBuildId) {
   return !targetBuildId || !guard.buildId || guard.buildId === targetBuildId;
 }
 
-function claimReloadGuard(targetBuildId) {
-  if (isReloadGuardActive(targetBuildId)) return null;
+function claimReloadGuard(targetBuildId, { replaceExisting = false } = {}) {
+  if (replaceExisting) {
+    safeRemove(STORAGE_RELOAD_GUARD);
+  } else if (isReloadGuardActive(targetBuildId)) {
+    return null;
+  }
 
   const token = `${TAB_ID}:${now()}`;
   safeSet(
@@ -269,7 +273,7 @@ function armControllerReload(targetBuildId) {
   clearReloadWaiters();
 
   controllerChangeListener = () => {
-    reloadExactlyOnce(targetBuildId);
+    reloadExactlyOnce(targetBuildId, true);
   };
   navigator.serviceWorker?.addEventListener?.(
     "controllerchange",
@@ -285,9 +289,15 @@ function armControllerReload(targetBuildId) {
   }, CONTROLLER_TIMEOUT_MS);
 }
 
-async function withApplyLock(targetBuildId, task) {
+async function withApplyLock(
+  targetBuildId,
+  task,
+  { userInitiated = false } = {},
+) {
   const runWithGuard = async () => {
-    const guardToken = claimReloadGuard(targetBuildId);
+    const guardToken = claimReloadGuard(targetBuildId, {
+      replaceExisting: userInitiated,
+    });
     if (!guardToken) return { acquired: false, value: null };
     try {
       const value = await task();
@@ -300,6 +310,14 @@ async function withApplyLock(targetBuildId, task) {
   };
 
   if (typeof navigator !== "undefined" && navigator.locks?.request) {
+    if (userInitiated) {
+      return navigator.locks.request(
+        UPDATE_LOCK_NAME,
+        { mode: "exclusive" },
+        runWithGuard,
+      );
+    }
+
     return navigator.locks.request(
       UPDATE_LOCK_NAME,
       { mode: "exclusive", ifAvailable: true },
@@ -349,7 +367,10 @@ export function isUserBusy() {
   return false;
 }
 
-export function applyWebsiteUpdate(targetBuildId) {
+export function applyWebsiteUpdate(
+  targetBuildId,
+  { userInitiated = false } = {},
+) {
   if (
     updateState.phase === APP_UPDATE_PHASE.APPLYING ||
     updateState.phase === APP_UPDATE_PHASE.RELOADING
@@ -366,28 +387,32 @@ export function applyWebsiteUpdate(targetBuildId) {
       updateState.latest?.buildId ||
       getCurrentBuildMeta().buildId;
 
-    const result = await withApplyLock(target, async () => {
-      if (isUserBusy()) return false;
+    const result = await withApplyLock(
+      target,
+      async () => {
+        if (isUserBusy()) return false;
 
-      publishState({ phase: APP_UPDATE_PHASE.APPLYING });
-      safeSet(STORAGE_BUILD, target);
+        publishState({ phase: APP_UPDATE_PHASE.APPLYING });
+        safeSet(STORAGE_BUILD, target);
 
-      if (typeof pendingSwApply === "function") {
-        armControllerReload(target);
-        try {
-          const applyWaitingWorker = pendingSwApply;
-          pendingSwApply = null;
-          const sent = await applyWaitingWorker();
-          if (sent !== false) return true;
-        } catch (error) {
-          console.warn("[update] service worker apply failed", error);
+        if (typeof pendingSwApply === "function") {
+          armControllerReload(target);
+          try {
+            const applyWaitingWorker = pendingSwApply;
+            pendingSwApply = null;
+            const sent = await applyWaitingWorker();
+            if (sent !== false) return true;
+          } catch (error) {
+            console.warn("[update] service worker apply failed", error);
+          }
+          clearReloadWaiters();
         }
-        clearReloadWaiters();
-      }
 
-      reloadExactlyOnce(target, true);
-      return true;
-    });
+        reloadExactlyOnce(target, true);
+        return true;
+      },
+      { userInitiated },
+    );
 
     if (!result.acquired) {
       publishState({ phase: APP_UPDATE_PHASE.UPDATE_READY });
@@ -516,7 +541,10 @@ export function userForceUpdate() {
         return "busy";
       }
 
-      const result = await applyWebsiteUpdate(updateState.latest?.buildId);
+      const result = await applyWebsiteUpdate(
+        updateState.latest?.buildId,
+        { userInitiated: true },
+      );
       if (result === null) return "applying";
       return result ? "updated" : "error";
     } finally {
