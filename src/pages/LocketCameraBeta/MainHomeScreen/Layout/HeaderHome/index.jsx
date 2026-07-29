@@ -114,6 +114,7 @@ const HeaderHome = ({
           {/* Avatar hồ sơ + nút cập nhật tròn (luôn hiện — bấm hoặc vào lại web tự update) */}
           <div className="flex items-center gap-2">
             <button
+              data-header-profile="true"
               onClick={() => setIsProfileOpen(true)}
               className="relative flex items-center justify-center w-11 h-11 cursor-pointer active:scale-105"
             >

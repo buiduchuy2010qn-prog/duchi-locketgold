@@ -658,10 +658,8 @@ html[data-theme="ocean-blue"] .pillSideBtn:disabled {
 /* Header & Profile */
 html[data-theme="ocean-blue"] header button.w-11,
 html[data-theme="ocean-blue"] header .w-11.h-11.rounded-full,
-html[data-theme="ocean-blue"] [data-header-profile="true"] > div.absolute,
 html[data-theme="ocean-blue"] [data-header-chat="true"],
 html[data-theme="ocean-blue"] [data-header-menu="true"],
-html[data-theme="ocean-blue"] button.w-11.h-11,
 html[data-theme="ocean-blue"] [data-friends-pill="true"],
 html[data-theme="ocean-blue"] header button.absolute.rounded-3xl,
 html[data-theme="ocean-blue"] header .bg-base-300\/70.rounded-full.absolute,
@@ -672,6 +670,22 @@ html[data-theme="ocean-blue"] .bg-base-300\/70.backdrop-blur-\[4px\] {
   backdrop-filter: blur(14px) !important;
   -webkit-backdrop-filter: blur(14px) !important;
   color: var(--ocean-text) !important;
+}
+
+html[data-theme="ocean-blue"] button[data-header-profile="true"] {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="ocean-blue"] button[data-header-profile="true"] > div.absolute.rounded-full {
+  background: var(--ocean-glass) !important;
+  border: 1px solid var(--ocean-glass-border) !important;
+  box-shadow: var(--ocean-glass-shadow) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
 }
 
 /* Modals & Dialogs */
