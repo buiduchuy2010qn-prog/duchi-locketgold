@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useTheme } from "@/hooks/useTheme";
 import SnowEffect from "./SnowEffect";
@@ -13,33 +13,27 @@ import {
 import { getPerfProfile } from "@/utils/device/perfProfile";
 
 /**
- * Tuyết canvas — không che camera gesture (pointer-events: none).
- * Intensity: off | light | normal (localStorage huy-locket-snow-intensity).
+ * Persistent decorative theme effects. Each renderer owns visibility pausing
+ * so the canvas survives route changes and hidden tabs without duplicate RAFs.
  */
 const GlobalThemeEffects = () => {
   const { theme, snowIntensity } = useTheme();
   const location = useLocation();
-  const [hidden, setHidden] = useState(
-    typeof document !== "undefined" ? document.hidden : false,
-  );
   const [reduceMotion, setReduceMotion] = useState(false);
 
   useEffect(() => {
-    const onVis = () => setHidden(document.hidden);
-    document.addEventListener("visibilitychange", onVis);
     const mq = window.matchMedia?.("(prefers-reduced-motion: reduce)");
     const applyMq = () => setReduceMotion(Boolean(mq?.matches));
     applyMq();
     mq?.addEventListener?.("change", applyMq);
+
     return () => {
-      document.removeEventListener("visibilitychange", onVis);
       mq?.removeEventListener?.("change", applyMq);
     };
   }, []);
 
   const intensity = snowIntensity || getSnowIntensity();
   const snowTheme = hasSnowEffect(theme);
-
   const onCameraRoute =
     location.pathname.startsWith("/locket") ||
     location.pathname.startsWith("/camera");
@@ -48,46 +42,61 @@ const GlobalThemeEffects = () => {
     if (!snowTheme || intensity === "off") {
       return { enabled: false, maxFlakes: 0, staticOnly: false };
     }
-    const p = getPerfProfile();
+
+    const profile = getPerfProfile();
     const isPink = isPinkSnowTheme(theme);
     const isAi = isPinkSnowAiTheme(theme);
 
-    // reduced motion — few static flakes only, EXCEPT for pink/ai mode which just slows down/reduces flakes
     if (reduceMotion) {
-      return { 
-        enabled: true, 
-        maxFlakes: isAi ? 15 : (isPink ? 15 : 8), 
-        staticOnly: !(isPink || isAi), 
+      return {
+        enabled: true,
+        maxFlakes: isAi ? 15 : isPink ? 22 : 8,
+        staticOnly: !(isPink || isAi),
         pinkMode: isPink,
-        aiMode: isAi
+        aiMode: isAi,
+        reduceMotion: true,
       };
     }
 
-    let max = intensity === "normal" ? (isPink ? 120 : 42) : (isPink ? 70 : 24);
-    if (p.isMobile) max = intensity === "normal" ? (isPink ? 50 : 26) : (isPink ? 30 : 20);
-    if (p.isLowEnd || p.isAndroid) max = intensity === "normal" ? (isPink ? 35 : 18) : (isPink ? 20 : 14);
-    if (onCameraRoute) {
-      // Keep camera smooth — more snow for pink, lighter for others
-      max = Math.min(max, p.isLowEnd || p.isAndroid ? (isPink ? 20 : 12) : (isPink ? 45 : 18));
+    let max =
+      intensity === "normal" ? (isPink ? 108 : 42) : isPink ? 72 : 24;
+
+    if (profile.isMobile) {
+      max =
+        intensity === "normal" ? (isPink ? 66 : 26) : isPink ? 46 : 20;
     }
-    // hard cap
-    max = Math.min(150, Math.max(10, max));
+
+    if (profile.isLowEnd || profile.isAndroid) {
+      max =
+        intensity === "normal" ? (isPink ? 40 : 18) : isPink ? 28 : 14;
+    }
+
+    if (onCameraRoute) {
+      max = Math.min(
+        max,
+        profile.isLowEnd || profile.isAndroid
+          ? isPink
+            ? 26
+            : 12
+          : isPink
+            ? 48
+            : 18,
+      );
+    }
 
     return {
       enabled: true,
-      maxFlakes: max,
+      maxFlakes: Math.min(120, Math.max(10, max)),
       staticOnly: false,
       pinkMode: isPink,
       aiMode: isAi,
-      reduceMotion,
+      reduceMotion: false,
     };
-  }, [snowTheme, intensity, theme, reduceMotion, onCameraRoute]);
+  }, [intensity, onCameraRoute, reduceMotion, snowTheme, theme]);
 
   if (isOceanBlueTheme(theme)) {
     return <OceanEffect reduceMotion={reduceMotion} />;
   }
-
-  if (hidden) return null;
 
   if (!cfg.enabled) return null;
 
