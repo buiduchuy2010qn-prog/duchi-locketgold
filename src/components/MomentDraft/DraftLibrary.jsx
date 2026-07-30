@@ -696,7 +696,7 @@ function DraftPreviewCard({
         {/* Aspect Ratio Container (3:4) */}
         <div 
           role="button"
-          className={`relative aspect-[3/4] w-full overflow-hidden rounded-2xl bg-base-200 shadow-sm cursor-pointer border-2 transition-colors ${selected ? 'border-primary shadow-primary/20' : 'border-transparent'}`}
+          className={`relative aspect-square w-full overflow-hidden rounded-2xl bg-base-200 shadow-sm cursor-pointer border-2 transition-colors ${selected ? 'border-primary shadow-primary/20' : 'border-transparent'}`}
           onClick={onPreview}
         >
           {/* Checkbox (Multi-select) */}
