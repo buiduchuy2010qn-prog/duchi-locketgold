@@ -164,6 +164,7 @@ const RollcallMedia = memo(function RollcallMedia({
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
   const [timedOut, setTimedOut] = useState(false);
+  const [useFallback, setUseFallback] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [retryKey, setRetryKey] = useState(0);
   const loadStarted = useRef(0);
@@ -181,11 +182,13 @@ const RollcallMedia = memo(function RollcallMedia({
       setLoaded(false);
       setFailed(false);
       setTimedOut(false);
+      setUseFallback(false);
       return;
     }
     setLoaded(false);
     setFailed(false);
     setTimedOut(false);
+    setUseFallback(false);
     loadStarted.current = performance.now();
   }, [load, mainUrl, retryKey]);
 
@@ -219,6 +222,19 @@ const RollcallMedia = memo(function RollcallMedia({
   }, [video, index]);
 
   const handleError = useCallback(() => {
+    if (!useFallback && thumbUrl && thumbUrl !== mainUrl) {
+      setUseFallback(true);
+      setTimedOut(false);
+      logRollcallNet({
+        type: "media_fallback",
+        status: "retry_thumb",
+        ms: Math.round(performance.now() - (loadStarted.current || performance.now())),
+        mediaKind: video ? "video" : "image",
+        index,
+      });
+      return;
+    }
+
     setFailed(true);
     setTimedOut(true);
     logRollcallNet({
@@ -228,7 +244,7 @@ const RollcallMedia = memo(function RollcallMedia({
       mediaKind: video ? "video" : "image",
       index,
     });
-  }, [video, index]);
+  }, [video, index, useFallback, thumbUrl, mainUrl]);
 
   const handleRetry = useCallback(() => {
     if (retryCount >= MAX_RETRIES) return;
@@ -237,6 +253,7 @@ const RollcallMedia = memo(function RollcallMedia({
     setFailed(false);
     setTimedOut(false);
     setLoaded(false);
+    setUseFallback(false);
     // Staggered backoff: 400ms, 1200ms
     const delay = next === 1 ? 400 : 1200;
     logRollcallNet({
@@ -303,7 +320,7 @@ const RollcallMedia = memo(function RollcallMedia({
         </div>
       )}
 
-      {video ? (
+      {!useFallback && video ? (
         <video
           key={`${id}-v-${retryKey}`}
           src={mainUrl}
@@ -324,8 +341,8 @@ const RollcallMedia = memo(function RollcallMedia({
         />
       ) : (
         <img
-          key={`${id}-i-${retryKey}`}
-          src={mainUrl}
+          key={`${id}-i-${retryKey}-${useFallback ? "fb" : "main"}`}
+          src={useFallback ? thumbUrl : mainUrl}
           alt=""
           loading={priority === "active" ? "eager" : "lazy"}
           fetchPriority={priority === "active" ? "high" : "low"}
