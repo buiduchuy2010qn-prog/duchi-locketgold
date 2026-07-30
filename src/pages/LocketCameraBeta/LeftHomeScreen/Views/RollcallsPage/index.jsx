@@ -22,6 +22,7 @@ function RollcallsPost({ active, posts, setPosts, isProfileOpen }) {
   
   const abortRef = useRef(null);
   const mountedRef = useRef(true);
+  const hasAutoFellback = useRef(false);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -163,6 +164,18 @@ function RollcallsPost({ active, posts, setPosts, isProfileOpen }) {
           setPosts(list);
           setStatus("success");
         } else {
+          if (week === currentWeek && year === currentYear && !hasAutoFellback.current) {
+            hasAutoFellback.current = true;
+            let prevWeek = week - 1;
+            let prevYear = year;
+            if (prevWeek < 1) {
+              prevYear -= 1;
+              prevWeek = getISOWeek(new Date(prevYear, 11, 28)).week;
+            }
+            setSelectedWeek(prevWeek);
+            setSelectedYear(prevYear);
+            return;
+          }
           setPosts([]);
           setStatus("empty");
         }
@@ -170,6 +183,20 @@ function RollcallsPost({ active, posts, setPosts, isProfileOpen }) {
     } catch (err) {
       if (controller.signal.aborted || !mountedRef.current) return;
       console.error("Failed to load rollcall posts:", err);
+
+      if (week === currentWeek && year === currentYear && !hasAutoFellback.current) {
+        hasAutoFellback.current = true;
+        let prevWeek = week - 1;
+        let prevYear = year;
+        if (prevWeek < 1) {
+          prevYear -= 1;
+          prevWeek = getISOWeek(new Date(prevYear, 11, 28)).week;
+        }
+        setSelectedWeek(prevWeek);
+        setSelectedYear(prevYear);
+        return;
+      }
+
       setPosts((currentPosts) => {
         if (currentPosts.length === 0) {
           setStatus("error");
