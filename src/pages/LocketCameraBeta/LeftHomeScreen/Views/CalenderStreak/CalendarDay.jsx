@@ -63,8 +63,8 @@ export default function CalendarDay({
   // Lấy bài mới nhất trong ngày (ở cuối mảng nếu mảng xếp theo thời gian tăng dần, hoặc tuỳ cấu trúc)
   // posts từ DB thường được sắp xếp. Ta lấy post cuối cùng làm ảnh đại diện.
   const displayPost = posts.length > 0 ? posts[posts.length - 1] : null;
-  const isVideo = displayPost?.contentType === "video" || displayPost?.video_url;
-  const displayUrl = displayPost?.thumbnail_url || displayPost?.image_url;
+  const isVideo = displayPost?.contentType === "video" || displayPost?.video_url || displayPost?.videoUrl;
+  const displayUrl = displayPost?.thumbnail_url || displayPost?.image_url || displayPost?.thumbnailUrl || displayPost?.imageUrl;
 
   const handleClick = (e) => {
     if (posts.length > 0 && onDayClick) {
@@ -98,7 +98,7 @@ export default function CalendarDay({
       )}
       title={
         posts.length > 0
-          ? posts[0].createdAt // Original creation time for tooltip
+          ? (posts[0].createdAt || posts[0].createTime || posts[0].date) // Original creation time for tooltip
           : dayKey
       }
       onClick={handleClick}

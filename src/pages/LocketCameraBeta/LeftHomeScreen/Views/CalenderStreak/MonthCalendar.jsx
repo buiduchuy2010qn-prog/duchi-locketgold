@@ -29,7 +29,7 @@ export default function MonthCalendar({
   const postsByDate = useMemo(() => {
     const map = {};
     postsInMonth.forEach((post) => {
-      const d = parseCustomDate(post?.createdAt);
+      const d = parseCustomDate(post?.createdAt || post?.createTime || post?.date);
       if (!d) return;
       const key = `${d.getFullYear()}-${(d.getMonth() + 1)
         .toString()
