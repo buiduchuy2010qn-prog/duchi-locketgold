@@ -1,26 +1,14 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
-  X,
-  MoreVertical,
-  Image as ImageIcon,
-  Video,
-  Play,
-  Camera,
-  RefreshCw,
-  AlertTriangle,
+  X, MoreVertical, Image as ImageIcon, Video, Play, Camera, RefreshCw, AlertTriangle,
+  Search, Filter, CheckCircle2, Circle, Download, Trash2
 } from "lucide-react";
 import { useMomentDraftStore, usePostStore } from "@/stores";
 import { useConnectivityStore } from "@/stores/useConnectivityStore";
 import { useAppCamera } from "@/context/AppContext";
 import { OverlayRenderer } from "@/components/Overlay";
-import { SonnerInfo } from "@/components/uikit/SonnerToast";
+import { SonnerInfo, SonnerError, SonnerSuccess } from "@/components/uikit/SonnerToast";
 import {
   getDraftThumbnailBlob,
   getDraftMediaBlob,
@@ -32,425 +20,7 @@ import {
   formatDraftCreatedAt,
 } from "@/utils/momentDraft";
 
-/**
- * Full-screen draft library — opaque page, not a glass overlay on camera.
- * Pauses camera stream while open to avoid lag.
- * Opened only when user taps the draft badge (never auto).
- */
-export default function DraftLibrary() {
-  const open = useMomentDraftStore((s) => s.libraryOpen);
-  const closeLibrary = useMomentDraftStore((s) => s.closeLibrary);
-  const drafts = useMomentDraftStore((s) => s.drafts);
-  const refreshList = useMomentDraftStore((s) => s.refreshList);
-  const restoreDraftIntoStudio = useMomentDraftStore(
-    (s) => s.restoreDraftIntoStudio,
-  );
-  const postDraftById = useMomentDraftStore((s) => s.postDraftById);
-  const confirmDeleteDraft = useMomentDraftStore((s) => s.confirmDeleteDraft);
-  const duplicateDraft = useMomentDraftStore((s) => s.duplicateDraft);
-  const postingDraftId = useMomentDraftStore((s) => s.postingDraftId);
-  const retrySyncDraft = useMomentDraftStore((s) => s.retrySyncDraft);
-  const syncDraftsNow = useMomentDraftStore((s) => s.syncDraftsNow);
-  const isOffline = useConnectivityStore((s) => s.isOffline);
-  const camera = useAppCamera();
-  const setCameraActive = camera?.setCameraActive;
-
-  const listRef = useRef(null);
-  const scrollRestoreRef = useRef(0);
-  const offlineToastOnce = useRef(false);
-  const cameraPausedRef = useRef(false);
-
-  const [confirmId, setConfirmId] = useState(null);
-  const [menuId, setMenuId] = useState(null);
-  const [busyId, setBusyId] = useState(null);
-  const [syncing, setSyncing] = useState(false);
-
-  // Opaque page: pause camera + lock body scroll (tránh camera xuyên + lag)
-  useEffect(() => {
-    if (!open) return undefined;
-
-    cameraPausedRef.current = true;
-    try {
-      setCameraActive?.(false);
-      const stream = camera?.streamRef?.current;
-      stream?.getVideoTracks?.()?.forEach((t) => {
-        try {
-          t.enabled = false;
-        } catch {
-          /* ignore */
-        }
-      });
-      const videoEl = camera?.videoRef?.current;
-      if (videoEl) {
-        try {
-          videoEl.pause?.();
-        } catch {
-          /* ignore */
-        }
-      }
-    } catch {
-      /* ignore */
-    }
-
-    const prevOverflow = document.body.style.overflow;
-    const prevTouch = document.body.style.touchAction;
-    document.body.style.overflow = "hidden";
-    document.body.style.touchAction = "none";
-    document.documentElement.classList.add("draft-library-open");
-
-    return () => {
-      document.body.style.overflow = prevOverflow;
-      document.body.style.touchAction = prevTouch;
-      document.documentElement.classList.remove("draft-library-open");
-
-      // Resume camera only if studio has no media (user just closed library)
-      const post = usePostStore.getState();
-      const hasStudioMedia = !!(post.selectedFile || post.preview?.data);
-      if (!hasStudioMedia && cameraPausedRef.current) {
-        try {
-          const stream = camera?.streamRef?.current;
-          stream?.getVideoTracks?.()?.forEach((t) => {
-            try {
-              t.enabled = true;
-            } catch {
-              /* ignore */
-            }
-          });
-          setCameraActive?.(true);
-        } catch {
-          /* ignore */
-        }
-      }
-      cameraPausedRef.current = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only on open/close
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) {
-      offlineToastOnce.current = false;
-      setMenuId(null);
-      setConfirmId(null);
-      return;
-    }
-    void refreshList();
-    // restore scroll after list re-renders (e.g. post success)
-    requestAnimationFrame(() => {
-      if (listRef.current && scrollRestoreRef.current > 0) {
-        listRef.current.scrollTop = scrollRestoreRef.current;
-      }
-    });
-    if (isOffline && !offlineToastOnce.current) {
-      offlineToastOnce.current = true;
-      SonnerInfo("Đang ngoại tuyến · Bản nháp vẫn được lưu");
-    }
-  }, [open, refreshList, isOffline, drafts.length]);
-
-  // Close ⋮ menu on outside / escape
-  useEffect(() => {
-    if (!menuId) return undefined;
-    const onKey = (e) => {
-      if (e.key === "Escape") setMenuId(null);
-    };
-    const onDown = () => setMenuId(null);
-    window.addEventListener("keydown", onKey);
-    // delay so open click doesn't immediately close
-    const t = setTimeout(() => window.addEventListener("click", onDown), 0);
-    return () => {
-      clearTimeout(t);
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener("click", onDown);
-    };
-  }, [menuId]);
-
-  const sorted = useMemo(
-    () =>
-      [...drafts].sort(
-        (a, b) =>
-          (b.createdAt || b.updatedAt || 0) -
-          (a.createdAt || a.updatedAt || 0),
-      ),
-    [drafts],
-  );
-
-  const saveScroll = () => {
-    if (listRef.current) {
-      scrollRestoreRef.current = listRef.current.scrollTop;
-    }
-  };
-
-  const onEdit = async (id) => {
-    setMenuId(null);
-    saveScroll();
-    setBusyId(id);
-    try {
-      await restoreDraftIntoStudio(id);
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  const onPost = async (id) => {
-    setMenuId(null);
-    if (postingDraftId || isOffline) return;
-    saveScroll();
-    setBusyId(id);
-    try {
-      await postDraftById(id);
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  const onDuplicate = async (id) => {
-    setMenuId(null);
-    setBusyId(id);
-    try {
-      await duplicateDraft(id);
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  const onDelete = async (id) => {
-    setBusyId(id);
-    try {
-      await confirmDeleteDraft(id);
-      setConfirmId(null);
-      setMenuId(null);
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  const handleClose = () => {
-    closeLibrary();
-  };
-
-  const handleSync = async () => {
-    if (syncing || isOffline) return;
-    setSyncing(true);
-    try {
-      await syncDraftsNow?.();
-    } finally {
-      setSyncing(false);
-    }
-  };
-
-  if (!open) return null;
-
-  const shell = (
-    <div
-      className="draft-library-root fixed inset-0 z-[320] flex flex-col text-base-content isolate"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="draft-lib-title"
-      data-draft-library="true"
-    >
-      <header
-        className="relative z-10 flex items-center justify-between gap-2 px-4 py-3 border-b border-base-300 shrink-0 bg-inherit"
-        style={{
-          paddingTop: "max(0.75rem, env(safe-area-inset-top))",
-        }}
-      >
-        <div className="min-w-0">
-          <h2 id="draft-lib-title" className="text-lg font-semibold truncate">
-            Thư viện bản nháp
-          </h2>
-          <p className="text-xs opacity-60 truncate">
-            {drafts.length
-              ? `${drafts.length} bản chưa đăng`
-              : "Chưa có bản nháp"}
-            {isOffline ? " · Ngoại tuyến" : " · Đồng bộ theo tài khoản"}
-          </p>
-        </div>
-        <div className="flex items-center gap-1 shrink-0">
-          {!isOffline && (
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm gap-1"
-              disabled={syncing}
-              onClick={() => void handleSync()}
-            >
-              <RefreshCw
-                size={14}
-                className={syncing ? "animate-spin" : undefined}
-              />
-              Đồng bộ
-            </button>
-          )}
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm btn-circle"
-            onClick={handleClose}
-            aria-label="Đóng thư viện"
-          >
-            <X size={20} />
-          </button>
-        </div>
-      </header>
-
-      <div
-        ref={listRef}
-        className="relative z-10 flex-1 overflow-y-auto overscroll-contain px-3 py-4 bg-inherit"
-        style={{
-          paddingBottom: "max(2.5rem, env(safe-area-inset-bottom))",
-          WebkitOverflowScrolling: "touch",
-        }}
-      >
-        {!sorted.length ? (
-          <div className="flex flex-col items-center justify-center text-center py-20 px-6 gap-3 min-h-[50vh]">
-            <div className="w-16 h-16 rounded-2xl bg-base-200 flex items-center justify-center opacity-80">
-              <ImageIcon size={28} />
-            </div>
-            <p className="text-base font-semibold">Chưa có bản nháp</p>
-            <p className="text-sm opacity-60 max-w-xs">
-              Ảnh và video chưa đăng sẽ xuất hiện tại đây.
-            </p>
-            <button
-              type="button"
-              className="btn btn-primary btn-sm gap-2 mt-2"
-              onClick={handleClose}
-            >
-              <Camera size={16} />
-              Mở camera
-            </button>
-          </div>
-        ) : (
-          <ul className="draft-library-grid">
-            {sorted.map((d) => (
-              <DraftPreviewCard
-                key={d.id}
-                draft={d}
-                busy={busyId === d.id || postingDraftId === d.id}
-                posting={postingDraftId === d.id}
-                offline={isOffline}
-                menuOpen={menuId === d.id}
-                onToggleMenu={(e) => {
-                  e?.stopPropagation?.();
-                  setMenuId((cur) => (cur === d.id ? null : d.id));
-                }}
-                onEdit={() => onEdit(d.id)}
-                onPost={() => onPost(d.id)}
-                onDuplicate={() => onDuplicate(d.id)}
-                onDeleteRequest={() => {
-                  setMenuId(null);
-                  setConfirmId(d.id);
-                }}
-                onRetryFailed={() => {
-                  if (isOffline) return;
-                  void onPost(d.id);
-                }}
-                onRetrySync={() => {
-                  if (isOffline) return;
-                  void retrySyncDraft?.(d.id);
-                }}
-              />
-            ))}
-          </ul>
-        )}
-      </div>
-
-      {confirmId && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
-          <div className="w-full max-w-sm rounded-2xl p-4 shadow-xl border border-base-300 bg-base-100">
-            <p className="text-base font-semibold mb-1">Xóa bản nháp này?</p>
-            <p className="text-sm opacity-70 mb-4">
-              Ảnh/video chưa đăng sẽ không thể khôi phục.
-            </p>
-            <div className="flex gap-2 justify-end">
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={() => setConfirmId(null)}
-              >
-                Hủy
-              </button>
-              <button
-                type="button"
-                className="btn btn-error btn-sm"
-                disabled={busyId === confirmId}
-                onClick={() => onDelete(confirmId)}
-              >
-                Xóa
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
-  // Portal ra body — tách hẳn khỏi layout camera (z-index / transparency)
-  if (typeof document !== "undefined" && document.body) {
-    return createPortal(
-      <>
-        <DraftLibraryStyles />
-        {shell}
-      </>,
-      document.body,
-    );
-  }
-  return (
-    <>
-      <DraftLibraryStyles />
-      {shell}
-    </>
-  );
-}
-
-/** Scoped styles for draft library grid — no global side effects */
-const _draftStylesInserted = { current: false };
-function DraftLibraryStyles() {
-  useEffect(() => {
-    if (_draftStylesInserted.current) return undefined;
-    _draftStylesInserted.current = true;
-    const style = document.createElement("style");
-    style.setAttribute("data-draft-library", "scoped");
-    style.textContent = `
-      .draft-library-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 16px;
-        width: 100%;
-        max-width: 1200px;
-        margin: 0 auto;
-        list-style: none;
-        padding: 0;
-      }
-      @media (min-width: 700px) {
-        .draft-library-grid {
-          grid-template-columns: repeat(2, 1fr);
-          gap: 18px;
-        }
-      }
-      @media (min-width: 1100px) {
-        .draft-library-grid {
-          grid-template-columns: repeat(3, 1fr);
-          gap: 20px;
-        }
-      }
-      .draft-library-card {
-        background: var(--fallback-b1,oklch(var(--b1)/1));
-      }
-      @keyframes draft-skeleton-pulse {
-        0%, 100% { opacity: 0.4; }
-        50% { opacity: 0.15; }
-      }
-      .draft-thumb-skeleton {
-        animation: draft-skeleton-pulse 1.5s ease-in-out infinite;
-        background: var(--fallback-b3,oklch(var(--b3)/1));
-      }
-    `;
-    document.head.appendChild(style);
-    return () => {
-      _draftStylesInserted.current = false;
-      style.remove();
-    };
-  }, []);
-  return null;
-}
-
+// --- HELPERS ---
 function buildOverlayData(draft) {
   const ov = draft?.overlays || draft?.optionsData || {};
   const caption = draft?.caption || ov.caption || ov.text || "";
@@ -483,47 +53,609 @@ function buildOverlayData(draft) {
   };
 }
 
-function DraftPreviewCard({
-  draft,
-  busy,
-  posting,
-  offline,
-  menuOpen,
-  onToggleMenu,
-  onEdit,
-  onPost,
-  onDuplicate,
-  onDeleteRequest,
-  onRetryFailed,
-  onRetrySync,
-}) {
-  const rootRef = useRef(null);
-  const thumbUrlRef = useRef(null);
-  const mediaUrlRef = useRef(null);
-  const videoRef = useRef(null);
+const downloadBlob = (blob, filename) => {
+  if (!blob) return;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
 
+export default function DraftLibrary() {
+  const open = useMomentDraftStore((s) => s.libraryOpen);
+  const closeLibrary = useMomentDraftStore((s) => s.closeLibrary);
+  const drafts = useMomentDraftStore((s) => s.drafts);
+  const refreshList = useMomentDraftStore((s) => s.refreshList);
+  const restoreDraftIntoStudio = useMomentDraftStore((s) => s.restoreDraftIntoStudio);
+  const postDraftById = useMomentDraftStore((s) => s.postDraftById);
+  const confirmDeleteDraft = useMomentDraftStore((s) => s.confirmDeleteDraft);
+  const duplicateDraft = useMomentDraftStore((s) => s.duplicateDraft);
+  const postingDraftId = useMomentDraftStore((s) => s.postingDraftId);
+  const retrySyncDraft = useMomentDraftStore((s) => s.retrySyncDraft);
+  const syncDraftsNow = useMomentDraftStore((s) => s.syncDraftsNow);
+  const isOffline = useConnectivityStore((s) => s.isOffline);
+  const camera = useAppCamera();
+  const setCameraActive = camera?.setCameraActive;
+
+  const listRef = useRef(null);
+  const scrollRestoreRef = useRef(0);
+  const offlineToastOnce = useRef(false);
+  const cameraPausedRef = useRef(false);
+
+  const [confirmId, setConfirmId] = useState(null);
+  const [menuId, setMenuId] = useState(null);
+  const [busyId, setBusyId] = useState(null);
+  const [syncing, setSyncing] = useState(false);
+  
+  // Features
+  const [searchQuery, setSearchQuery] = useState("");
+  const [mediaFilter, setMediaFilter] = useState("all");
+  const [syncFilter, setSyncFilter] = useState("all");
+  const [sortOrder, setSortOrder] = useState("desc");
+  
+  const [multiSelectMode, setMultiSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  
+  const [previewId, setPreviewId] = useState(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    cameraPausedRef.current = true;
+    try {
+      setCameraActive?.(false);
+      const stream = camera?.streamRef?.current;
+      stream?.getVideoTracks?.()?.forEach((t) => {
+        try {
+          t.enabled = false;
+        } catch {}
+      });
+      const videoEl = camera?.videoRef?.current;
+      if (videoEl) {
+        try {
+          videoEl.pause?.();
+        } catch {}
+      }
+    } catch {}
+
+    const prevOverflow = document.body.style.overflow;
+    const prevTouch = document.body.style.touchAction;
+    document.body.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
+    document.documentElement.classList.add("draft-library-open");
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.body.style.touchAction = prevTouch;
+      document.documentElement.classList.remove("draft-library-open");
+
+      const post = usePostStore.getState();
+      const hasStudioMedia = !!(post.selectedFile || post.preview?.data);
+      if (!hasStudioMedia && cameraPausedRef.current) {
+        try {
+          const stream = camera?.streamRef?.current;
+          stream?.getVideoTracks?.()?.forEach((t) => {
+            try {
+              t.enabled = true;
+            } catch {}
+          });
+          setCameraActive?.(true);
+        } catch {}
+      }
+      cameraPausedRef.current = false;
+    };
+  }, [open, camera, setCameraActive]);
+
+  useEffect(() => {
+    if (!open) {
+      offlineToastOnce.current = false;
+      setMenuId(null);
+      setConfirmId(null);
+      setPreviewId(null);
+      setMultiSelectMode(false);
+      setSelectedIds(new Set());
+      return;
+    }
+    void refreshList();
+    requestAnimationFrame(() => {
+      if (listRef.current && scrollRestoreRef.current > 0) {
+        listRef.current.scrollTop = scrollRestoreRef.current;
+      }
+    });
+    if (isOffline && !offlineToastOnce.current) {
+      offlineToastOnce.current = true;
+      SonnerInfo("Đang ngoại tuyến · Bản nháp vẫn được lưu");
+    }
+  }, [open, refreshList, isOffline, drafts.length]);
+
+  useEffect(() => {
+    if (!menuId) return undefined;
+    const onKey = (e) => {
+      if (e.key === "Escape") setMenuId(null);
+    };
+    const onDown = () => setMenuId(null);
+    window.addEventListener("keydown", onKey);
+    const t = setTimeout(() => window.addEventListener("click", onDown), 0);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("click", onDown);
+    };
+  }, [menuId]);
+
+  const processedDrafts = useMemo(() => {
+    let result = [...drafts];
+    
+    // Search
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(d => {
+        const text = d.caption || d.overlays?.caption || d.overlays?.text || "";
+        return text.toLowerCase().includes(q);
+      });
+    }
+    
+    // Media Filter
+    if (mediaFilter === "image") {
+      result = result.filter(d => d.mediaType !== "video");
+    } else if (mediaFilter === "video") {
+      result = result.filter(d => d.mediaType === "video");
+    }
+    
+    // Sync Filter
+    if (syncFilter === "synced") {
+      result = result.filter(d => d.syncStatus === SYNC_STATUS.SYNCED);
+    } else if (syncFilter === "local") {
+      result = result.filter(d => d.syncStatus === SYNC_STATUS.PENDING_SYNC || !d.syncStatus);
+    } else if (syncFilter === "error") {
+      result = result.filter(d => d.syncStatus === SYNC_STATUS.SYNC_FAILED || d.syncStatus === SYNC_STATUS.CONFLICT);
+    }
+    
+    // Sort
+    result.sort((a, b) => {
+      const ta = a.createdAt || a.updatedAt || 0;
+      const tb = b.createdAt || b.updatedAt || 0;
+      return sortOrder === "desc" ? tb - ta : ta - tb;
+    });
+    
+    return result;
+  }, [drafts, searchQuery, mediaFilter, syncFilter, sortOrder]);
+
+  const saveScroll = () => {
+    if (listRef.current) {
+      scrollRestoreRef.current = listRef.current.scrollTop;
+    }
+  };
+
+  const onEdit = async (id) => {
+    setMenuId(null);
+    setPreviewId(null);
+    saveScroll();
+    setBusyId(id);
+    try {
+      await restoreDraftIntoStudio(id);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const onPost = async (id) => {
+    setMenuId(null);
+    setPreviewId(null);
+    if (postingDraftId || isOffline) return;
+    saveScroll();
+    setBusyId(id);
+    try {
+      await postDraftById(id);
+    } finally {
+      setBusyId(null);
+    }
+  };
+  
+  const onDownload = async (id) => {
+    setMenuId(null);
+    setBusyId(id);
+    try {
+      const draft = drafts.find(d => d.id === id);
+      if (!draft) return;
+      let blob = await getDraftMediaBlob(id);
+      if (!blob && !isOffline) {
+        await ensureLocalMedia(id);
+        blob = await getDraftMediaBlob(id);
+      }
+      if (blob) {
+        const ext = draft.mediaType === "video" ? "mp4" : "jpg";
+        downloadBlob(blob, `draft_${id}.${ext}`);
+        SonnerSuccess("Đã lưu vào thiết bị");
+      } else {
+        SonnerError("Không thể tải file gốc");
+      }
+    } catch {
+      SonnerError("Lỗi tải xuống");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const onDelete = async (id) => {
+    setBusyId(id);
+    try {
+      await confirmDeleteDraft(id);
+      setConfirmId(null);
+      setMenuId(null);
+      setPreviewId(null);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const toggleSelection = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    setBusyId("bulk");
+    try {
+      for (const id of selectedIds) {
+        await confirmDeleteDraft(id);
+      }
+      setSelectedIds(new Set());
+      setMultiSelectMode(false);
+      setConfirmId(null);
+    } finally {
+      setBusyId(null);
+    }
+  };
+  
+  const handleBulkSync = async () => {
+    if (selectedIds.size === 0 || isOffline) return;
+    setBusyId("bulk");
+    try {
+      for (const id of selectedIds) {
+        const d = drafts.find(x => x.id === id);
+        if (d && (d.syncStatus === SYNC_STATUS.SYNC_FAILED || d.syncStatus === SYNC_STATUS.CONFLICT || !d.syncStatus)) {
+           await retrySyncDraft?.(id);
+        }
+      }
+      setMultiSelectMode(false);
+      setSelectedIds(new Set());
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  if (!open) return null;
+
+  const shell = (
+    <div
+      className="draft-library-root fixed inset-0 z-[320] flex flex-col text-base-content bg-base-100 isolate"
+      role="dialog"
+      aria-modal="true"
+    >
+      <header
+        className="relative z-10 flex flex-col gap-2 px-4 py-3 border-b border-base-300 shrink-0 bg-base-100/95 backdrop-blur"
+        style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
+      >
+        <div className="flex items-center justify-between">
+          <div className="min-w-0">
+            <h2 className="text-xl font-bold truncate tracking-tight">Thư viện bản nháp</h2>
+            <p className="text-xs font-medium opacity-60">
+              {drafts.length} bản nháp {isOffline ? " · Ngoại tuyến" : ""}
+            </p>
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            {!isOffline && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm gap-1 text-primary hidden sm:flex"
+                disabled={syncing}
+                onClick={() => {
+                  setSyncing(true);
+                  syncDraftsNow?.().finally(() => setSyncing(false));
+                }}
+              >
+                <RefreshCw size={14} className={syncing ? "animate-spin" : ""} />
+                Đồng bộ
+              </button>
+            )}
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm btn-circle bg-base-200 ml-2"
+              onClick={() => closeLibrary()}
+            >
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+
+        {/* Toolbar */}
+        <div className="flex items-center gap-2 mt-1 overflow-x-auto no-scrollbar pb-1">
+          <div className="relative flex-1 min-w-[140px] max-w-sm">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 opacity-50" />
+            <input 
+              type="text" 
+              placeholder="Tìm caption..." 
+              className="input input-sm w-full bg-base-200 rounded-full pl-8 pr-3 text-sm focus:outline-none border-transparent focus:border-base-300"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          
+          <select 
+            className="select select-sm bg-base-200 rounded-full border-transparent focus:border-base-300 text-sm focus:outline-none px-3 font-medium"
+            value={mediaFilter}
+            onChange={(e) => setMediaFilter(e.target.value)}
+          >
+            <option value="all">Tất cả</option>
+            <option value="image">Chỉ ảnh</option>
+            <option value="video">Chỉ video</option>
+          </select>
+          
+          <select 
+            className="select select-sm bg-base-200 rounded-full border-transparent focus:border-base-300 text-sm focus:outline-none px-3 font-medium"
+            value={syncFilter}
+            onChange={(e) => setSyncFilter(e.target.value)}
+          >
+            <option value="all">Mọi trạng thái</option>
+            <option value="synced">Đã đồng bộ</option>
+            <option value="local">Chưa đồng bộ</option>
+            <option value="error">Lỗi đồng bộ</option>
+          </select>
+
+          <select 
+            className="select select-sm bg-base-200 rounded-full border-transparent focus:border-base-300 text-sm focus:outline-none px-3 font-medium"
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value)}
+          >
+            <option value="desc">Mới nhất</option>
+            <option value="asc">Cũ nhất</option>
+          </select>
+          
+          <button 
+            type="button"
+            className={`btn btn-sm rounded-full border-0 font-medium whitespace-nowrap px-4 transition-colors ${multiSelectMode ? 'bg-primary text-primary-content hover:bg-primary/90' : 'bg-base-200 hover:bg-base-300'}`}
+            onClick={() => {
+              setMultiSelectMode(!multiSelectMode);
+              if (multiSelectMode) setSelectedIds(new Set());
+            }}
+          >
+            {multiSelectMode ? "Hủy chọn" : "Chọn nhiều"}
+          </button>
+        </div>
+      </header>
+
+      <div
+        ref={listRef}
+        className="relative z-10 flex-1 overflow-y-auto overscroll-contain px-4 py-4 bg-base-100/50"
+        style={{ paddingBottom: multiSelectMode ? "calc(5rem + env(safe-area-inset-bottom))" : "max(2.5rem, env(safe-area-inset-bottom))" }}
+      >
+        {!processedDrafts.length ? (
+          <div className="flex flex-col items-center justify-center text-center py-20 px-6 gap-3 min-h-[50vh]">
+            <div className="w-16 h-16 rounded-full bg-base-200 flex items-center justify-center opacity-80 mb-2">
+              <ImageIcon size={28} />
+            </div>
+            <p className="text-base font-semibold">Không tìm thấy bản nháp</p>
+            <p className="text-sm opacity-60">Hãy thử thay đổi bộ lọc hoặc chụp ảnh mới.</p>
+          </div>
+        ) : (
+          <ul className="draft-library-grid">
+            {processedDrafts.map((d) => (
+              <DraftPreviewCard
+                key={d.id}
+                draft={d}
+                busy={busyId === d.id || busyId === "bulk" || postingDraftId === d.id}
+                posting={postingDraftId === d.id}
+                offline={isOffline}
+                menuOpen={menuId === d.id}
+                onToggleMenu={(e) => {
+                  e?.stopPropagation?.();
+                  if (multiSelectMode) return;
+                  setMenuId((cur) => (cur === d.id ? null : d.id));
+                }}
+                onPreview={() => {
+                  if (multiSelectMode) toggleSelection(d.id);
+                  else setPreviewId(d.id);
+                }}
+                onEdit={() => onEdit(d.id)}
+                onPost={() => onPost(d.id)}
+                onDownload={() => onDownload(d.id)}
+                onDeleteRequest={() => {
+                  setMenuId(null);
+                  setConfirmId(d.id);
+                }}
+                onRetrySync={() => {
+                  if (isOffline) return;
+                  void retrySyncDraft?.(d.id);
+                }}
+                selectable={multiSelectMode}
+                selected={selectedIds.has(d.id)}
+              />
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Multi-select bottom bar */}
+      {multiSelectMode && (
+        <div className="absolute bottom-0 inset-x-0 z-40 bg-base-100 border-t border-base-300 p-3 flex items-center justify-between shadow-[0_-10px_30px_rgba(0,0,0,0.05)]"
+             style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
+          <span className="text-sm font-bold pl-2">{selectedIds.size} mục đã chọn</span>
+          <div className="flex gap-2">
+            {!isOffline && (
+              <button 
+                className="btn btn-ghost btn-sm rounded-xl font-semibold gap-1 text-primary"
+                disabled={selectedIds.size === 0 || busyId === "bulk"}
+                onClick={handleBulkSync}
+              >
+                Đồng bộ
+              </button>
+            )}
+            <button 
+              className="btn btn-error btn-sm rounded-xl font-semibold gap-1"
+              disabled={selectedIds.size === 0 || busyId === "bulk"}
+              onClick={() => setConfirmId("bulk")}
+            >
+              <Trash2 size={14} /> Xóa
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Preview Modal */}
+      {previewId && (
+        <PreviewModal 
+          draft={drafts.find(d => d.id === previewId)}
+          onClose={() => setPreviewId(null)}
+          onEdit={() => onEdit(previewId)}
+          onPost={() => onPost(previewId)}
+          onDownload={() => onDownload(previewId)}
+          onDelete={() => { setPreviewId(null); setConfirmId(previewId); }}
+          busy={busyId === previewId || postingDraftId === previewId}
+          offline={isOffline}
+        />
+      )}
+
+      {/* Confirm Delete Modal */}
+      {confirmId && (
+        <div className="absolute inset-0 z-[400] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-[24px] p-6 shadow-2xl border border-base-300 bg-base-100 scale-in">
+            <h3 className="text-lg font-bold mb-2">
+              {confirmId === "bulk" ? `Xóa ${selectedIds.size} bản nháp?` : "Xóa bản nháp này?"}
+            </h3>
+            <p className="text-sm opacity-75 mb-6 leading-relaxed">
+              Dữ liệu chưa đăng sẽ bị xóa vĩnh viễn và không thể khôi phục.
+            </p>
+            <div className="flex flex-col gap-2 w-full">
+              <button
+                type="button"
+                className="btn btn-error w-full rounded-2xl font-bold"
+                disabled={busyId}
+                onClick={() => confirmId === "bulk" ? handleBulkDelete() : onDelete(confirmId)}
+              >
+                Xóa vĩnh viễn
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost bg-base-200 w-full rounded-2xl font-bold"
+                onClick={() => setConfirmId(null)}
+              >
+                Giữ lại
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  if (typeof document !== "undefined" && document.body) {
+    return createPortal(
+      <>
+        <DraftLibraryStyles />
+        {shell}
+      </>,
+      document.body,
+    );
+  }
+  return <><DraftLibraryStyles />{shell}</>;
+}
+
+// --- STYLES ---
+const _draftStylesInserted = { current: false };
+function DraftLibraryStyles() {
+  useEffect(() => {
+    if (_draftStylesInserted.current) return undefined;
+    _draftStylesInserted.current = true;
+    const style = document.createElement("style");
+    style.setAttribute("data-draft-library", "scoped");
+    style.textContent = `
+      .draft-library-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        width: 100%;
+        max-width: 1400px;
+        margin: 0 auto;
+        list-style: none;
+        padding: 0;
+      }
+      @media (min-width: 768px) {
+        .draft-library-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+      }
+      @media (min-width: 1024px) {
+        .draft-library-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
+      }
+      @media (min-width: 1280px) {
+        .draft-library-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+      }
+      @media (min-width: 1536px) {
+        .draft-library-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+      }
+      
+      .draft-card-inner {
+        transform: scale(1);
+        transition: transform 0.16s cubic-bezier(0.2, 0, 0, 1);
+      }
+      @media (hover: hover) {
+        .draft-card-inner:hover {
+          transform: scale(0.98);
+        }
+      }
+      
+      @keyframes draft-skeleton-pulse {
+        0%, 100% { opacity: 0.5; }
+        50% { opacity: 0.2; }
+      }
+      .draft-thumb-skeleton {
+        animation: draft-skeleton-pulse 1.5s ease-in-out infinite;
+        background: var(--fallback-b3,oklch(var(--b3)/1));
+      }
+      .scale-in {
+        animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+      @keyframes scaleIn {
+        from { opacity: 0; transform: scale(0.95) translateY(10px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
+      }
+      
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      _draftStylesInserted.current = false;
+      style.remove();
+    };
+  }, []);
+  return null;
+}
+
+// --- DRAFT CARD ---
+function DraftPreviewCard({
+  draft, busy, posting, offline, menuOpen, onToggleMenu, onPreview,
+  onEdit, onPost, onDownload, onDeleteRequest, onRetrySync, selectable, selected
+}) {
+  const thumbUrlRef = useRef(null);
   const [thumbUrl, setThumbUrl] = useState(null);
-  const [mediaUrl, setMediaUrl] = useState(null);
-  const [nearView, setNearView] = useState(false);
-  const [playing, setPlaying] = useState(false);
-  // "loading" | "loaded" | "error"
   const [thumbLoadState, setThumbLoadState] = useState("loading");
 
   const isVideo = draft.mediaType === "video";
-  const failed = draft.status === DRAFT_STATUS.FAILED;
-  const syncFailed =
-    draft.syncStatus === SYNC_STATUS.SYNC_FAILED ||
-    draft.syncStatus === SYNC_STATUS.CONFLICT;
-  const statusLine = formatDraftStatusLine(draft);
+  const syncFailed = draft.syncStatus === SYNC_STATUS.SYNC_FAILED || draft.syncStatus === SYNC_STATUS.CONFLICT;
+  const isLocal = draft.syncStatus === SYNC_STATUS.PENDING_SYNC || !draft.syncStatus;
+  
   const overlayData = useMemo(() => buildOverlayData(draft), [draft]);
-  const editedHint =
-    draft.updatedAt &&
-    draft.createdAt &&
-    draft.updatedAt - draft.createdAt > 60_000
-      ? `Đã sửa · ${formatDraftCreatedAt(draft.updatedAt)}`
-      : null;
+  const captionText = overlayData.caption || "";
 
-  // Thumbnail ASAP — local IDB, rồi tải từ tài khoản (thiết bị khác / URL ký hết hạn)
   useEffect(() => {
     let cancelled = false;
     setThumbLoadState("loading");
@@ -533,9 +665,7 @@ function DraftPreviewCard({
         try {
           const r = await ensureLocalThumbnail(draft.id);
           blob = r?.blob || (await getDraftThumbnailBlob(draft.id));
-        } catch {
-          /* network */
-        }
+        } catch {}
       }
       if (cancelled) return;
       if (!blob) {
@@ -543,11 +673,7 @@ function DraftPreviewCard({
         return;
       }
       if (thumbUrlRef.current) {
-        try {
-          URL.revokeObjectURL(thumbUrlRef.current);
-        } catch {
-          /* ignore */
-        }
+        try { URL.revokeObjectURL(thumbUrlRef.current); } catch {}
       }
       const u = URL.createObjectURL(blob);
       thumbUrlRef.current = u;
@@ -557,297 +683,185 @@ function DraftPreviewCard({
     return () => {
       cancelled = true;
       if (thumbUrlRef.current) {
-        try {
-          URL.revokeObjectURL(thumbUrlRef.current);
-        } catch {
-          /* ignore */
-        }
+        try { URL.revokeObjectURL(thumbUrlRef.current); } catch {}
         thumbUrlRef.current = null;
       }
     };
   }, [draft.id, offline]);
 
-  // Near-viewport → load full media blob (pull from cloud if shell-only)
-  useEffect(() => {
-    const el = rootRef.current;
-    if (!el || typeof IntersectionObserver === "undefined") {
-      setNearView(true);
-      return undefined;
-    }
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((e) => e.isIntersecting)) {
-          setNearView(true);
-        }
-      },
-      { root: null, rootMargin: "240px 0px", threshold: 0.01 },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
+  return (
+    <li className="list-none group outline-none select-none" tabIndex={0}>
+      <div className="relative draft-card-inner h-full flex flex-col">
+        
+        {/* Aspect Ratio Container (3:4) */}
+        <div 
+          role="button"
+          className={`relative aspect-[3/4] w-full overflow-hidden rounded-2xl bg-base-200 shadow-sm cursor-pointer border-2 transition-colors ${selected ? 'border-primary shadow-primary/20' : 'border-transparent'}`}
+          onClick={onPreview}
+        >
+          {/* Checkbox (Multi-select) */}
+          {selectable && (
+            <div className="absolute top-2 left-2 z-30 drop-shadow-md bg-black/10 rounded-full">
+              {selected ? <CheckCircle2 className="text-primary fill-base-100" size={24} /> : <Circle className="text-white/90" size={24} />}
+            </div>
+          )}
 
+          {/* Menu Button (Single select) */}
+          {!selectable && (
+            <div className="absolute top-2 right-2 z-30 drop-shadow-md">
+              <button
+                type="button"
+                className="btn btn-circle btn-xs bg-black/40 border-0 text-white hover:bg-black/70 backdrop-blur-sm transition-colors"
+                onClick={onToggleMenu}
+                disabled={busy}
+              >
+                <MoreVertical size={16} />
+              </button>
+              {menuOpen && (
+                <div
+                  className="absolute right-0 mt-1 w-48 rounded-2xl bg-base-100/95 backdrop-blur-xl shadow-xl border border-base-300 overflow-hidden z-40 text-base-content font-semibold py-1 scale-in"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <button className="w-full text-left px-4 py-2.5 text-[13px] hover:bg-base-200 transition-colors" disabled={busy} onClick={onEdit}>Tiếp tục chỉnh sửa</button>
+                  <button className="w-full text-left px-4 py-2.5 text-[13px] hover:bg-base-200 transition-colors disabled:opacity-50" disabled={busy || posting || offline} onClick={onPost}>{posting ? "Đang đăng..." : "Đăng ngay"}</button>
+                  <button className="w-full text-left px-4 py-2.5 text-[13px] hover:bg-base-200 transition-colors" disabled={busy} onClick={onDownload}>Tải xuống</button>
+                  {(syncFailed || isLocal) && (
+                    <button className="w-full text-left px-4 py-2.5 text-[13px] hover:bg-base-200 transition-colors disabled:opacity-50" disabled={busy || offline} onClick={onRetrySync}>Thử đồng bộ lại</button>
+                  )}
+                  <div className="my-1 border-t border-base-300/50"></div>
+                  <button className="w-full text-left px-4 py-2.5 text-[13px] text-error hover:bg-error/10 transition-colors" disabled={busy || posting} onClick={onDeleteRequest}>Xóa bản nháp</button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Media Thumbnail */}
+          {thumbUrl ? (
+            <img src={thumbUrl} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
+          ) : thumbLoadState === "loading" ? (
+            <div className="absolute inset-0 draft-thumb-skeleton" />
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-base-content/40 bg-base-300/50">
+              {isVideo ? <Video size={36} className="opacity-30 mb-2" /> : <ImageIcon size={36} className="opacity-30 mb-2" />}
+              <span className="text-xs font-semibold">Chưa có ảnh</span>
+            </div>
+          )}
+
+          {/* Video Indicator */}
+          {isVideo && (
+            <div className="absolute top-2 right-2 z-20 bg-black/40 rounded-full p-1.5 backdrop-blur-sm shadow-sm" style={{ display: selectable ? 'block' : (menuOpen ? 'none' : 'block') }}>
+              <Video size={14} className="text-white" />
+            </div>
+          )}
+          
+          {/* Sync Status Badge */}
+          <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none z-10" />
+          <div className="absolute bottom-2.5 inset-x-3 z-20 flex flex-col gap-1 pointer-events-none text-white drop-shadow-md">
+            {captionText && <p className="text-[13px] font-bold truncate leading-tight">{captionText}</p>}
+            <div className="flex items-center gap-1.5 text-[11px] font-medium opacity-90">
+              <span className="truncate">{formatDraftCreatedAt(draft.createdAt || draft.updatedAt)}</span>
+              {syncFailed && <AlertTriangle size={12} className="text-error drop-shadow-md" />}
+              {!syncFailed && isLocal && <RefreshCw size={10} className="opacity-70" />}
+            </div>
+          </div>
+
+          {posting && (
+            <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center gap-3 text-white">
+              <span className="loading loading-spinner loading-md" />
+              <span className="text-xs font-bold tracking-wide">Đang đăng...</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </li>
+  );
+}
+
+// --- PREVIEW MODAL ---
+function PreviewModal({ draft, onClose, onEdit, onPost, onDownload, onDelete, busy, offline }) {
+  const [mediaUrl, setMediaUrl] = useState(null);
+  const [thumbUrl, setThumbUrl] = useState(null);
+  const [loadingMedia, setLoadingMedia] = useState(true);
+  
+  const isVideo = draft.mediaType === "video";
+  const overlayData = useMemo(() => buildOverlayData(draft), [draft]);
+  
   useEffect(() => {
-    if (!nearView) return undefined;
     let cancelled = false;
     (async () => {
+      const thumb = await getDraftThumbnailBlob(draft.id);
+      if (thumb && !cancelled) setThumbUrl(URL.createObjectURL(thumb));
+      
       let blob = await getDraftMediaBlob(draft.id);
       if (!blob && !offline) {
         try {
           await ensureLocalMedia(draft.id);
           blob = await getDraftMediaBlob(draft.id);
-          // refresh thumb if it filled during media download
-          if (!thumbUrlRef.current) {
-            const t = await getDraftThumbnailBlob(draft.id);
-            if (t && !cancelled) {
-              const u = URL.createObjectURL(t);
-              thumbUrlRef.current = u;
-              setThumbUrl(u);
-            }
-          }
-        } catch {
-          /* network */
-        }
+        } catch {}
       }
-      if (cancelled || !blob) return;
-      if (mediaUrlRef.current) {
-        try {
-          URL.revokeObjectURL(mediaUrlRef.current);
-        } catch {
-          /* ignore */
-        }
+      if (cancelled) return;
+      if (blob) {
+        setMediaUrl(URL.createObjectURL(blob));
       }
-      const u = URL.createObjectURL(blob);
-      mediaUrlRef.current = u;
-      setMediaUrl(u);
+      setLoadingMedia(false);
     })();
     return () => {
       cancelled = true;
-      if (mediaUrlRef.current) {
-        try {
-          URL.revokeObjectURL(mediaUrlRef.current);
-        } catch {
-          /* ignore */
-        }
-        mediaUrlRef.current = null;
-      }
-      setMediaUrl(null);
-      setPlaying(false);
+      if (mediaUrl) URL.revokeObjectURL(mediaUrl);
+      if (thumbUrl) URL.revokeObjectURL(thumbUrl);
     };
-  }, [nearView, draft.id, offline]);
-
-  const togglePlay = useCallback(
-    (e) => {
-      e?.stopPropagation?.();
-      const v = videoRef.current;
-      if (!v || !mediaUrl) return;
-      if (v.paused) {
-        v.muted = true;
-        void v.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
-      } else {
-        v.pause();
-        setPlaying(false);
-      }
-    },
-    [mediaUrl],
-  );
+  }, [draft.id, offline]);
 
   return (
-    <li ref={rootRef} className="list-none">
-      <div className="relative">
-        {/* ⋮ menu */}
-        <div className="absolute top-3 right-3 z-30">
-          <button
-            type="button"
-            className="btn btn-circle btn-sm bg-black/45 border-0 text-white hover:bg-black/60"
-            aria-label="Thao tác bản nháp"
-            disabled={busy}
-            onClick={onToggleMenu}
-          >
-            <MoreVertical size={18} />
+    <div className="fixed inset-0 z-[350] bg-black/95 flex flex-col scale-in backdrop-blur-xl">
+      <header className="absolute top-0 inset-x-0 z-50 flex items-center justify-between p-4" style={{ paddingTop: "max(1rem, env(safe-area-inset-top))" }}>
+        <button className="btn btn-circle btn-sm bg-white/20 hover:bg-white/30 text-white border-0 transition-colors" onClick={onClose}><X size={20} /></button>
+        <div className="flex items-center gap-3">
+          <span className="text-white/90 text-sm font-semibold tracking-wide drop-shadow-md">
+            {formatDraftCreatedAt(draft.createdAt || draft.updatedAt)}
+          </span>
+          <button className="btn btn-circle btn-sm bg-white/20 hover:bg-white/30 text-white border-0 transition-colors" onClick={onDownload} disabled={busy} title="Tải xuống">
+            <Download size={16} />
           </button>
-          {menuOpen && (
-            <div
-              className="absolute right-0 mt-1 w-44 rounded-xl bg-base-100 border border-base-300 shadow-xl overflow-hidden z-40"
-              onClick={(e) => e.stopPropagation()}
-              role="menu"
-            >
-              <button
-                type="button"
-                className="w-full text-left px-3 py-2.5 text-sm hover:bg-base-200"
-                disabled={busy}
-                onClick={onEdit}
-              >
-                Chỉnh sửa
-              </button>
-              <button
-                type="button"
-                className="w-full text-left px-3 py-2.5 text-sm hover:bg-base-200 disabled:opacity-40"
-                disabled={busy || posting || offline}
-                title={offline ? "Cần kết nối mạng" : undefined}
-                onClick={onPost}
-              >
-                {offline
-                  ? "Đăng ngay (Cần kết nối mạng)"
-                  : posting
-                    ? "Đang đăng…"
-                    : "Đăng ngay"}
-              </button>
-              <button
-                type="button"
-                className="w-full text-left px-3 py-2.5 text-sm hover:bg-base-200"
-                disabled={busy}
-                onClick={onDuplicate}
-              >
-                Nhân bản
-              </button>
-              {(syncFailed ||
-                draft.syncStatus === SYNC_STATUS.PENDING_SYNC ||
-                !draft.syncStatus) && (
-                <button
-                  type="button"
-                  className="w-full text-left px-3 py-2.5 text-sm hover:bg-base-200 disabled:opacity-40"
-                  disabled={busy || offline}
-                  onClick={onRetrySync}
-                >
-                  Thử đồng bộ lại
-                </button>
-              )}
-              <button
-                type="button"
-                className="w-full text-left px-3 py-2.5 text-sm text-error hover:bg-base-200"
-                disabled={busy || posting}
-                onClick={onDeleteRequest}
-              >
-                Xóa
-              </button>
-            </div>
-          )}
         </div>
-
-        {/* Large square preview — tap opens editor (not post/delete) */}
-        <div
-          role="button"
-          tabIndex={0}
-          aria-label="Chỉnh sửa bản nháp"
-          aria-disabled={busy || undefined}
-          onClick={() => {
-            if (!busy) onEdit();
-          }}
-          onKeyDown={(e) => {
-            if (busy) return;
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              onEdit();
-            }
-          }}
-          className="draft-library-card w-full text-left border border-base-300 rounded-2xl overflow-hidden shadow-md cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-        >
-          {/* Nền đặc — không trong suốt xuyên camera */}
-          <div className="relative aspect-square w-full overflow-hidden draft-library-card">
-            {/* Thumbnail always under */}
-            {thumbUrl ? (
-              <img
-                src={thumbUrl}
-                alt=""
-                loading="lazy"
-                decoding="async"
-                className={`absolute inset-0 w-full h-full object-cover transition-opacity ${
-                  mediaUrl && !isVideo ? "opacity-0" : "opacity-100"
-                }`}
-              />
-            ) : thumbLoadState === "loading" ? (
-              <div className="absolute inset-0 draft-thumb-skeleton" />
-            ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-base-content/40 bg-base-200">
-                <AlertTriangle size={32} className="opacity-50" />
-                <span className="text-xs text-center px-3 leading-relaxed">
-                  Không thể tải bản nháp
-                </span>
+      </header>
+      
+      <div className="flex-1 w-full h-full flex items-center justify-center relative overflow-hidden px-2 pb-24">
+        {mediaUrl ? (
+          isVideo ? (
+            <video src={mediaUrl} poster={thumbUrl} autoPlay loop playsInline className="w-full max-h-[85vh] object-contain rounded-3xl" />
+          ) : (
+            <img src={mediaUrl} alt="" className="w-full max-h-[85vh] object-contain rounded-3xl" />
+          )
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            {loadingMedia ? (
+              <div className="flex flex-col items-center gap-3 text-white/70">
+                <span className="loading loading-spinner loading-lg" />
+                <span className="text-sm font-medium">Đang tải bản nháp gốc...</span>
               </div>
-            )}
-
-            {/* Image full media when ready */}
-            {!isVideo && mediaUrl ? (
-              <img
-                src={mediaUrl}
-                alt=""
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-            ) : null}
-
-            {/* Video: poster + play (muted); no autoplay of every card */}
-            {isVideo && mediaUrl ? (
-              <>
-                <video
-                  ref={videoRef}
-                  src={mediaUrl}
-                  poster={thumbUrl || undefined}
-                  className={`absolute inset-0 w-full h-full object-cover ${
-                    playing ? "opacity-100" : "opacity-0"
-                  }`}
-                  muted
-                  playsInline
-                  loop
-                  preload="metadata"
-                  onPause={() => setPlaying(false)}
-                  onPlay={() => setPlaying(true)}
-                />
-                {!playing && (
-                  <button
-                    type="button"
-                    className="absolute inset-0 z-10 flex items-center justify-center"
-                    aria-label="Phát video"
-                    onClick={togglePlay}
-                  >
-                    <span className="w-14 h-14 rounded-full bg-black/50 flex items-center justify-center text-white">
-                      <Play size={28} fill="currentColor" />
-                    </span>
-                  </button>
-                )}
-              </>
-            ) : null}
-
-            {/* Caption / music / decorative — same renderer as feed */}
-            <div className="pointer-events-none absolute inset-0 flex items-end justify-center pb-2">
-              <OverlayRenderer
-                overlayData={overlayData}
-                momentId={`draft-${draft.id}`}
-              />
-            </div>
-
-            {posting && (
-              <div className="absolute inset-0 z-20 bg-black/35 flex items-center justify-center">
-                <span className="loading loading-spinner loading-md text-white" />
+            ) : (
+              <div className="flex flex-col items-center gap-3 text-white/50">
+                <AlertTriangle size={48} className="opacity-50" />
+                <span className="text-sm font-medium">Không thể tải file gốc</span>
               </div>
             )}
           </div>
-        </div>
-
-        <div className="px-1 pt-2">
-          <button
-            type="button"
-            className={`text-sm text-left w-full ${
-              failed ? "text-error font-medium" : "opacity-70"
-            }`}
-            disabled={busy || (failed && offline)}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (failed && !offline) onRetryFailed();
-              else onEdit();
-            }}
-          >
-            {statusLine}
-          </button>
-          {editedHint ? (
-            <p className="text-[11px] opacity-45 mt-0.5">{editedHint}</p>
-          ) : null}
-          {offline ? (
-            <p className="text-[11px] opacity-50 mt-0.5">
-              Cần kết nối mạng để đăng
-            </p>
-          ) : null}
+        )}
+        
+        {/* Caption layer */}
+        <div className="absolute inset-0 pointer-events-none flex items-end justify-center pb-28">
+          <div className="scale-90 origin-bottom">
+            <OverlayRenderer overlayData={overlayData} momentId={`preview-${draft.id}`} />
+          </div>
         </div>
       </div>
-    </li>
+      
+      <footer className="absolute bottom-0 inset-x-0 z-50 p-4 bg-gradient-to-t from-black/80 to-transparent flex items-center justify-center gap-3" style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
+        <button className="btn bg-white/10 hover:bg-white/20 text-white rounded-3xl flex-1 border-0 h-14 font-semibold text-base transition-colors" onClick={onDelete} disabled={busy}><Trash2 size={20} /> Xóa</button>
+        <button className="btn bg-base-100 hover:bg-base-200 text-base-content rounded-3xl flex-1 border-0 h-14 font-bold text-base transition-colors shadow-xl" onClick={onEdit} disabled={busy}>Tiếp tục chỉnh</button>
+        <button className="btn btn-primary text-primary-content rounded-3xl flex-1 border-0 h-14 font-bold text-base shadow-xl shadow-primary/30" onClick={onPost} disabled={busy || offline}>{offline ? "Ngoại tuyến" : "Đăng ngay"}</button>
+      </footer>
+    </div>
   );
 }
