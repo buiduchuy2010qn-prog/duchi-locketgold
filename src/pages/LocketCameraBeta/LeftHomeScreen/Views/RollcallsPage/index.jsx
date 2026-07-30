@@ -162,8 +162,7 @@ function RollcallsPost({ active, posts, setPosts, isProfileOpen }) {
         if (list && list.length > 0) {
           setPosts(list);
           setStatus("success");
-        } else if (list && list.length === 0 && posts.length === 0) {
-          // If no posts in cache and network returns empty
+        } else {
           setPosts([]);
           setStatus("empty");
         }
@@ -171,10 +170,12 @@ function RollcallsPost({ active, posts, setPosts, isProfileOpen }) {
     } catch (err) {
       if (controller.signal.aborted || !mountedRef.current) return;
       console.error("Failed to load rollcall posts:", err);
-      // Only show error if we don't have cached posts to display
-      if (posts.length === 0) {
-        setStatus("error");
-      }
+      setPosts((currentPosts) => {
+        if (currentPosts.length === 0) {
+          setStatus("error");
+        }
+        return currentPosts;
+      });
     }
   }, [selectedWeek, selectedYear, setPosts, posts.length]);
 
