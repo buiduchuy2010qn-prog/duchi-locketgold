@@ -1,7 +1,7 @@
 import { instanceLocketV2 } from "@/libs";
 import { getISOWeek } from "@/utils";
 
-export const getRollcallPosts = async ({ selectWeek, selectYear }) => {
+export const getRollcallPosts = async ({ selectWeek, selectYear, signal }) => {
   const { year, week } = getISOWeek();
   const t0 = typeof performance !== "undefined" ? performance.now() : Date.now();
   try {
@@ -18,7 +18,7 @@ export const getRollcallPosts = async ({ selectWeek, selectYear }) => {
         },
       },
     };
-    const res = await instanceLocketV2.post("getRollcallPosts", body);
+    const res = await instanceLocketV2.post("getRollcallPosts", body, { signal });
     const moments = res.data?.result?.data?.posts;
     const ms = Math.round(
       (typeof performance !== "undefined" ? performance.now() : Date.now()) - t0
@@ -39,12 +39,13 @@ export const getRollcallPosts = async ({ selectWeek, selectYear }) => {
     );
     console.info("[rollcall:net]", {
       type: "getRollcallPosts_api",
-      status: err?.response?.status || "error",
+      status: err?.response?.status || (err?.name === "CanceledError" ? "abort" : "error"),
       ms,
       week: selectWeek || week,
       year: selectYear || year,
     });
-    console.warn("❌ Failed", err);
+    // Re-throw to let the caller handle it (e.g. for retries or abort checks)
+    throw err;
   }
 };
 

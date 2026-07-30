@@ -17,7 +17,9 @@ function RollcallsPost({ active, posts, setPosts, isProfileOpen }) {
   const [selectedWeek, setSelectedWeek] = useState(currentWeek);
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [visibleCount, setVisibleCount] = useState(5);
-  const [loading, setLoading] = useState(false);
+  // Status: 'loading' | 'success' | 'empty' | 'error'
+  const [status, setStatus] = useState("loading");
+  
   const abortRef = useRef(null);
   const mountedRef = useRef(true);
 
@@ -39,13 +41,7 @@ function RollcallsPost({ active, posts, setPosts, isProfileOpen }) {
     setVisibleCount(2);
   }, [selectedWeek, selectedYear, isProfileOpen]);
 
-  /**
-   * Stale-while-revalidate:
-   * 1) paint cache immediately (cards + author frames)
-   * 2) refresh list in background (deduped, abortable)
-   * Does NOT block UI on per-user friend lookups.
-   */
-  const fetchPosts = useCallback(async () => {
+  const fetchPosts = useCallback(async (isRetry = false) => {
     const week = selectedWeek;
     const year = selectedYear;
     const fetchKey = getListFetchKey(week, year);
@@ -55,105 +51,132 @@ function RollcallsPost({ active, posts, setPosts, isProfileOpen }) {
     const controller = new AbortController();
     abortRef.current = controller;
 
-    // 1) Cache first (or clear if no cache for this week)
-    try {
-      const cached = await getRollcallsByWeek(week, year);
-      if (controller.signal.aborted || !mountedRef.current) return;
-      if (cached?.length) {
-        setPosts(cached);
-        setLoading(false);
-        logRollcallNet({
-          type: "getRollcallPosts",
-          status: "cache",
-          ms: 0,
-          count: cached.length,
-          week,
-          year,
-          fromCache: true,
-        });
-      } else {
-        // Avoid showing previous week's cards while fetching
-        setPosts([]);
-        setLoading(true);
+    // Only clear if not retrying to avoid blinking existing cache
+    if (!isRetry) {
+      try {
+        const cached = await getRollcallsByWeek(week, year);
+        if (controller.signal.aborted || !mountedRef.current) return;
+        if (cached?.length) {
+          setPosts(cached);
+          setStatus("success");
+          logRollcallNet({
+            type: "getRollcallPosts",
+            status: "cache",
+            ms: 0,
+            count: cached.length,
+            week,
+            year,
+            fromCache: true,
+          });
+        } else {
+          setPosts([]);
+          setStatus("loading");
+        }
+      } catch {
+        if (mountedRef.current && !controller.signal.aborted) {
+          setPosts([]);
+          setStatus("loading");
+        }
       }
-    } catch {
-      if (mountedRef.current && !controller.signal.aborted) {
-        setPosts([]);
-        setLoading(true);
-      }
+    } else {
+      setStatus("loading");
     }
 
-    // 2) Network (dedupe concurrent same week)
+    // Network (dedupe concurrent same week)
     const existing = getInflightListFetch(fetchKey);
     const run = existing || setInflightListFetch(
       fetchKey,
       (async () => {
-        const t0 = performance.now();
-        try {
-          const data = await getRollcallPosts({
-            selectWeek: week,
-            selectYear: year,
-          });
-          const ms = Math.round(performance.now() - t0);
-          if (!Array.isArray(data)) {
+        const attemptFetch = async (retryCount = 0) => {
+          const t0 = performance.now();
+          try {
+            const data = await getRollcallPosts({
+              selectWeek: week,
+              selectYear: year,
+              signal: controller.signal,
+            });
+            const ms = Math.round(performance.now() - t0);
+            
+            if (!Array.isArray(data) || data.length === 0) {
+              logRollcallNet({
+                type: "getRollcallPosts",
+                status: "empty",
+                ms,
+                count: 0,
+                week,
+                year,
+                fromCache: false,
+              });
+              return [];
+            }
             logRollcallNet({
               type: "getRollcallPosts",
-              status: "empty",
+              status: 200,
               ms,
-              count: 0,
+              count: data.length,
               week,
               year,
               fromCache: false,
             });
-            // null = keep existing cache / UI; do not wipe
-            return null;
+            // Persist without blocking paint
+            saveRollcalls(data, { week, year }).catch(() => {});
+            return data;
+          } catch (err) {
+            // Re-throw if aborted
+            if (controller.signal.aborted || err?.name === "CanceledError") {
+              throw err;
+            }
+            
+            // Retry logic
+            const code = err?.response?.status;
+            const isRetryable = !code || code === 429 || code >= 500;
+            
+            if (isRetryable && retryCount < 2) {
+              const delay = retryCount === 0 ? 500 : 1500;
+              await new Promise(r => setTimeout(r, delay));
+              if (controller.signal.aborted) throw err;
+              return attemptFetch(retryCount + 1);
+            }
+            
+            logRollcallNet({
+              type: "getRollcallPosts",
+              status: "error",
+              ms: Math.round(performance.now() - t0),
+              week,
+              year,
+              fromCache: false,
+            });
+            throw err;
           }
-          logRollcallNet({
-            type: "getRollcallPosts",
-            status: 200,
-            ms,
-            count: data.length,
-            week,
-            year,
-            fromCache: false,
-          });
-          // Persist without blocking paint
-          saveRollcalls(data, { week, year }).catch(() => {});
-          return data;
-        } catch (err) {
-          logRollcallNet({
-            type: "getRollcallPosts",
-            status: "error",
-            ms: Math.round(performance.now() - t0),
-            week,
-            year,
-            fromCache: false,
-          });
-          throw err;
-        }
+        };
+        
+        return attemptFetch(0);
       })()
     );
 
     try {
       const list = await run;
       if (controller.signal.aborted || !mountedRef.current) return;
-      // Only apply if still viewing this week and network returned data
-      if (
-        list != null &&
-        week === selectedWeek &&
-        year === selectedYear
-      ) {
-        setPosts(list);
+      
+      if (week === selectedWeek && year === selectedYear) {
+        if (list && list.length > 0) {
+          setPosts(list);
+          setStatus("success");
+        } else if (list && list.length === 0 && posts.length === 0) {
+          // If no posts in cache and network returns empty
+          setPosts([]);
+          setStatus("empty");
+        }
       }
     } catch (err) {
       if (controller.signal.aborted || !mountedRef.current) return;
       console.error("Failed to load rollcall posts:", err);
-    } finally {
-      if (!controller.signal.aborted && mountedRef.current) {
-        setLoading(false);
+      // Only show error if we don't have cached posts to display
+      if (posts.length === 0) {
+        setStatus("error");
       }
     }
-  }, [selectedWeek, selectedYear, setPosts]);
+  }, [selectedWeek, selectedYear, setPosts, posts.length]);
 
   // Fetch when week / year changes (and on mount)
   useEffect(() => {
@@ -161,7 +184,7 @@ function RollcallsPost({ active, posts, setPosts, isProfileOpen }) {
     return () => {
       abortRef.current?.abort();
     };
-  }, [fetchPosts]);
+  }, [selectedWeek, selectedYear]); // only re-fetch on date change, rely on stale data
 
   const handleScroll = (e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.target;
@@ -189,8 +212,29 @@ function RollcallsPost({ active, posts, setPosts, isProfileOpen }) {
         Rollcalls – {getWeekRange(selectedWeek, selectedYear)}
       </h2>
 
-      {loading && !posts?.length && (
-        <div className="opacity-60">Loading...</div>
+      {status === "loading" && !posts?.length && (
+        <div className="flex flex-col items-center justify-center p-8 opacity-60">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-base-content mb-4"></div>
+          <div>Đang tải...</div>
+        </div>
+      )}
+
+      {status === "empty" && !posts?.length && (
+        <div className="flex flex-col items-center justify-center p-8 opacity-60">
+          <div>Không có Rollcalls nào trong tuần này.</div>
+        </div>
+      )}
+
+      {status === "error" && !posts?.length && (
+        <div className="flex flex-col items-center justify-center p-8 opacity-60 space-y-3">
+          <div>Tải dữ liệu thất bại.</div>
+          <button 
+            onClick={() => fetchPosts(true)}
+            className="btn btn-sm btn-outline"
+          >
+            Thử lại
+          </button>
+        </div>
       )}
 
       {posts

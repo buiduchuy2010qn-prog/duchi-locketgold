@@ -287,13 +287,13 @@ const RollcallMedia = memo(function RollcallMedia({
           {(timedOut || failed) && (
             <>
               <span className="text-sm opacity-70">
-                {t("left.image_loading")}
+                {t("left.image_load_failed", { defaultValue: "Tải media thất bại" })}
               </span>
               {retryCount < MAX_RETRIES && (
                 <button
                   type="button"
                   onClick={handleRetry}
-                  className="text-sm text-blue-500 px-3 py-1"
+                  className="text-sm text-blue-500 px-3 py-1 bg-blue-500/10 hover:bg-blue-500/20 rounded-lg font-medium transition-colors"
                 >
                   {t("left.retry", { defaultValue: "Thử lại" })}
                 </button>
