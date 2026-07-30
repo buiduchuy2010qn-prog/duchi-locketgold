@@ -12,6 +12,7 @@ export default function MonthCalendar({
   currentRecoverWindow = null,
   pastRecoverWindow = null,
   today = new Date(),
+  onDayClick,
 }) {
   if (!monthKey) return null;
 
@@ -186,6 +187,7 @@ export default function MonthCalendar({
               currentStreak={currentStreak}
               pastStreak={pastStreak}
               showPlusIcon={showPlusIcon}
+              onDayClick={onDayClick}
             />
           );
         })}
@@ -193,3 +195,4 @@ export default function MonthCalendar({
     </div>
   );
 }
+

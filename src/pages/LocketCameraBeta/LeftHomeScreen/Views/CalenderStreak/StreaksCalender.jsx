@@ -1,6 +1,7 @@
-import React, { useMemo, useRef, useEffect } from "react";
+import React, { useMemo, useRef, useEffect, useState } from "react";
 import { useStreakStore } from "@/stores";
 import MonthCalendar from "./MonthCalendar";
+import DayViewerModal from "./DayViewerModal";
 import {
   getMonthKeyFromCustomDate,
   getStreakRange,
@@ -13,6 +14,8 @@ const StreaksCalender = ({ recentPosts = [], setIsProfileOpen }) => {
   const { t } = useTranslation("main");
   // Read actual streak from the store with a safety fallback of null
   const streak = useStreakStore((s) => s.streak) || null;
+  const [selectedDatePosts, setSelectedDatePosts] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(null);
 
   // Precompute reference date (today at midnight)
   const today = useMemo(() => {
@@ -84,36 +87,54 @@ const StreaksCalender = ({ recentPosts = [], setIsProfileOpen }) => {
     }
   }, [monthsSorted]);
 
-  // if (recentPosts.length === 0) {
-  //   return (
-  //     <div className="w-full min-h-[200px] flex text-center items-center justify-center text-lg text-base-content/75 font-semibold p-6 bg-base-300 rounded-3xl">
-  //       {t("left.activate_calendar_prompt")}
-  //     </div>
-  //   );
-  // }
+  const handleDayClick = (posts, date) => {
+    setSelectedDatePosts(posts);
+    setSelectedDate(date);
+  };
+
+  const formattedSelectedDate = useMemo(() => {
+    if (!selectedDate) return "";
+    return selectedDate.toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  }, [selectedDate]);
 
   return (
-    <div className="space-y-6">
-      {monthsSorted.map((monthKey, idx) => {
-        const isLast = idx === monthsSorted.length - 1;
-        return (
-          <div key={monthKey} ref={isLast ? lastMonthRef : null}>
-            <MonthCalendar
-              monthKey={monthKey}
-              postsInMonth={postsByMonth[monthKey]}
-              streak={streak}
-              currentStreak={currentStreak}
-              pastStreak={pastStreak}
-              currentRecoverWindow={currentRecoverWindow}
-              pastRecoverWindow={pastRecoverWindow}
-              today={today}
-              setIsProfileOpen={setIsProfileOpen}
-            />
-          </div>
-        );
-      })}
-    </div>
+    <>
+      <div className="space-y-6">
+        {monthsSorted.map((monthKey, idx) => {
+          const isLast = idx === monthsSorted.length - 1;
+          return (
+            <div key={monthKey} ref={isLast ? lastMonthRef : null}>
+              <MonthCalendar
+                monthKey={monthKey}
+                postsInMonth={postsByMonth[monthKey]}
+                streak={streak}
+                currentStreak={currentStreak}
+                pastStreak={pastStreak}
+                currentRecoverWindow={currentRecoverWindow}
+                pastRecoverWindow={pastRecoverWindow}
+                today={today}
+                setIsProfileOpen={setIsProfileOpen}
+                onDayClick={handleDayClick}
+              />
+            </div>
+          );
+        })}
+      </div>
+
+      {selectedDatePosts && selectedDatePosts.length > 0 && (
+        <DayViewerModal
+          posts={selectedDatePosts}
+          titleDate={formattedSelectedDate}
+          onClose={() => setSelectedDatePosts(null)}
+        />
+      )}
+    </>
   );
 };
 
 export default StreaksCalender;
+
