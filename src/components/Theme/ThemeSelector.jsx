@@ -3,7 +3,11 @@ import { useTheme } from "@/hooks/useTheme";
 import { getThemeLabel, hasSnowEffect } from "@/utils/theme/themeUtils";
 
 const ThemeSelector = () => {
-  const { theme, changeTheme } = useTheme();
+  const { 
+    theme, changeTheme,
+    colorMode, changeColorMode,
+    perfMode, changePerfMode
+  } = useTheme();
 
   return (
     <div className="w-full flex justify-center">
@@ -79,6 +83,51 @@ const ThemeSelector = () => {
               );
             })}
           </div>
+        </fieldset>
+
+        {/* Chế độ màu (Color Mode) */}
+        <fieldset className="border rounded-2xl shadow-md w-full py-3 mt-4">
+          <legend className="font-semibold text-base-content text-lg text-left ml-5">
+            🌗 Chế độ Màu:
+          </legend>
+          <div className="flex gap-2 flex-wrap justify-center px-4 py-2">
+            {[
+              { id: "light", label: "Sáng" },
+              { id: "dark", label: "Tối" },
+              { id: "system", label: "Hệ thống" },
+            ].map((mode) => (
+              <button
+                key={mode.id}
+                type="button"
+                onClick={() => changeColorMode(mode.id)}
+                className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition ${
+                  colorMode === mode.id
+                    ? "bg-primary text-primary-content border-primary"
+                    : "bg-base-200 border-base-300 text-base-content"
+                }`}
+              >
+                {mode.label}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+
+        {/* Chế độ Máy yếu (Performance Mode) */}
+        <fieldset className="border rounded-2xl shadow-md w-full py-3 mt-4 mb-4 flex justify-between items-center px-5">
+          <div>
+            <p className="font-semibold text-base-content text-lg">
+              🚀 Máy cấu hình yếu
+            </p>
+            <p className="text-xs text-base-content/60 mt-1">
+              Tắt hiệu ứng nặng, giảm giật lag, tăng FPS
+            </p>
+          </div>
+          <input 
+            type="checkbox" 
+            className="toggle toggle-primary toggle-lg" 
+            checked={perfMode === "lite"}
+            onChange={(e) => changePerfMode(e.target.checked ? "lite" : "normal")}
+          />
         </fieldset>
       </div>
     </div>
