@@ -75,7 +75,9 @@ export const useConnectivityStore = create((set, get) => ({
   isOffline: false,
 
   _applyResult: (browserOnline, serverOk) => {
-    const isOffline = !browserOnline || !serverOk;
+    // Sửa lỗi: Chỉ báo Ngoại tuyến khi thực sự rớt mạng wifi/4G. 
+    // Nếu server lỗi (502) thì browserOnline vẫn true.
+    const isOffline = !browserOnline; 
     set({
       browserOnline,
       serverReachable: serverOk,

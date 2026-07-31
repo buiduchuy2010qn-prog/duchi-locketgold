@@ -87,8 +87,8 @@ const SendButton = () => {
       const conn = await checkConnectivity({ force: true });
       if (!conn?.browserOnline || !conn?.serverReachable) {
         SonnerWarning(
-          "Đang ngoại tuyến",
-          "Bản nháp vẫn được lưu. Hãy đăng khi có mạng.",
+          !conn?.browserOnline ? "Mất mạng" : "Máy chủ đang bảo trì",
+          "Bản nháp vẫn được lưu. Hãy đăng sau.",
         );
         return;
       }
@@ -233,15 +233,19 @@ const SendButton = () => {
       onClick={handleSubmit}
       disabled={sendDisabled}
       aria-label={
-        isOffline || !serverReachable
-          ? "Đang ngoại tuyến — không thể đăng"
-          : "Đăng bài"
+        isOffline 
+          ? "Mất mạng — không thể đăng"
+          : !serverReachable 
+            ? "Máy chủ đang bảo trì — không thể đăng"
+            : "Đăng bài"
       }
       aria-busy={uploadLoading || undefined}
       title={
-        isOffline || !serverReachable
-          ? "Đang ngoại tuyến · Bản nháp vẫn được lưu"
-          : undefined
+        isOffline
+          ? "Mất mạng · Bản nháp vẫn được lưu"
+          : !serverReachable
+            ? "Máy chủ đang bảo trì · Bản nháp vẫn được lưu"
+            : undefined
       }
       className={`sendButton ${toneClass}`.trim()}
       data-send-button="true"
