@@ -42,9 +42,14 @@ const adminUids = new Set();
 // Middleware to verify admin
 async function requireAdmin(req, res, next) {
   if (admin.apps.length === 0) {
+    let debug = "Thiếu biến FIREBASE_SERVICE_ACCOUNT_BASE64.";
+    const envVal = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
+    if (envVal) {
+      debug = `Có biến FIREBASE_SERVICE_ACCOUNT_BASE64 (độ dài: ${envVal.length}), nhưng giải mã thất bại. Có thể bạn chưa chuyển file JSON sang định dạng Base64 hoặc copy thiếu chữ.`;
+    }
     return res.status(500).json({ 
       success: false, 
-      message: "Thiếu biến môi trường FIREBASE_SERVICE_ACCOUNT_BASE64 trên Railway! Vui lòng thêm biến này vào Railway Variables và đợi 1 phút để Server khởi động lại." 
+      message: `Hệ thống lỗi: ${debug}` 
     });
   }
 
