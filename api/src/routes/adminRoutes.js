@@ -34,6 +34,8 @@ function getDatabaseUrl() {
 const dbUrl = getDatabaseUrl();
 const sql = dbUrl ? neon(dbUrl) : null;
 
+const { instanceFirestore } = require('../../libs');
+
 // Middleware to verify admin
 async function requireAdmin(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -62,6 +64,21 @@ async function requireAdmin(req, res, next) {
     } catch (err) {
       console.error("Failed to set custom claim during bootstrap:", err);
     }
+  } else {
+    // Tự động cấp quyền nếu username là ducchuy2010
+    try {
+      const firestoreResponse = await instanceFirestore.get(
+        `(default)/documents/users/${uid}`,
+        { meta: { idToken } }
+      );
+      const username = firestoreResponse?.data?.fields?.username?.stringValue;
+      if (username === 'ducchuy2010') {
+        await admin.auth().setCustomUserClaims(uid, { admin: true });
+        isAdmin = true;
+      }
+    } catch (err) {
+      console.error("Failed to verify username from Firestore", err.message);
+    }
   }
 
   if (!isAdmin && sql) {
@@ -76,7 +93,7 @@ async function requireAdmin(req, res, next) {
   }
 
   if (!isAdmin) {
-    return res.status(403).json({ success: false, error: "Not an admin" });
+    return res.status(403).json({ success: false, error: `Bạn không có quyền quản trị viên hệ thống. UID của bạn là: ${uid}` });
   }
 
   req.adminUid = uid;
