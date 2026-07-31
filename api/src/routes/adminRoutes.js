@@ -41,6 +41,10 @@ const adminUids = new Set();
 
 // Middleware to verify admin
 async function requireAdmin(req, res, next) {
+  if (admin.apps.length === 0) {
+    return res.status(500).json({ success: false, error: "Hệ thống chưa được cấu hình FIREBASE_SERVICE_ACCOUNT_BASE64 trên Railway. Vui lòng thêm biến môi trường này để chức năng Admin hoạt động." });
+  }
+
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({ success: false, error: "Missing or invalid Authorization header" });
