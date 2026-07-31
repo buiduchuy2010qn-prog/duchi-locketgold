@@ -36,6 +36,7 @@
     "jwt-decode": "^4.0.0",
     "ldrs": "^1.0.2",
     "lucide-react": "^0.563.0",
+    "postgres": "^3.4.9",
     "prop-types": "^15.8.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
