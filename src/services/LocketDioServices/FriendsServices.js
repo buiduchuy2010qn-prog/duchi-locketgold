@@ -2,6 +2,7 @@ import * as utils from "@/utils";
 import api from "@/libs/axios";
 import { instanceMain } from "@/libs/instanceMain";
 import { fetchUserById } from "../LocketServices";
+import axios from "axios";
 
 //lấy toàn bộ danh sách bạn bè (uid, createdAt) từ API
 // {
@@ -80,7 +81,7 @@ export const loadFriendDetailsV3 = async (friends) => {
 };
 
 // Hàm tìm bạn qua username
-export const FindFriendByUserName = async (eqfriend) => {
+export const FindFriendByUserName = async (eqfriend, config = {}) => {
   try {
     const body = {
       username: eqfriend,
@@ -88,10 +89,15 @@ export const FindFriendByUserName = async (eqfriend) => {
     const response = await instanceMain.post(
       "https://api-beta.locket-dio.com/locket/getUserByData",
       body,
+      config
     );
 
     return response.data;
   } catch (error) {
+    if (axios.isCancel(error)) {
+      console.log("Tìm bạn bị hủy:", error.message);
+      throw error;
+    }
     console.error("❌ Lỗi khi tìm bạn:", error.response?.data || error.message);
     throw error;
   }

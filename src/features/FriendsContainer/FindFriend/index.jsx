@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
+import axios from "axios";
 import NormalItemFriend from "./NormalItemFriend";
 import { FaSearchPlus } from "react-icons/fa";
 import SearchInput from "@/components/uikit/Input/SearchInput";
@@ -28,7 +29,10 @@ const FindFriend = () => {
 
   const { shareHistoryOn, toggleShareHistoryOn } = useShareHistory();
 
-  const [loading, setLoading] = useState(false);
+  const [searchState, setSearchState] = useState("idle"); // idle, loading, success, empty, error
+  const [errorMsg, setErrorMsg] = useState("");
+  const abortControllerRef = useRef(null);
+
   const [searchTermFind, setSearchTermFind] = useState("");
   const [foundUser, setFoundUser] = useState(null);
   const [isFocusedFind, setIsFocusedFind] = useState(null);
@@ -36,33 +40,52 @@ const FindFriend = () => {
 
   const [friendshipStatus, setFriendshipStatus] = useState("NONE");
 
-  const handleFindFriend = async (username) => {
-    if (!username) return;
+  const handleFindFriend = async (rawUsername) => {
+    if (!rawUsername) return;
 
-    setLoading(true);
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
+    const username = rawUsername.replace(/^@/, "").trim();
+
+    setSearchState("loading");
     setFoundUser(null);
+    setErrorMsg("");
 
     try {
-      const result = await SonnerPromiseV2(FindFriendByUserName(username), {
+      const promise = FindFriendByUserName(username, { signal: abortController.signal });
+      const result = await SonnerPromiseV2(promise, {
         loading: t("friends.find.searching_user"),
         success: t("friends.find.user_found"),
         error: (err) => {
-          if (err?.message === t("friends.find.user_not_exist") || err?.message === "Người dùng không tồn tại") {
-            return err.message;
+          if (axios.isCancel(err)) return "Đã hủy tìm kiếm trước";
+          if (err?.message === t("friends.find.user_not_exist") || err?.message === "Người dùng không tồn tại" || err?.response?.status === 404) {
+            return t("friends.find.user_not_exist");
           }
-
           return t("friends.find.error_try_again");
         },
       });
 
-      if (result?.success) {
+      if (result?.success && result?.data) {
         setFoundUser(result.data);
-
+        setSearchState("success");
         const status = await getFriendshipStatus(result.data.uid);
         setFriendshipStatus(status);
+      } else {
+        setSearchState("empty");
       }
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      if (axios.isCancel(err)) return; // Bỏ qua nếu là request cũ bị hủy
+      
+      if (err?.message === t("friends.find.user_not_exist") || err?.message === "Người dùng không tồn tại" || err?.response?.status === 404) {
+        setSearchState("empty");
+      } else {
+        setSearchState("error");
+        setErrorMsg(t("friends.find.error_try_again"));
+      }
     }
   };
 
@@ -169,11 +192,11 @@ const FindFriend = () => {
 
         {searchTermFind && (
           <button
-            disabled={loading}
+            disabled={searchState === "loading"}
             className="btn btn-base-200 text-base flex items-center gap-2 rounded-full disabled:opacity-50"
             onClick={() => handleFindFriend(searchTermFind)}
           >
-            {loading ? (
+            {searchState === "loading" ? (
               <>
                 <BouncyLoader size={25} /> {t("friends.find.wait")}
               </>
@@ -185,12 +208,39 @@ const FindFriend = () => {
       </div>
 
       <div className="w-full flex justify-center mt-2">
-        {foundUser ? (
+        {searchState === "loading" && (
+          <p className="text-gray-400 h-[70px] text-center flex items-center justify-center">
+            {t("friends.find.searching")}
+          </p>
+        )}
+
+        {searchState === "empty" && (
+          <p className="text-gray-400 h-[70px] text-center flex items-center justify-center">
+            {t("friends.find.user_not_exist", "Không tìm thấy người dùng")}
+          </p>
+        )}
+
+        {searchState === "error" && (
+          <div className="text-error h-[70px] text-center flex flex-col items-center justify-center">
+            <p>{errorMsg}</p>
+            <button className="btn btn-sm btn-outline mt-2" onClick={() => handleFindFriend(searchTermFind)}>
+              Thử lại
+            </button>
+          </div>
+        )}
+
+        {searchState === "idle" && (
+          <p className="text-gray-400 h-[70px] text-center flex items-center justify-center">
+            {t("friends.find.no_data")}
+          </p>
+        )}
+
+        {searchState === "success" && foundUser && (
           isCelebrity ? (
             <CelebItemFriend
               friend={foundUser}
               handleAddFriend={handleAddFriend}
-              loading={loading}
+              loading={searchState === "loading"}
             />
           ) : (
             <NormalItemFriend
@@ -201,10 +251,6 @@ const FindFriend = () => {
               status={friendshipStatus}
             />
           )
-        ) : (
-          <p className="text-gray-400 h-[70px] text-center">
-            {loading ? t("friends.find.searching") : t("friends.find.no_data")}
-          </p>
         )}
       </div>
     </div>
