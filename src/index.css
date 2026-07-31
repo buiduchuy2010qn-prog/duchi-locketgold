@@ -754,3 +754,47 @@ html[data-theme="ocean-blue"] .btn-primary {
   box-shadow: 0 8px 20px rgba(2, 132, 199, 0.24) !important;
 }
 
+
+/* --- DARK MODE OVERRIDES --- */
+html[data-theme="pinksnow"][data-color-mode="dark"] {
+  --color-base-100: #2a0a18 !important;
+  --color-base-200: #420f26 !important;
+  --color-base-300: #5c1535 !important;
+  --color-base-content: #fce4ec !important;
+  --color-primary: #ff4081 !important;
+}
+html[data-theme="ocean-blue"][data-color-mode="dark"], html[data-theme="ocean-blue"][data-color-mode="dark"] body {
+  --ocean-light: #072a40;
+  --ocean-sky: #031526;
+  --ocean-mid: #0b4566;
+  --ocean-deep: #38bdf8;
+  --ocean-text: #e0f2fe;
+  --ocean-text-secondary: #bae6fd;
+  --ocean-glass: rgba(11, 69, 102, 0.58);
+  --ocean-border: rgba(255, 255, 255, 0.15);
+  background-color: var(--ocean-sky) !important;
+  background-image: linear-gradient(180deg, var(--ocean-sky) 0%, var(--ocean-light) 52%, var(--ocean-mid) 100%) !important;
+  color: var(--ocean-text) !important;
+}
+html[data-theme="glass"][data-color-mode="dark"] {
+  --color-base-100: #1a1a1a !important;
+  --color-base-200: #2a2a2a !important;
+  --color-base-300: #3a3a3a !important;
+  --color-base-content: #eaeaea !important;
+}
+html[data-theme="glass"][data-color-mode="dark"] .glassSurface {
+  background: rgba(40, 40, 40, 0.58) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37) !important;
+}
+
+/* --- PERFORMANCE MODE LITE --- */
+html[data-performance-mode="lite"] * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+html[data-performance-mode="lite"] .animate-borderExpand, html[data-performance-mode="lite"] .snow-layer::before {
+  animation: none !important;
+}
+

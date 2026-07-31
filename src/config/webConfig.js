@@ -138,7 +138,6 @@ export const CONFIG = {
       "pinksnow",
       "glass",
       "pink-sakura-glass",
-      "pink-lite",
       "pink-snow-ai",
       "ocean-blue",
       "light",

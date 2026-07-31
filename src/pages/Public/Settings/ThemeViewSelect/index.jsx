@@ -29,7 +29,12 @@ const QUICK = [
 
 const ThemeViewSelect = () => {
   const { t } = useTranslation("auth");
-  const { theme, changeTheme, snowIntensity, changeSnowIntensity } = useTheme();
+  const { 
+    theme, changeTheme, 
+    snowIntensity, changeSnowIntensity,
+    colorMode, changeColorMode,
+    perfMode, changePerfMode
+  } = useTheme();
   const activeIndex = CONFIG.ui.themes.indexOf(theme);
   const isPinkSnow = isPinkSnowTheme(theme) && theme !== "valentine";
   const isGlass = isGlassTheme(theme);
@@ -59,13 +64,16 @@ const ThemeViewSelect = () => {
           <span className="font-semibold">Glass</span> · trong mờ mượt
         </p>
 
-        {/* Quick: Mặc định / Hồng Tuyết / Glass */}
         <div className="flex justify-center gap-2 mt-3 px-3 flex-wrap">
           {QUICK.map((q) => (
             <button
               key={q.id}
               type="button"
-              onClick={() => changeTheme(q.theme)}
+              onClick={() => {
+                changeTheme(q.theme);
+                changeColorMode("light");
+                changePerfMode("normal");
+              }}
               className={`px-3.5 py-2 rounded-full text-sm font-semibold border transition ${
                 quickActive(q)
                   ? "bg-primary text-primary-content border-primary"
@@ -75,6 +83,51 @@ const ThemeViewSelect = () => {
               {q.label}
             </button>
           ))}
+        </div>
+
+        {/* Chế độ màu (Color Mode) */}
+        <div className="mt-4 mx-4 p-3 rounded-2xl bg-base-100/80 border border-base-300/60 glassSurface">
+          <p className="text-xs font-semibold text-base-content/80 mb-2">
+            Chế độ màu
+          </p>
+          <div className="flex gap-2 flex-wrap justify-center">
+            {[
+              { id: "light", label: "Sáng" },
+              { id: "dark", label: "Tối" },
+              { id: "system", label: "Hệ thống" },
+            ].map((mode) => (
+              <button
+                key={mode.id}
+                type="button"
+                onClick={() => changeColorMode(mode.id)}
+                className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition ${
+                  colorMode === mode.id
+                    ? "bg-primary text-primary-content border-primary"
+                    : "bg-base-200/80 border-base-300 text-base-content/80"
+                }`}
+              >
+                {mode.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Chế độ Máy yếu (Performance Mode) */}
+        <div className="mt-3 mx-4 p-3 rounded-2xl bg-base-100/80 border border-base-300/60 glassSurface flex justify-between items-center">
+          <div>
+            <p className="text-sm font-semibold text-base-content/80">
+              Máy cấu hình yếu
+            </p>
+            <p className="text-[10px] text-base-content/50 mt-1">
+              Tắt hiệu ứng nặng, giảm giật lag
+            </p>
+          </div>
+          <input 
+            type="checkbox" 
+            className="toggle toggle-primary" 
+            checked={perfMode === "lite"}
+            onChange={(e) => changePerfMode(e.target.checked ? "lite" : "normal")}
+          />
         </div>
 
         {isPinkSnow && (

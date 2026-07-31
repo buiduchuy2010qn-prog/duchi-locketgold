@@ -17,7 +17,7 @@ import { getPerfProfile } from "@/utils/device/perfProfile";
  * so the canvas survives route changes and hidden tabs without duplicate RAFs.
  */
 const GlobalThemeEffects = () => {
-  const { theme, snowIntensity } = useTheme();
+  const { theme, snowIntensity, perfMode } = useTheme();
   const location = useLocation();
   const [reduceMotion, setReduceMotion] = useState(false);
 
@@ -39,7 +39,7 @@ const GlobalThemeEffects = () => {
     location.pathname.startsWith("/camera");
 
   const cfg = useMemo(() => {
-    if (!snowTheme || intensity === "off") {
+    if (!snowTheme || intensity === "off" || perfMode === "lite") {
       return { enabled: false, maxFlakes: 0, staticOnly: false };
     }
 
@@ -95,6 +95,7 @@ const GlobalThemeEffects = () => {
   }, [intensity, onCameraRoute, reduceMotion, snowTheme, theme]);
 
   if (isOceanBlueTheme(theme)) {
+    if (perfMode === "lite") return null;
     return <OceanEffect reduceMotion={reduceMotion} />;
   }
 

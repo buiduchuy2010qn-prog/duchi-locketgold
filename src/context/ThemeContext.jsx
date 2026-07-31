@@ -4,20 +4,21 @@ import {
   resolveStoredTheme,
   getSnowIntensity,
   setSnowIntensity as persistSnowIntensity,
+  getColorMode,
+  getPerfMode,
   PINK_SNOW_THEME,
 } from "@/utils/theme/themeUtils";
 
 export const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState(() => resolveStoredTheme() || PINK_SNOW_THEME);
-  const [snowIntensity, setSnowIntensityState] = useState(() =>
-    getSnowIntensity(),
-  );
+  const [theme, setThemeState] = useState(() => resolveStoredTheme() || PINK_SNOW_THEME);
+  const [snowIntensity, setSnowIntensityState] = useState(() => getSnowIntensity());
+  const [colorMode, setColorModeState] = useState(() => getColorMode());
+  const [perfMode, setPerfModeState] = useState(() => getPerfMode());
 
   const changeTheme = useCallback((newTheme) => {
-    setTheme(newTheme);
-    applyTheme(newTheme);
+    setThemeState(newTheme);
   }, []);
 
   const changeSnowIntensity = useCallback((level) => {
@@ -25,9 +26,31 @@ export const ThemeProvider = ({ children }) => {
     setSnowIntensityState(v);
   }, []);
 
+  const changeColorMode = useCallback((newMode) => {
+    setColorModeState(newMode);
+  }, []);
+
+  const changePerfMode = useCallback((newMode) => {
+    setPerfModeState(newMode);
+  }, []);
+
   useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
+    applyTheme(theme, colorMode, perfMode);
+  }, [theme, colorMode, perfMode]);
+
+  // Lắng nghe thay đổi theme hệ thống nếu đang ở chế độ 'system'
+  useEffect(() => {
+    if (colorMode !== 'system') return;
+    
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = () => {
+      // Re-apply theme to trigger DOM attribute update
+      applyTheme(theme, colorMode, perfMode);
+    };
+    
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, [colorMode, theme, perfMode]);
 
   useEffect(() => {
     persistSnowIntensity(snowIntensity);
@@ -40,6 +63,10 @@ export const ThemeProvider = ({ children }) => {
         changeTheme,
         snowIntensity,
         changeSnowIntensity,
+        colorMode,
+        changeColorMode,
+        perfMode,
+        changePerfMode,
       }}
     >
       {children}
