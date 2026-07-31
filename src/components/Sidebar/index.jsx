@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import {
   X,
@@ -57,10 +57,78 @@ const Sidebar = () => {
     Boolean(user) &&
     isAdminUser(localId, { email, localId, uid: user?.uid || localId });
 
+  const drawerRef = useRef(null);
+
+  const handleClose = useCallback(() => {
+    setIsSidebarOpen(false);
+  }, [setIsSidebarOpen]);
+
   useEffect(() => {
-    document.body.classList.toggle("overflow-hidden", isSidebarOpen);
-    return () => document.body.classList.remove("overflow-hidden");
-  }, [isSidebarOpen]);
+    if (!isSidebarOpen) return;
+
+    const previousActiveElement = document.activeElement;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        handleClose();
+        return;
+      }
+
+      if (e.key === "Tab") {
+        if (!drawerRef.current) return;
+        const focusableElements = drawerRef.current.querySelectorAll(
+          'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusableElements.length === 0) return;
+
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            e.preventDefault();
+            lastElement.focus();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            e.preventDefault();
+            firstElement.focus();
+          }
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    if (drawerRef.current) {
+      const focusableElements = drawerRef.current.querySelectorAll(
+        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusableElements.length > 0) {
+        const closeBtn = drawerRef.current.querySelector('[aria-label="Close menu"]');
+        if (closeBtn) {
+          closeBtn.focus();
+        } else {
+          focusableElements[0].focus();
+        }
+      }
+    }
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = originalOverflow;
+      if (previousActiveElement && typeof previousActiveElement.focus === "function") {
+        const trigger = document.getElementById("hamburger-menu-trigger");
+        if (trigger) {
+          trigger.focus();
+        } else {
+          previousActiveElement.focus();
+        }
+      }
+    };
+  }, [isSidebarOpen, handleClose]);
 
   const currentYear = new Date().getFullYear();
   const { startYear } = CONFIG.app;
@@ -220,33 +288,43 @@ const Sidebar = () => {
     <>
       {/* Overlay */}
       <div
-        className={`fixed h-screen z-60 inset-0 bg-base-100/10 backdrop-blur-[2px] transition-opacity duration-500 ${isSidebarOpen
+        className={`fixed h-screen z-60 inset-0 bg-base-100/10 transition-opacity duration-200 ease-out motion-reduce:transition-none ${
+          isSidebarOpen
             ? "opacity-100 pointer-events-auto"
             : "opacity-0 pointer-events-none"
-          }`}
-        onClick={() => setIsSidebarOpen(false)}
+        }`}
+        onClick={handleClose}
+        aria-hidden="true"
       />
 
-      {/* Sidebar */}
-      <div
-        className={`fixed z-60 top-0 right-0 h-full w-64 shadow-xl transition-all duration-500 bg-base-100 flex flex-col ${isSidebarOpen
-            ? "opacity-100 translate-x-0"
-            : "opacity-0 translate-x-full"
-          }`}
+      {/* Navigation Drawer */}
+      <nav
+        id="huy-locket-nav-drawer"
+        ref={drawerRef}
+        aria-label="Main Navigation"
+        role="dialog"
+        aria-modal="true"
+        className={`fixed z-60 top-0 left-0 h-full w-full max-w-[320px] sm:max-w-[360px] shadow-xl transition-transform duration-200 ease-out motion-reduce:transition-none bg-base-100 flex flex-col ${
+          isSidebarOpen
+            ? "translate-x-0"
+            : "-translate-x-full"
+        }`}
       >
         {/* Header */}
         <div className="flex justify-between items-center py-3 px-2 border-b border-base-300 flex-shrink-0">
-          <Link to="/" className="flex items-center gap-1">
+          <Link to="/" className="flex items-center gap-1" onClick={handleClose}>
             <span className="text-lg pl-2 font-semibold gradient-text select-none">
               {t("sidebar.menu_title")}
             </span>
           </Link>
           <ThemeToggle />
           <button
-            onClick={() => setIsSidebarOpen(false)}
-            className="p-2 rounded-md transition cursor-pointer btn"
+            type="button"
+            aria-label="Close menu"
+            onClick={handleClose}
+            className="p-2 rounded-md transition cursor-pointer btn btn-ghost btn-circle"
           >
-            <X size={24} />
+            <X size={24} aria-hidden="true" />
           </button>
         </div>
 
@@ -260,17 +338,17 @@ const Sidebar = () => {
                   {section.badge && <div>{section.badge}</div>}
                 </h2>
                 <ul>
-                  {section.items.map((item) => (
-                    <MenuItem
-                      key={item.to}
-                      to={item.to}
-                      icon={item.icon}
-                      badge={item.badge}
-                      onClick={() => setIsSidebarOpen(false)}
-                    >
-                      {item.text}
-                    </MenuItem>
-                  ))}
+                    {section.items.map((item) => (
+                      <MenuItem
+                        key={item.to}
+                        to={item.to}
+                        icon={item.icon}
+                        badge={item.badge}
+                        onClick={handleClose}
+                      >
+                        {item.text}
+                      </MenuItem>
+                    ))}
                 </ul>
               </li>
             ))}
@@ -281,7 +359,7 @@ const Sidebar = () => {
         <AuthButton
           user={user}
           onLogout={handleLogout}
-          onClose={() => setIsSidebarOpen(false)}
+          onClose={handleClose}
         />
 
         <div>
@@ -292,7 +370,7 @@ const Sidebar = () => {
             {t("sidebar.copyright")}
           </p>
         </div>
-      </div>
+      </nav>
     </>
   );
 };

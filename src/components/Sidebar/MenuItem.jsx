@@ -8,6 +8,7 @@ export const MenuItem = ({ to, icon: Icon, children, badge, onClick }) => (
       className={`flex items-center px-3 py-2.5 mb-1 rounded-lg transition ${
         location.pathname === to ? "bg-base-300" : "hover:bg-base-200"
       }`}
+      aria-current={location.pathname === to ? "page" : undefined}
       onClick={onClick}
     >
       <Icon size={22} /> {children}

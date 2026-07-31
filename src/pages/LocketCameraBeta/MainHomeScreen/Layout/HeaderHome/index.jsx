@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ChevronDown, Download, Menu, MessageCircle } from "lucide-react";
 import HistorySelectFriend from "@/features/HistorySelectFriend";
 import { useAuthStore, useFriendList } from "@/stores";
+import { useAppNavigation } from "@/context/AppContext";
 import { downloadBlob } from "@/services";
 import { useTranslation } from "react-i18next";
 import { useAutoDriveBackup } from "@/hooks/useAutoDriveBackup";
@@ -20,6 +21,7 @@ const HeaderHome = ({
 }) => {
   const { t } = useTranslation("main");
   const { user } = useAuthStore();
+  const { isSidebarOpen } = useAppNavigation();
 
   const friendList = useFriendList();
 
@@ -190,10 +192,15 @@ const HeaderHome = ({
               <MessageCircle strokeWidth={2} />
             </button>
             <button
+              type="button"
+              id="hamburger-menu-trigger"
+              aria-label="Toggle navigation menu"
+              aria-expanded={isSidebarOpen}
+              aria-controls="huy-locket-nav-drawer"
               onClick={() => setIsSidebarOpen(true)}
               className="w-11 h-11 flex items-center justify-center bg-base-300/70 backdrop-blur-[4px] rounded-full hover:bg-base-300 transition active:scale-105"
             >
-              <Menu size={28} strokeWidth={2} />
+              <Menu size={28} strokeWidth={2} aria-hidden="true" />
             </button>
           </div>
 
