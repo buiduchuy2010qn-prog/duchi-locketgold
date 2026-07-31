@@ -95,7 +95,7 @@
       "destination": "https://huy-locket-production.up.railway.app/api/media-download"
     },
     {
-      "source": "/((?!assets/|sw\\.js$|workbox-[^/]+\\.js$|manifest\\.webmanifest$|offline\\.html$|version\\.json$|robots\\.txt$|sitemap\\.xml$|favicon[^/]*|android-chrome-[^/]+|apple-touch-icon\\.png$|maskable-icon-[^/]+|icons/|pwa-icons/|fonts/|images/|svg/|.*\\.[a-zA-Z0-9]+$).*)",
+      "source": "/((?!api/|assets/|sw\\.js$|workbox-[^/]+\\.js$|manifest\\.webmanifest$|offline\\.html$|version\\.json$|robots\\.txt$|sitemap\\.xml$|favicon[^/]*|android-chrome-[^/]+|apple-touch-icon\\.png$|maskable-icon-[^/]+|icons/|pwa-icons/|fonts/|images/|svg/|.*\\.[a-zA-Z0-9]+$).*)",
       "destination": "/index.html"
     }
   ],
