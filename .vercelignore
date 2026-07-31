@@ -1,10 +1,27 @@
 # Vercel Hobby allows max 12 Serverless Functions.
-# Folder `api/` is Express backend for Railway — if uploaded, Vercel treats
-# every route file as a serverless function and the deploy fails with:
-# "No more than 12 Serverless Functions can be added... Hobby plan"
-
-api
-api/**
+# We explicitly ignore the Express app folders inside api/ so Vercel only deploys the admin serverless functions.
+api/auth
+api/google
+api/migrations
+api/src
+api/app.js
+api/package.json
+api/package-lock.json
+api/node_modules
+api/.dockerignore
+api/.env.example
+api/.gitignore
+api/DEPLOY.md
+api/docker-compose*
+api/Dockerfile
+api/install_ffmpeg.sh
+api/nginx.conf
+api/railway.toml
+api/README.md
+api/render.yaml
+api/SECURITY.md
+api/START-API.bat
+api/vercel.json
 
 # Backend / Docker (Railway only)
 server.mjs
