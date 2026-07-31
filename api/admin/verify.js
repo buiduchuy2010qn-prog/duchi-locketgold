@@ -2,7 +2,6 @@ import { verifyAdmin } from "../_utils/auth.js";
 import { initDb } from "../_utils/db.js";
 
 export default async function handler(req, res) {
-  // Add Cache-Control no-store
   res.setHeader("Cache-Control", "no-store, max-age=0");
   
   if (req.method !== "GET") {
@@ -10,7 +9,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    await initDb(); // Init tables if not exist
+    await initDb();
     const { uid, email } = await verifyAdmin(req);
     
     return res.status(200).json({ 
@@ -20,9 +19,10 @@ export default async function handler(req, res) {
       isAdmin: true 
     });
   } catch (error) {
-    if (error.message.startsWith("Forbidden")) {
+    if (error.message === "Forbidden") {
       return res.status(403).json({ success: false, error: "Not an admin" });
     }
-    return res.status(401).json({ success: false, error: error.message });
+    // Redact internal error trace
+    return res.status(401).json({ success: false, error: "Unauthorized" });
   }
 }

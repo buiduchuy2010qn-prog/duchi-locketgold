@@ -1,8 +1,6 @@
 import admin from "./firebaseAdmin.js";
 import { sql } from "./db.js";
 
-const SUPER_ADMIN_EMAIL = "buiduchuy2010qn@gmail.com";
-
 export async function verifyAdmin(req) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -12,39 +10,45 @@ export async function verifyAdmin(req) {
   const idToken = authHeader.split("Bearer ")[1];
   let decodedToken;
   try {
-    decodedToken = await admin.auth().verifyIdToken(idToken);
+    // Flag `true` bắt buộc Firebase check token thu hồi (revoked/disabled)
+    decodedToken = await admin.auth().verifyIdToken(idToken, true);
   } catch (error) {
-    throw new Error("Unauthorized: " + error.message);
+    throw new Error("Unauthorized");
   }
 
   const uid = decodedToken.uid;
   const email = decodedToken.email;
 
-  // Cấp quyền cứng cho Super Admin dựa vào email
   let isAdmin = false;
-  if (email === SUPER_ADMIN_EMAIL) {
+
+  // 1. Ưu tiên kiểm tra Custom Claim `admin: true`
+  if (decodedToken.admin === true) {
     isAdmin = true;
-    
-    // Ghi vào bảng admin_roles nếu chưa có
-    if (sql) {
-      await sql`
-        INSERT INTO admin_roles (uid, email) 
-        VALUES (${uid}, ${email})
-        ON CONFLICT (uid) DO NOTHING;
-      `;
+  } 
+  // 2. Cơ chế Bootstrap Server-only: Nếu chưa có claim nhưng trùng khớp với ADMIN_BOOTSTRAP_UID (chỉ set 1 lần)
+  else if (process.env.ADMIN_BOOTSTRAP_UID && uid === process.env.ADMIN_BOOTSTRAP_UID) {
+    try {
+      await admin.auth().setCustomUserClaims(uid, { admin: true });
+      isAdmin = true;
+    } catch (err) {
+      console.error("Failed to set custom claim during bootstrap:", err);
     }
-  } else {
-    // Nếu không phải email gốc, check DB
-    if (sql) {
+  }
+
+  // 3. Fallback: Nếu không dùng Firebase custom claims, check DB thật (admin_roles)
+  if (!isAdmin && sql) {
+    try {
       const rows = await sql`SELECT uid FROM admin_roles WHERE uid = ${uid}`;
       if (rows.length > 0) {
         isAdmin = true;
       }
+    } catch (err) {
+      console.error("Failed to verify DB admin roles:", err);
     }
   }
 
   if (!isAdmin) {
-    throw new Error("Forbidden: Not an admin");
+    throw new Error("Forbidden");
   }
 
   return { uid, email };
@@ -52,8 +56,12 @@ export async function verifyAdmin(req) {
 
 export async function auditLog(adminUid, action, targetUid, details) {
   if (!sql) return;
-  await sql`
-    INSERT INTO admin_audit_log (admin_uid, action, target_uid, details)
-    VALUES (${adminUid}, ${action}, ${targetUid}, ${details});
-  `;
+  try {
+    await sql`
+      INSERT INTO admin_audit_log (admin_uid, action, target_uid, details)
+      VALUES (${adminUid}, ${action}, ${targetUid}, ${details});
+    `;
+  } catch (err) {
+    console.error("Failed to write audit log:", err);
+  }
 }

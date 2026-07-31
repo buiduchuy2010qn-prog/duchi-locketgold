@@ -13,18 +13,17 @@ export default async function handler(req, res) {
     const targetUid = req.query.uid;
 
     if (!targetUid) {
-      return res.status(400).json({ success: false, error: "Missing target uid" });
+      return res.status(400).json({ success: false, error: "Bad Request" });
     }
 
     await admin.auth().updateUser(targetUid, { disabled: false });
-    await auditLog(adminUid, "UNLOCK_USER", targetUid, "User account enabled");
+    await auditLog(adminUid, "UNLOCK_USER", targetUid, "User unlocked");
 
-    return res.status(200).json({ success: true, message: "User unlocked successfully" });
+    return res.status(200).json({ success: true });
   } catch (error) {
-    console.error("Unlock user error:", error);
-    if (error.message.startsWith("Forbidden")) {
+    if (error.message === "Forbidden") {
       return res.status(403).json({ success: false, error: "Not an admin" });
     }
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(401).json({ success: false, error: "Unauthorized" });
   }
 }

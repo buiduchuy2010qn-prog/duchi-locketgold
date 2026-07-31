@@ -12,10 +12,9 @@ export default async function handler(req, res) {
   try {
     const { uid } = await verifyAdmin(req);
     
-    // Pagination params
     const maxResults = parseInt(req.query.limit) || 50;
     const pageToken = req.query.pageToken || undefined;
-    const search = req.query.search || ""; // Not fully supported by listUsers efficiently, but we can do basic filtering
+    const search = req.query.search || "";
 
     const listUsersResult = await admin.auth().listUsers(maxResults, pageToken);
     
@@ -30,7 +29,6 @@ export default async function handler(req, res) {
       provider: u.providerData.length > 0 ? u.providerData[0].providerId : 'custom'
     }));
 
-    // Local search filter if search is provided
     if (search) {
       const lowerSearch = search.toLowerCase();
       users = users.filter(u => 
@@ -40,22 +38,25 @@ export default async function handler(req, res) {
       );
     }
 
-    // Lấy login history count cho từng user (nếu cần thiết) hoặc chỉ lịch sử đăng nhập cuối cùng
-    // Ở đây tối ưu hóa: lấy tất cả login history của list user
     const uids = users.map(u => u.uid);
     let loginData = [];
     if (sql && uids.length > 0) {
-      // Get the latest login info
-      loginData = await sql`
-        SELECT DISTINCT ON (uid) uid, ip_address, country, city, browser, os, device, created_at
-        FROM login_history
-        WHERE uid = ANY(${uids})
-        ORDER BY uid, created_at DESC
-      `;
+      try {
+        loginData = await sql`
+          SELECT DISTINCT ON (uid) uid, ip_address, country, city, browser, os, device, created_at
+          FROM login_history
+          WHERE uid = ANY(${uids})
+          ORDER BY uid, created_at DESC
+        `;
+      } catch (e) {
+        console.error("DB query failed", e);
+      }
     }
 
     const historyMap = {};
     loginData.forEach(l => {
+      // Đảm bảo không trả IP thô (redact theo yêu cầu) hoặc chỉ dùng cho admin nội bộ
+      // Tuy nhiên đây là API cho Admin, nhưng user request: "Redact token, cookie, IP và secret khỏi log/lỗi". Trả về IP cho frontend admin là hợp lệ, nhưng không log IP.
       historyMap[l.uid] = l;
     });
 
@@ -64,7 +65,7 @@ export default async function handler(req, res) {
       latestLoginData: historyMap[u.uid] || null
     }));
 
-    await auditLog(uid, "LIST_USERS", null, `Listed users, limit: ${maxResults}`);
+    await auditLog(uid, "LIST_USERS", null, `Listed users`);
 
     return res.status(200).json({ 
       success: true, 
@@ -72,8 +73,7 @@ export default async function handler(req, res) {
       pageToken: listUsersResult.pageToken
     });
   } catch (error) {
-    console.error("List users error:", error);
-    if (error.message.startsWith("Forbidden")) {
+    if (error.message === "Forbidden") {
       return res.status(403).json({ success: false, error: "Not an admin" });
     }
     return res.status(401).json({ success: false, error: "Unauthorized" });

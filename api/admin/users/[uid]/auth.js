@@ -13,24 +13,21 @@ export default async function handler(req, res) {
     const targetUid = req.query.uid;
 
     if (!targetUid) {
-      return res.status(400).json({ success: false, error: "Missing target uid" });
+      return res.status(400).json({ success: false, error: "Bad Request" });
     }
 
     if (adminUid === targetUid) {
       return res.status(403).json({ success: false, error: "Cannot delete yourself" });
     }
 
-    // Chỉ xóa Auth, không đụng vào Firestore/Database theo yêu cầu user
     await admin.auth().deleteUser(targetUid);
-    
-    await auditLog(adminUid, "DELETE_AUTH", targetUid, "User Auth record permanently deleted");
+    await auditLog(adminUid, "DELETE_AUTH", targetUid, "User Auth deleted");
 
-    return res.status(200).json({ success: true, message: "User Auth deleted successfully" });
+    return res.status(200).json({ success: true });
   } catch (error) {
-    console.error("Delete auth error:", error);
-    if (error.message.startsWith("Forbidden")) {
+    if (error.message === "Forbidden") {
       return res.status(403).json({ success: false, error: "Not an admin" });
     }
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(401).json({ success: false, error: "Unauthorized" });
   }
 }
