@@ -284,15 +284,31 @@ const Sidebar = () => {
 
   const menuSections = user ? userMenuSections : guestMenuSections;
 
+  const prefersReducedMotion = typeof window !== "undefined"
+    ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    : false;
+
+  const scrimStyle = {
+    transitionProperty: "opacity",
+    transitionDuration: prefersReducedMotion ? "0ms" : "180ms",
+  };
+
+  const drawerStyle = {
+    transitionProperty: "transform",
+    transitionDuration: prefersReducedMotion ? "0ms" : (isSidebarOpen ? "220ms" : "180ms"),
+    transitionTimingFunction: isSidebarOpen ? "cubic-bezier(0, 0, 0.2, 1)" : "cubic-bezier(0.4, 0, 1, 1)",
+  };
+
   return (
     <>
       {/* Overlay */}
       <div
-        className={`fixed h-screen z-60 inset-0 bg-base-100/10 transition-opacity duration-[180ms] motion-reduce:transition-none ${
+        className={`fixed h-screen z-60 inset-0 bg-base-100/10 ${
           isSidebarOpen
             ? "opacity-100 pointer-events-auto"
             : "opacity-0 pointer-events-none"
         }`}
+        style={scrimStyle}
         onClick={handleClose}
         aria-hidden="true"
       />
@@ -304,11 +320,10 @@ const Sidebar = () => {
         aria-label="Main Navigation"
         role="dialog"
         aria-modal="true"
-        className={`fixed z-60 top-0 right-0 h-full w-full max-w-[320px] sm:max-w-[360px] shadow-xl bg-base-100 flex flex-col transition-transform motion-reduce:transition-none ${
-          isSidebarOpen
-            ? "translate-x-0 duration-[220ms] ease-[cubic-bezier(0,0,0.2,1)]"
-            : "translate-x-full duration-[180ms] ease-[cubic-bezier(0.4,0,1,1)]"
+        className={`fixed z-60 top-0 right-0 h-full w-full max-w-[320px] sm:max-w-[360px] shadow-xl bg-base-100 flex flex-col ${
+          isSidebarOpen ? "translate-x-0" : "translate-x-full"
         }`}
+        style={drawerStyle}
       >
         {/* Header */}
         <div className="flex justify-between items-center py-3 px-2 border-b border-base-300 flex-shrink-0">
