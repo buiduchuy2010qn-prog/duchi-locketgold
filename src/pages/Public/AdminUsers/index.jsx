@@ -1,93 +1,135 @@
 import React, { useState, useEffect } from "react";
-import { Search, Lock, Unlock, UserX, Info, Clock, AlertTriangle, LogIn } from "lucide-react";
+import { Search, Lock, Unlock, UserX, Info, Clock, AlertTriangle, RefreshCw } from "lucide-react";
 import { useAuthStore } from "@/stores";
-import { getMyLocalId } from "@/utils/auth/getMyLocalId";
-import { isAdminUser } from "@/utils/googleDrive";
-
-const MOCK_USERS = [
-  { id: "user_1", name: "Nguyễn Văn A", email: "nva@gmail.com", method: "google.com", isLocked: false, lastLogin: "2026-07-31T10:00:00Z" },
-  { id: "user_2", name: "Trần Thị B", email: "ttb@gmail.com", method: "password", isLocked: true, lastLogin: "2026-07-30T15:30:00Z" },
-  { id: "user_3", name: "Lê Văn C", email: "lvc@gmail.com", method: "apple.com", isLocked: false, lastLogin: "2026-07-29T08:15:00Z" },
-  { id: "user_4", name: "Phạm Thị D", email: "ptd@gmail.com", method: "google.com", isLocked: false, lastLogin: "2026-07-28T14:45:00Z" },
-];
-
-const MOCK_HISTORY = [
-  { id: 1, time: "2026-07-31T10:00:00Z", ip: "113.190.233.12", location: "Hà Nội, VN (Ước tính)", browser: "Chrome 114", os: "Windows 11", build: "v1.4.0-fef3b41", method: "google.com" },
-  { id: 2, time: "2026-07-30T09:12:00Z", ip: "113.190.233.45", location: "Hà Nội, VN (Ước tính)", browser: "Safari 16.5", os: "iOS 16.5", build: "v1.4.0-c1e042c", method: "google.com" },
-];
+import api from "@/libs/axios";
+import { SonnerInfo } from "@/components/uikit/SonnerToast";
 
 export default function AdminUsers() {
   const user = useAuthStore((state) => state.user);
-  const localId = getMyLocalId(user);
-  const email = user?.email || localStorage.getItem("email") || sessionStorage.getItem("email") || "";
-  const isAdmin = Boolean(user) && isAdminUser(localId, { email, localId, uid: user?.uid || localId });
+  
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [checkingAdmin, setCheckingAdmin] = useState(true);
 
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
+  const [pageToken, setPageToken] = useState(null);
+  
   const [selectedUser, setSelectedUser] = useState(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(null);
   const [deleteConfirmStep, setDeleteConfirmStep] = useState(0);
 
+  // 1. Kiểm tra Admin role từ API thật
   useEffect(() => {
-    if (isAdmin) {
-      // Giả lập gọi API lấy danh sách
-      setTimeout(() => {
-        setUsers(MOCK_USERS);
-        setLoading(false);
-      }, 800);
+    const verifyAdmin = async () => {
+      try {
+        const res = await api.get("/api/admin/verify");
+        if (res.data?.isAdmin) {
+          setIsAdmin(true);
+          fetchUsers();
+        } else {
+          setIsAdmin(false);
+          setCheckingAdmin(false);
+        }
+      } catch (err) {
+        setIsAdmin(false);
+        setCheckingAdmin(false);
+      }
+    };
+    if (user) {
+      verifyAdmin();
+    } else {
+      setCheckingAdmin(false);
     }
-  }, [isAdmin]);
+  }, [user]);
 
-  if (!isAdmin) {
+  // 2. Fetch danh sách Users thật
+  const fetchUsers = async (token = "") => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.get(`/api/admin/users?limit=50${token ? `&pageToken=${token}` : ""}`);
+      setUsers(res.data.users || []);
+      setPageToken(res.data.pageToken || null);
+    } catch (err) {
+      setError("Không thể tải danh sách người dùng. " + (err.response?.data?.error || err.message));
+    } finally {
+      setLoading(false);
+      setCheckingAdmin(false);
+    }
+  };
+
+  if (checkingAdmin) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">
-        <AlertTriangle size={64} className="text-error mb-4" />
-        <h1 className="text-2xl font-bold">Truy cập bị từ chối</h1>
-        <p className="mt-2 text-base-content/70">Bạn không có quyền quản trị viên hoặc chưa đăng nhập.</p>
-        <p className="mt-4 text-sm text-warning italic border border-warning/30 bg-warning/10 p-3 rounded-lg max-w-lg">
-          Lưu ý: Màn hình này hiện đang chạy Mockup UI (dữ liệu giả) trên Client vì hệ thống chưa có Admin API Backend thực sự.
-        </p>
+      <div className="flex justify-center items-center min-h-screen">
+        <span className="loading loading-spinner loading-lg text-primary"></span>
       </div>
     );
   }
 
-  const filteredUsers = users.filter((u) => 
-    u.name.toLowerCase().includes(search.toLowerCase()) || 
-    u.email.toLowerCase().includes(search.toLowerCase())
-  );
+  if (!isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center animate-fade-in">
+        <AlertTriangle size={64} className="text-error mb-4" />
+        <h1 className="text-2xl font-bold">Truy cập bị từ chối</h1>
+        <p className="mt-2 text-base-content/70">Bạn không có quyền quản trị viên hệ thống.</p>
+      </div>
+    );
+  }
+
+  const filteredUsers = users.filter((u) => {
+    const s = search.toLowerCase();
+    return (u.displayName?.toLowerCase().includes(s) || u.email?.toLowerCase().includes(s) || u.uid?.toLowerCase().includes(s));
+  });
 
   const handleOpenUser = (u) => {
     setSelectedUser(u);
     setHistoryLoading(true);
     setDeleteConfirmStep(0);
-    // Giả lập load history
-    setTimeout(() => {
-      setHistoryLoading(false);
-    }, 600);
+    // History is now fetched along with users (latestLoginData) for simplicity. 
+    // If we wanted full history, we would call /api/admin/users/[uid]/history here.
+    // For now, we just display the latest one attached to the user object.
+    setHistoryLoading(false);
   };
 
-  const handleToggleLock = (u) => {
-    setActionLoading(`lock-${u.id}`);
-    setTimeout(() => {
-      setUsers(users.map(user => user.id === u.id ? { ...user, isLocked: !user.isLocked } : user));
-      if (selectedUser?.id === u.id) setSelectedUser({ ...selectedUser, isLocked: !selectedUser.isLocked });
+  const handleToggleLock = async (u) => {
+    setActionLoading(`lock-${u.uid}`);
+    try {
+      if (u.disabled) {
+        await api.post(`/api/admin/users/${u.uid}/unlock`);
+        SonnerInfo("Đã mở khóa tài khoản thành công");
+      } else {
+        await api.post(`/api/admin/users/${u.uid}/lock`);
+        SonnerInfo("Đã khóa tài khoản thành công");
+      }
+      setUsers(users.map(user => user.uid === u.uid ? { ...user, disabled: !user.disabled } : user));
+      if (selectedUser?.uid === u.uid) setSelectedUser({ ...selectedUser, disabled: !selectedUser.disabled });
+    } catch (err) {
+      SonnerInfo("Lỗi thao tác: " + (err.response?.data?.error || err.message));
+    } finally {
       setActionLoading(null);
-    }, 800);
+    }
   };
 
-  const handleDeleteAuth = (u) => {
+  const handleDeleteAuth = async (u) => {
     if (deleteConfirmStep === 0) {
       setDeleteConfirmStep(1);
       return;
     }
-    setActionLoading(`delete-${u.id}`);
-    setTimeout(() => {
-      setUsers(users.filter(user => user.id !== u.id));
+    setActionLoading(`delete-${u.uid}`);
+    try {
+      await api.delete(`/api/admin/users/${u.uid}/auth`);
+      SonnerInfo("Đã xóa quyền đăng nhập thành công");
+      setUsers(users.filter(user => user.uid !== u.uid));
       setSelectedUser(null);
+    } catch (err) {
+      SonnerInfo("Lỗi thao tác: " + (err.response?.data?.error || err.message));
+    } finally {
       setActionLoading(null);
-    }, 1000);
+      setDeleteConfirmStep(0);
+    }
   };
 
   return (
@@ -95,16 +137,16 @@ export default function AdminUsers() {
       <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Lock className="text-primary" /> Quản lý Người dùng (Mockup)
+            <Lock className="text-primary" /> Quản lý Người dùng
           </h1>
           <p className="text-sm text-base-content/60 mt-1">
-            Chỉ hiển thị với Admin. Dữ liệu đang được giả lập.
+            Hệ thống quản trị tài khoản Firebase Auth
           </p>
         </div>
         <div className="relative w-full md:w-72">
           <input 
             type="text" 
-            placeholder="Tìm email, tên..." 
+            placeholder="Tìm email, tên, uid..." 
             className="input input-bordered w-full pl-10"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -121,46 +163,59 @@ export default function AdminUsers() {
                 <th>Người dùng</th>
                 <th>Phương thức</th>
                 <th>Trạng thái</th>
-                <th>Đăng nhập cuối</th>
+                <th>Ngày tham gia</th>
                 <th className="text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                Array.from({ length: 4 }).map((_, i) => (
+                Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} aria-busy="true">
-                    <td><div className="skeleton h-10 w-32"></div></td>
-                    <td><div className="skeleton h-6 w-20"></div></td>
-                    <td><div className="skeleton h-6 w-16"></div></td>
-                    <td><div className="skeleton h-6 w-24"></div></td>
-                    <td className="text-right"><div className="skeleton h-8 w-8 inline-block"></div></td>
+                    <td>
+                      <div className="skeleton h-5 w-32 mb-1"></div>
+                      <div className="skeleton h-3 w-24"></div>
+                    </td>
+                    <td><div className="skeleton h-6 w-20 rounded-full"></div></td>
+                    <td><div className="skeleton h-6 w-16 rounded-full"></div></td>
+                    <td><div className="skeleton h-5 w-24"></div></td>
+                    <td className="text-right"><div className="skeleton h-8 w-8 inline-block rounded-full"></div></td>
                   </tr>
                 ))
+              ) : error ? (
+                <tr>
+                  <td colSpan="5" className="text-center py-12">
+                    <AlertTriangle size={32} className="mx-auto text-error mb-2 opacity-50" />
+                    <p className="text-error">{error}</p>
+                    <button onClick={() => fetchUsers()} className="btn btn-sm btn-outline mt-4">
+                      <RefreshCw size={14} className="mr-1"/> Thử lại
+                    </button>
+                  </td>
+                </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="text-center py-8 text-base-content/50">
-                    Không tìm thấy người dùng nào.
+                  <td colSpan="5" className="text-center py-12 text-base-content/50">
+                    {search ? "Không tìm thấy người dùng nào phù hợp." : "Hệ thống chưa có người dùng nào."}
                   </td>
                 </tr>
               ) : (
                 filteredUsers.map((u) => (
-                  <tr key={u.id} className="hover">
+                  <tr key={u.uid} className="hover">
                     <td>
-                      <div className="font-medium">{u.name}</div>
-                      <div className="text-xs text-base-content/60">{u.email}</div>
+                      <div className="font-medium">{u.displayName || "Người dùng ẩn danh"}</div>
+                      <div className="text-xs text-base-content/60">{u.email || u.uid}</div>
                     </td>
                     <td>
-                      <span className="badge badge-ghost badge-sm">{u.method}</span>
+                      <span className="badge badge-ghost badge-sm">{u.provider}</span>
                     </td>
                     <td>
-                      {u.isLocked ? (
+                      {u.disabled ? (
                         <span className="badge badge-error badge-sm gap-1"><Lock size={12}/> Đã khóa</span>
                       ) : (
                         <span className="badge badge-success badge-sm gap-1"><Unlock size={12}/> Đang hoạt động</span>
                       )}
                     </td>
-                    <td className="text-sm">
-                      {new Date(u.lastLogin).toLocaleDateString("vi-VN", { hour: '2-digit', minute:'2-digit' })}
+                    <td className="text-sm text-base-content/80">
+                      {new Date(u.creationTime).toLocaleDateString("vi-VN")}
                     </td>
                     <td className="text-right">
                       <button 
@@ -179,23 +234,33 @@ export default function AdminUsers() {
         </div>
       </div>
 
+      {/* Pagination (nếu API có pageToken) */}
+      {!loading && !error && pageToken && !search && (
+         <div className="mt-4 flex justify-center">
+            <button className="btn btn-outline btn-sm" onClick={() => fetchUsers(pageToken)}>
+               Tải thêm người dùng
+            </button>
+         </div>
+      )}
+
       {/* User Detail Modal */}
       {selectedUser && (
         <div className="modal modal-open modal-bottom sm:modal-middle" onClick={() => setSelectedUser(null)}>
           <div className="modal-box max-w-3xl" onClick={e => e.stopPropagation()}>
             <button className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" onClick={() => setSelectedUser(null)}>✕</button>
             
-            <h3 className="font-bold text-lg mb-1">{selectedUser.name}</h3>
-            <p className="text-sm text-base-content/60 mb-6">{selectedUser.email}</p>
+            <h3 className="font-bold text-lg mb-1">{selectedUser.displayName || "Ẩn danh"}</h3>
+            <p className="text-sm text-base-content/60 mb-1">{selectedUser.email || selectedUser.uid}</p>
+            <p className="text-xs text-base-content/40 mb-6 font-mono">UID: {selectedUser.uid}</p>
 
             <div className="flex flex-wrap gap-2 mb-6">
               <button 
-                className={`btn btn-sm ${selectedUser.isLocked ? "btn-success" : "btn-warning"}`}
+                className={`btn btn-sm ${selectedUser.disabled ? "btn-success" : "btn-warning"}`}
                 onClick={() => handleToggleLock(selectedUser)}
                 disabled={actionLoading}
               >
-                {actionLoading === `lock-${selectedUser.id}` ? <span className="loading loading-spinner loading-xs"></span> : selectedUser.isLocked ? <Unlock size={14} /> : <Lock size={14} />}
-                {selectedUser.isLocked ? "Mở khóa tài khoản" : "Khóa tài khoản"}
+                {actionLoading === `lock-${selectedUser.uid}` ? <span className="loading loading-spinner loading-xs"></span> : selectedUser.disabled ? <Unlock size={14} /> : <Lock size={14} />}
+                {selectedUser.disabled ? "Mở khóa tài khoản" : "Khóa tài khoản"}
               </button>
 
               <button 
@@ -203,20 +268,20 @@ export default function AdminUsers() {
                 onClick={() => handleDeleteAuth(selectedUser)}
                 disabled={actionLoading}
               >
-                {actionLoading === `delete-${selectedUser.id}` ? <span className="loading loading-spinner loading-xs"></span> : <UserX size={14} />}
+                {actionLoading === `delete-${selectedUser.uid}` ? <span className="loading loading-spinner loading-xs"></span> : <UserX size={14} />}
                 {deleteConfirmStep === 0 ? "Xóa quyền đăng nhập" : "Nhấn lại để Xác nhận Xóa"}
               </button>
             </div>
 
             {deleteConfirmStep === 1 && (
               <div className="alert alert-error mb-6 text-sm py-2">
-                <AlertTriangle size={16}/> 
-                <span><strong>Cảnh báo:</strong> Thao tác này chỉ xóa tài khoản Auth. Hồ sơ, media và bài đăng vẫn được giữ nguyên. Vui lòng xác nhận.</span>
+                <AlertTriangle size={16} className="shrink-0"/> 
+                <span><strong>Cảnh báo:</strong> Thao tác này chỉ xóa quyền Auth vĩnh viễn và thu hồi Token. Hồ sơ, media và bài đăng trên cơ sở dữ liệu sẽ vẫn được giữ nguyên. Vui lòng xác nhận.</span>
               </div>
             )}
 
             <h4 className="font-semibold flex items-center gap-2 mb-3 border-b border-base-200 pb-2">
-              <Clock size={16} /> Lịch sử đăng nhập
+              <Clock size={16} /> Lịch sử đăng nhập gần nhất
             </h4>
 
             {historyLoading ? (
@@ -233,20 +298,24 @@ export default function AdminUsers() {
                     </tr>
                   </thead>
                   <tbody>
-                    {MOCK_HISTORY.map((h) => (
-                      <tr key={h.id}>
-                        <td className="whitespace-nowrap">{new Date(h.time).toLocaleString("vi-VN")}</td>
+                    {selectedUser.latestLoginData ? (
+                      <tr>
+                        <td className="whitespace-nowrap">{new Date(selectedUser.latestLoginData.created_at).toLocaleString("vi-VN")}</td>
                         <td>
-                          <div>{h.ip}</div>
-                          <div className="text-xs text-base-content/50">{h.location}</div>
+                          <div>{selectedUser.latestLoginData.ip_address}</div>
+                          <div className="text-xs text-base-content/50">{selectedUser.latestLoginData.city}, {selectedUser.latestLoginData.country}</div>
                         </td>
                         <td>
-                          <div>{h.os} - {h.browser}</div>
-                          <div className="text-xs text-base-content/50">Build: {h.build}</div>
+                          <div>{selectedUser.latestLoginData.os} - {selectedUser.latestLoginData.browser}</div>
+                          <div className="text-xs text-base-content/50">Build: {selectedUser.latestLoginData.build_version}</div>
                         </td>
-                        <td><span className="badge badge-ghost badge-xs">{h.method}</span></td>
+                        <td><span className="badge badge-ghost badge-xs">{selectedUser.latestLoginData.login_method}</span></td>
                       </tr>
-                    ))}
+                    ) : (
+                       <tr>
+                          <td colSpan="4" className="text-center py-4 text-base-content/50 text-sm">Chưa có lịch sử đăng nhập nào được ghi nhận.</td>
+                       </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
