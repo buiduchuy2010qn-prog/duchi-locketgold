@@ -42,7 +42,10 @@ const adminUids = new Set();
 // Middleware to verify admin
 async function requireAdmin(req, res, next) {
   if (admin.apps.length === 0) {
-    return res.status(500).json({ success: false, error: "Hệ thống chưa được cấu hình FIREBASE_SERVICE_ACCOUNT_BASE64 trên Railway. Vui lòng thêm biến môi trường này để chức năng Admin hoạt động." });
+    return res.status(500).json({ 
+      success: false, 
+      message: "Thiếu biến môi trường FIREBASE_SERVICE_ACCOUNT_BASE64 trên Railway! Vui lòng thêm biến này vào Railway Variables và đợi 1 phút để Server khởi động lại." 
+    });
   }
 
   const authHeader = req.headers.authorization;
