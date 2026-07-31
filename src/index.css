@@ -798,3 +798,18 @@ html[data-performance-mode="lite"] .animate-borderExpand, html[data-performance-
   animation: none !important;
 }
 
+
+/* PINK SNOW DARK MODE ENFORCEMENT */
+html[data-theme="pinksnow"][data-color-mode="dark"], html[data-theme="pinksnow"][data-color-mode="dark"] body {
+  background-color: #1c0710 !important;
+  color: #fce4ec !important;
+}
+html[data-theme="pinksnow"][data-color-mode="dark"] .bg-base-100, html[data-theme="pinksnow"][data-color-mode="dark"] .bg-white, html[data-theme="pinksnow"][data-color-mode="dark"] .card, html[data-theme="pinksnow"][data-color-mode="dark"] .modal-box {
+  background-color: #2a0a18 !important;
+  color: #fce4ec !important;
+  border-color: #5c1535 !important;
+}
+html[data-theme="pinksnow"][data-color-mode="dark"] .bg-base-200, html[data-theme="pinksnow"][data-color-mode="dark"] .bg-base-300 {
+  background-color: #420f26 !important;
+}
+
