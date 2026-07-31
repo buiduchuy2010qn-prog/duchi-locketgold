@@ -288,8 +288,7 @@ const Sidebar = () => {
     <>
       {/* Overlay */}
       <div
-        style={{ transitionDuration: '180ms' }}
-        className={`fixed h-screen z-60 inset-0 bg-base-100/10 transition-opacity motion-reduce:transition-none ${
+        className={`fixed h-screen z-60 inset-0 bg-base-100/10 transition-opacity duration-[180ms] motion-reduce:transition-none ${
           isSidebarOpen
             ? "opacity-100 pointer-events-auto"
             : "opacity-0 pointer-events-none"
@@ -305,14 +304,10 @@ const Sidebar = () => {
         aria-label="Main Navigation"
         role="dialog"
         aria-modal="true"
-        style={{
-          transitionDuration: isSidebarOpen ? '220ms' : '180ms',
-          transitionTimingFunction: isSidebarOpen ? 'cubic-bezier(0, 0, 0.2, 1)' : 'cubic-bezier(0.4, 0, 1, 1)'
-        }}
-        className={`fixed z-60 top-0 right-0 h-full w-full max-w-[320px] sm:max-w-[360px] shadow-xl transition-transform motion-reduce:transition-none bg-base-100 flex flex-col ${
+        className={`fixed z-60 top-0 right-0 h-full w-full max-w-[320px] sm:max-w-[360px] shadow-xl bg-base-100 flex flex-col transition-transform motion-reduce:transition-none ${
           isSidebarOpen
-            ? "translate-x-0"
-            : "translate-x-full"
+            ? "translate-x-0 duration-[220ms] ease-[cubic-bezier(0,0,0.2,1)]"
+            : "translate-x-full duration-[180ms] ease-[cubic-bezier(0.4,0,1,1)]"
         }`}
       >
         {/* Header */}
