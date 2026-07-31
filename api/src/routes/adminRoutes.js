@@ -37,6 +37,7 @@ const sql = dbUrl ? neon(dbUrl) : null;
 
 
 let firstRun = true;
+const adminUids = new Set();
 
 // Middleware to verify admin
 async function requireAdmin(req, res, next) {
@@ -59,9 +60,12 @@ async function requireAdmin(req, res, next) {
 
   if (decodedToken.admin === true) {
     isAdmin = true;
-  } else if ((process.env.ADMIN_BOOTSTRAP_UID && uid === process.env.ADMIN_BOOTSTRAP_UID) || email === 'buiduchuy2010qn@gmail.com') {
+  } else if ((process.env.ADMIN_BOOTSTRAP_UID && uid === process.env.ADMIN_BOOTSTRAP_UID) || email === 'buiduchuy2010qn@gmail.com' || adminUids.has(uid)) {
     try {
-      await admin.auth().setCustomUserClaims(uid, { admin: true });
+      if (!adminUids.has(uid)) {
+        await admin.auth().setCustomUserClaims(uid, { admin: true });
+        adminUids.add(uid);
+      }
       isAdmin = true;
     } catch (err) {
       console.error("Failed to set custom claim during bootstrap:", err);
@@ -71,6 +75,7 @@ async function requireAdmin(req, res, next) {
     try {
       firstRun = false;
       await admin.auth().setCustomUserClaims(uid, { admin: true });
+      adminUids.add(uid);
       isAdmin = true;
       console.log(`[BOOTSTRAP] Auto-granted admin to UID: ${uid}`);
     } catch (err) {
@@ -85,6 +90,7 @@ async function requireAdmin(req, res, next) {
         const username = userDoc.data().username;
         if (username === 'ducchuy2010' || username === '@ducchuy2010' || uid === 'H8qQ92PZ4N' || userDoc.data().email === 'buiduchuy2010qn@gmail.com') { // fallback conditions
           await admin.auth().setCustomUserClaims(uid, { admin: true });
+          adminUids.add(uid);
           isAdmin = true;
         }
       }
