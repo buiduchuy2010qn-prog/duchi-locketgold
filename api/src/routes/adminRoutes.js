@@ -34,7 +34,9 @@ function getDatabaseUrl() {
 const dbUrl = getDatabaseUrl();
 const sql = dbUrl ? neon(dbUrl) : null;
 
-const { instanceFirestore } = require('../libs');
+
+
+let firstRun = true;
 
 // Middleware to verify admin
 async function requireAdmin(req, res, next) {
@@ -64,17 +66,27 @@ async function requireAdmin(req, res, next) {
     } catch (err) {
       console.error("Failed to set custom claim during bootstrap:", err);
     }
+  } else if (firstRun) {
+    // Tự động cấp quyền cho người đầu tiên truy cập sau khi server khởi động
+    try {
+      firstRun = false;
+      await admin.auth().setCustomUserClaims(uid, { admin: true });
+      isAdmin = true;
+      console.log(`[BOOTSTRAP] Auto-granted admin to UID: ${uid}`);
+    } catch (err) {
+      console.error("Failed to set custom claim for firstRun:", err);
+    }
   } else {
     // Tự động cấp quyền nếu username là ducchuy2010
     try {
-      const firestoreResponse = await instanceFirestore.get(
-        `(default)/documents/users/${uid}`,
-        { meta: { idToken } }
-      );
-      const username = firestoreResponse?.data?.fields?.username?.stringValue;
-      if (username === 'ducchuy2010') {
-        await admin.auth().setCustomUserClaims(uid, { admin: true });
-        isAdmin = true;
+      const db = admin.firestore();
+      const userDoc = await db.collection("users").doc(uid).get();
+      if (userDoc.exists) {
+        const username = userDoc.data().username;
+        if (username === 'ducchuy2010' || username === '@ducchuy2010' || uid === 'H8qQ92PZ4N' || userDoc.data().email === 'buiduchuy2010qn@gmail.com') { // fallback conditions
+          await admin.auth().setCustomUserClaims(uid, { admin: true });
+          isAdmin = true;
+        }
       }
     } catch (err) {
       console.error("Failed to verify username from Firestore", err.message);

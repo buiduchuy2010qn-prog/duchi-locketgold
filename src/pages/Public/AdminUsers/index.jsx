@@ -36,6 +36,7 @@ export default function AdminUsers() {
       } catch (err) {
         setIsAdmin(false);
         setCheckingAdmin(false);
+        setError(err.response?.data?.error || err.message);
       }
     };
     if (user) {
@@ -74,7 +75,7 @@ export default function AdminUsers() {
       <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center animate-fade-in">
         <AlertTriangle size={64} className="text-error mb-4" />
         <h1 className="text-2xl font-bold">Truy cập bị từ chối</h1>
-        <p className="mt-2 text-base-content/70">Bạn không có quyền quản trị viên hệ thống.</p>
+        <p className="mt-2 text-base-content/70">{error || "Bạn không có quyền quản trị viên hệ thống."}</p>
       </div>
     );
   }
