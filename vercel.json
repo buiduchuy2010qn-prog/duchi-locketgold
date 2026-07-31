@@ -14,6 +14,14 @@
       "destination": "https://huy-locket-api-production.up.railway.app/:path*"
     },
     {
+      "source": "/api/admin",
+      "destination": "https://huy-locket-api-production.up.railway.app/api/admin"
+    },
+    {
+      "source": "/api/admin/:path*",
+      "destination": "https://huy-locket-api-production.up.railway.app/api/admin/:path*"
+    },
+    {
       "source": "/dio-auth",
       "destination": "https://huy-locket-api-production.up.railway.app/"
     },

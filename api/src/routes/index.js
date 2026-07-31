@@ -10,6 +10,7 @@ const { planRoutes } = require("../modules/locketdio");
 const { storageRoutes } = require("../modules/storage/routes");
 const { draftRoutes } = require("../modules/drafts");
 const { healthController } = require("../controllers");
+const adminRoutes = require("./adminRoutes");
 
 module.exports = (app) => {
   app.get("/", (req, res) => {
@@ -38,4 +39,7 @@ module.exports = (app) => {
   app.use("/api", storageRoutes);
   // Account-synced moment drafts (metadata + private media on API disk)
   app.use("/api", draftRoutes);
+
+  // Admin routes
+  app.use("/api/admin", adminRoutes);
 };

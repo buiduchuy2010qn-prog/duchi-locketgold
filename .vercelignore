@@ -43,6 +43,3 @@ node_modules
 src
 public
 dist
-
-!api/admin/**
-!api/_utils/**
