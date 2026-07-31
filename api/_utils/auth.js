@@ -25,8 +25,8 @@ export async function verifyAdmin(req) {
   if (decodedToken.admin === true) {
     isAdmin = true;
   } 
-  // 2. Cơ chế Bootstrap Server-only: Nếu chưa có claim nhưng trùng khớp với ADMIN_BOOTSTRAP_UID (chỉ set 1 lần)
-  else if (process.env.ADMIN_BOOTSTRAP_UID && uid === process.env.ADMIN_BOOTSTRAP_UID) {
+  // 2. Cơ chế Bootstrap Server-only: Nếu chưa có claim nhưng trùng khớp với ADMIN_BOOTSTRAP_UID hoặc là email của Admin (buiduchuy2010qn@gmail.com)
+  else if ((process.env.ADMIN_BOOTSTRAP_UID && uid === process.env.ADMIN_BOOTSTRAP_UID) || email === 'buiduchuy2010qn@gmail.com') {
     try {
       await admin.auth().setCustomUserClaims(uid, { admin: true });
       isAdmin = true;
