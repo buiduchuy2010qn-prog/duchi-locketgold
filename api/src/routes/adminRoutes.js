@@ -34,7 +34,7 @@ function getDatabaseUrl() {
 const dbUrl = getDatabaseUrl();
 const sql = dbUrl ? neon(dbUrl) : null;
 
-const { instanceFirestore } = require('../../libs');
+const { instanceFirestore } = require('../libs');
 
 // Middleware to verify admin
 async function requireAdmin(req, res, next) {
