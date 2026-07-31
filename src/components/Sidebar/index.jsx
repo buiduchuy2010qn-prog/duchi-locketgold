@@ -171,6 +171,12 @@ const Sidebar = () => {
                 text: "Quản lý Drive (Admin)",
                 badge: "Admin",
               },
+              {
+                to: "/admin/users",
+                icon: UserRound,
+                text: "Quản lý Người dùng",
+                badge: "Admin",
+              },
             ],
           },
         ]
