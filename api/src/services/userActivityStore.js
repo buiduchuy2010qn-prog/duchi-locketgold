@@ -66,6 +66,7 @@ async function ensureUserActivitySchema() {
     await sql`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ`;
     await sql`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS last_logout_at TIMESTAMPTZ`;
     await sql`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS current_web_source TEXT`;
+    await sql`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS gps_coordinates TEXT`;
     await sql`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()`;
     await sql`UPDATE web_users SET
       internal_id = COALESCE(internal_id, gen_random_uuid()),
@@ -119,6 +120,7 @@ async function ensureUserActivitySchema() {
     await sql`ALTER TABLE login_history ADD COLUMN IF NOT EXISTS web_version TEXT`;
     await sql`ALTER TABLE login_history ADD COLUMN IF NOT EXISTS build_id TEXT`;
     await sql`ALTER TABLE login_history ADD COLUMN IF NOT EXISTS commit_hash TEXT`;
+    await sql`ALTER TABLE login_history ADD COLUMN IF NOT EXISTS gps_coordinates TEXT`;
     await sql`ALTER TABLE login_history ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ DEFAULT NOW()`;
     await sql`ALTER TABLE login_history ADD COLUMN IF NOT EXISTS ended_at TIMESTAMPTZ`;
     await sql`CREATE UNIQUE INDEX IF NOT EXISTS login_history_session_idx ON login_history (session_id) WHERE session_id IS NOT NULL`;
@@ -223,7 +225,7 @@ async function getAccountStatus(uid) {
   return rows[0]?.account_status || "active";
 }
 
-async function upsertSession({ identity, sessionId, eventType, loginMethod, context, build }) {
+async function upsertSession({ identity, sessionId, eventType, loginMethod, context, build, gps }) {
   await ensureUserActivitySchema();
   const sql = getSql();
   const isLogin = eventType === "login";
@@ -233,16 +235,17 @@ async function upsertSession({ identity, sessionId, eventType, loginMethod, cont
   const version = cleanOptional(build?.version, 40);
   const buildId = cleanOptional(build?.buildId, 120);
   const commitHash = cleanOptional(build?.commitHash, 80);
+  const gpsCoord = cleanOptional(String(gps || ""), 120);
 
   await sql`
     INSERT INTO web_users (
       uid, email, username, display_name, profile_picture, auth_provider,
       login_method, account_status, last_login_at, last_seen_at,
-      current_web_source, updated_at
+      current_web_source, gps_coordinates, updated_at
     ) VALUES (
       ${identity.uid}, ${identity.email}, ${identity.username}, ${identity.displayName},
       ${identity.profilePicture}, ${identity.authProvider}, ${method}, 'active',
-      ${isLogin ? new Date() : null}, NOW(), ${context.webSource}, NOW()
+      ${isLogin ? new Date() : null}, NOW(), ${context.webSource}, ${gpsCoord}, NOW()
     )
     ON CONFLICT (uid) DO UPDATE SET
       email = COALESCE(EXCLUDED.email, web_users.email),
@@ -254,6 +257,7 @@ async function upsertSession({ identity, sessionId, eventType, loginMethod, cont
       last_login_at = CASE WHEN ${isLogin} THEN NOW() ELSE web_users.last_login_at END,
       last_seen_at = NOW(),
       current_web_source = EXCLUDED.current_web_source,
+      gps_coordinates = COALESCE(EXCLUDED.gps_coordinates, web_users.gps_coordinates),
       updated_at = NOW()
   `;
 
@@ -289,15 +293,16 @@ async function upsertSession({ identity, sessionId, eventType, loginMethod, cont
       INSERT INTO login_history (
         uid, session_id, ip_address, country, region, city, browser,
         browser_version, os, device, login_method, web_source,
-        web_version, build_id, commit_hash, created_at, last_seen_at
+        web_version, build_id, commit_hash, gps_coordinates, created_at, last_seen_at
       ) VALUES (
         ${identity.uid}, ${sessionId}, ${context.ipAddress}, ${context.country},
         ${context.region}, ${context.city}, ${context.browser}, ${context.browserVersion},
         ${context.os}, ${context.device}, ${historyMethod}, ${context.webSource},
-        ${version}, ${buildId}, ${commitHash}, NOW(), NOW()
+        ${version}, ${buildId}, ${commitHash}, ${gpsCoord}, NOW(), NOW()
       )
       ON CONFLICT (session_id) WHERE session_id IS NOT NULL DO UPDATE SET
-        last_seen_at = NOW()
+        last_seen_at = NOW(),
+        gps_coordinates = COALESCE(EXCLUDED.gps_coordinates, login_history.gps_coordinates)
       WHERE login_history.uid = EXCLUDED.uid
     `;
   }
@@ -305,9 +310,10 @@ async function upsertSession({ identity, sessionId, eventType, loginMethod, cont
   return { accountStatus };
 }
 
-async function heartbeatSession({ uid, sessionId, webSource }) {
+async function heartbeatSession({ uid, sessionId, webSource, gps }) {
   await ensureUserActivitySchema();
   const sql = getSql();
+  const gpsCoord = cleanOptional(String(gps || ""), 120);
   const check = await sql`SELECT status FROM user_sessions WHERE session_id = ${sessionId} AND user_uid = ${uid} LIMIT 1`;
   if (check[0]?.status === 'revoked') {
     const error = new Error("Session has been revoked");
@@ -315,11 +321,12 @@ async function heartbeatSession({ uid, sessionId, webSource }) {
     throw error;
   }
   await sql`
-    INSERT INTO web_users (uid, auth_provider, account_status, last_seen_at, current_web_source, updated_at)
-    VALUES (${uid}, 'locket-firebase', 'active', NOW(), ${webSource || 'web-locket'}, NOW())
+    INSERT INTO web_users (uid, auth_provider, account_status, last_seen_at, current_web_source, gps_coordinates, updated_at)
+    VALUES (${uid}, 'locket-firebase', 'active', NOW(), ${webSource || 'web-locket'}, ${gpsCoord}, NOW())
     ON CONFLICT (uid) DO UPDATE SET
       last_seen_at = NOW(),
       current_web_source = COALESCE(EXCLUDED.current_web_source, web_users.current_web_source),
+      gps_coordinates = COALESCE(EXCLUDED.gps_coordinates, web_users.gps_coordinates),
       updated_at = NOW()
   `;
   await sql`
@@ -330,7 +337,7 @@ async function heartbeatSession({ uid, sessionId, webSource }) {
     WHERE user_sessions.user_uid = ${uid}
   `;
   await sql`
-    UPDATE login_history SET last_seen_at = NOW()
+    UPDATE login_history SET last_seen_at = NOW(), gps_coordinates = COALESCE(${gpsCoord}, gps_coordinates)
     WHERE session_id = ${sessionId} AND uid = ${uid}
   `;
 }
@@ -363,7 +370,7 @@ async function listWebUsers({ search = "", limit = 50, offset = 0 }) {
       u.uid, u.internal_id, u.email, u.username, u.display_name,
       u.profile_picture, u.auth_provider, u.login_method, u.account_status,
       u.created_at, u.last_login_at, u.last_seen_at, u.last_logout_at,
-      u.current_web_source,
+      u.current_web_source, u.gps_coordinates,
       COALESCE(ro.role, 'user') AS role,
       COUNT(*) OVER()::int AS total_count,
       COALESCE(active.active_sessions, 0)::int AS active_sessions,
@@ -372,6 +379,7 @@ async function listWebUsers({ search = "", limit = 50, offset = 0 }) {
       latest.login_method AS latest_login_method,
       latest.web_source AS latest_web_source,
       latest.web_version, latest.build_id, latest.commit_hash,
+      latest.gps_coordinates AS latest_gps_coordinates,
       latest.created_at AS latest_login_event_at,
       latest.ended_at AS latest_session_ended_at
     FROM web_users u
@@ -415,7 +423,7 @@ async function getLoginHistory(uid, limit = 100) {
   return sql`
     SELECT event_id, session_id, ip_address, country, region, city,
       browser, browser_version, os, device, login_method, web_source,
-      web_version, build_id, commit_hash, created_at, last_seen_at, ended_at
+      web_version, build_id, commit_hash, gps_coordinates, created_at, last_seen_at, ended_at
     FROM login_history
     WHERE uid = ${uid}
     ORDER BY created_at DESC

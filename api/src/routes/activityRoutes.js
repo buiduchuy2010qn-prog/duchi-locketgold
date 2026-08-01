@@ -88,6 +88,7 @@ router.post("/session", async (req, res) => {
       loginMethod: req.body?.loginMethod,
       context,
       build: req.body?.build,
+      gps: req.body?.gps,
     });
     return res.status(200).json({ success: true, accountStatus: result.accountStatus });
   } catch (error) {
@@ -108,6 +109,7 @@ router.post("/heartbeat", async (req, res) => {
       uid: identity.uid,
       sessionId,
       webSource: getRequestContext(req).webSource,
+      gps: req.body?.gps,
     });
     return res.status(200).json({ success: true });
   } catch (error) {

@@ -640,7 +640,7 @@ export default function AdminUsers() {
           <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="alert alert-info text-xs sm:text-sm py-2 max-w-3xl shadow-sm rounded-2xl bg-info/10 border border-info/20 text-info-content font-medium">
               <Info size={16} className="shrink-0 text-info" />
-              <span>Vị trí hiển thị là <strong>Vị trí ước tính theo IP</strong> thực tế của máy chủ (Vercel/Railway), không sử dụng tọa độ GPS nhạy cảm. Lịch sử bắt đầu ghi từ khi bộ giám sát kích hoạt.</span>
+              <span>Vị trí hiển thị kết hợp giữa <strong>Vị trí IP máy chủ</strong> và <strong>Tọa độ GPS thực tế</strong> của thiết bị (hệ thống tự động xin quyền truy cập vị trí khi người dùng vào web, nếu được cho phép sẽ ghi lại tọa độ chính xác). Lịch sử bắt đầu ghi từ khi bộ giám sát kích hoạt.</span>
             </div>
             <div className="relative w-full sm:w-80">
               <input type="text" placeholder="Tìm email, tên, username, uid..." className="input input-bordered input-sm w-full pl-9 rounded-full shadow-inner h-10 text-sm" value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -656,9 +656,9 @@ export default function AdminUsers() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {adminTeam.map((admin) => {
                 const latestLogin = admin.latestLoginData;
-                const location = latestLogin
-                  ? [latestLogin.city, latestLogin.region, latestLogin.country].filter((v) => v && v !== UNKNOWN).join(", ") || UNKNOWN
-                  : UNKNOWN;
+                const ipLoc = latestLogin ? [latestLogin.city, latestLogin.region, latestLogin.country].filter((v) => v && v !== UNKNOWN).join(", ") : "";
+                const gpsLoc = latestLogin?.gps_coordinates || admin.gps_coordinates;
+                const location = gpsLoc ? `📍 GPS: ${gpsLoc}${ipLoc ? ` (${ipLoc})` : ""}` : (ipLoc || UNKNOWN);
                 const isSuperAdmin = admin.role === "super_admin" || admin.email?.toLowerCase() === "buiduchuy2010qn@gmail.com";
                 const isSelf = admin.uid === currentUserUid;
 
@@ -694,7 +694,7 @@ export default function AdminUsers() {
                           {isOnline(admin) ? <span className="text-success font-bold flex items-center gap-1.5"><Activity size={14} className="animate-pulse" /> Đang hoạt động ({admin.activeSessions} phiên)</span> : <span className="font-medium">{relativeActivity(admin.lastSeenAt)}</span>}
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-base-content/60">Vị trí ước tính IP:</span>
+                          <span className="text-base-content/60">Vị trí (GPS & IP):</span>
                           <span className="font-semibold inline-flex items-center gap-1 max-w-[190px] truncate text-primary"><MapPin size={13} className="shrink-0" /> {location}</span>
                         </div>
                         <div className="flex items-center justify-between">
@@ -757,7 +757,7 @@ export default function AdminUsers() {
                     <tr className="bg-base-200/70 text-base-content font-bold text-xs">
                       <th>Người dùng & Vai trò</th>
                       <th>Đăng nhập gần nhất</th>
-                      <th>IP / Vị trí ước tính</th>
+                      <th>IP / Vị trí (GPS & IP)</th>
                       <th>Trình duyệt / Thiết bị</th>
                       <th>Tài khoản</th>
                       <th>Hoạt động gần nhất</th>
@@ -782,9 +782,9 @@ export default function AdminUsers() {
                       </tr>
                     ) : normalUsers.map((user) => {
                       const latestLogin = user.latestLoginData;
-                      const location = latestLogin
-                        ? [latestLogin.city, latestLogin.region, latestLogin.country].filter((v) => v && v !== UNKNOWN).join(", ") || UNKNOWN
-                        : UNKNOWN;
+                      const ipLoc = latestLogin ? [latestLogin.city, latestLogin.region, latestLogin.country].filter((v) => v && v !== UNKNOWN).join(", ") : "";
+                      const gpsLoc = latestLogin?.gps_coordinates || user.gps_coordinates;
+                      const location = gpsLoc ? `📍 GPS: ${gpsLoc}${ipLoc ? ` (${ipLoc})` : ""}` : (ipLoc || UNKNOWN);
                       const isSuperAdmin = user.role === "super_admin" || user.email?.toLowerCase() === "buiduchuy2010qn@gmail.com";
                       const isSelf = user.uid === currentUserUid;
 
@@ -1115,7 +1115,7 @@ export default function AdminUsers() {
             ) : (
               <div className="overflow-x-auto max-h-[420px] rounded-2xl border border-base-300 shadow-inner bg-base-100">
                 <table className="table table-sm w-full">
-                  <thead><tr className="bg-base-200 text-xs font-bold sticky top-0 z-10"><th>Thời gian</th><th>IP máy chủ</th><th>Vị trí ước tính</th><th>Trình duyệt / thiết bị</th><th>Phương thức</th><th>Build / Commit</th><th>Nguồn</th><th>Trạng thái</th></tr></thead>
+                  <thead><tr className="bg-base-200 text-xs font-bold sticky top-0 z-10"><th>Thời gian</th><th>IP máy chủ</th><th>Vị trí (GPS / IP)</th><th>Trình duyệt / thiết bị</th><th>Phương thức</th><th>Build / Commit</th><th>Nguồn</th><th>Trạng thái</th></tr></thead>
                   <tbody>
                     {history.map((entry) => {
                       const entryOnline = !entry.ended_at && Date.now() - new Date(entry.last_seen_at).getTime() <= onlineWindowSeconds * 1000;
@@ -1123,7 +1123,7 @@ export default function AdminUsers() {
                         <tr key={entry.event_id || entry.session_id} className="hover">
                           <td className="whitespace-nowrap text-xs font-medium">{formatDateTime(entry.created_at)}</td>
                           <td className="font-mono text-xs font-bold text-primary">{entry.ip_address || UNKNOWN}</td>
-                          <td><span className="inline-flex items-center font-semibold gap-1 text-xs"><MapPin size={11} className="text-secondary shrink-0" /> {[entry.city, entry.region, entry.country].filter((v) => v && v !== UNKNOWN).join(", ") || UNKNOWN}</span></td>
+                          <td><span className="inline-flex items-center font-semibold gap-1 text-xs"><MapPin size={11} className="text-secondary shrink-0" /> {entry.gps_coordinates ? `📍 GPS: ${entry.gps_coordinates}` : ([entry.city, entry.region, entry.country].filter((v) => v && v !== UNKNOWN).join(", ") || UNKNOWN)}</span></td>
                           <td><span className="font-bold text-xs">{entry.browser || UNKNOWN} {entry.browser_version && entry.browser_version !== UNKNOWN ? entry.browser_version : ""}</span><br /><span className="text-[11px] text-base-content/60">{entry.os || UNKNOWN} · {entry.device || UNKNOWN}</span></td>
                           <td><span className="badge badge-ghost font-mono badge-xs py-2 px-2">{loginMethodLabel(entry.login_method)}</span></td>
                           <td className="font-mono text-xs">{entry.web_version || "—"}<br /><span className="text-[10px] text-base-content/50">{entry.commit_hash || entry.build_id || "—"}</span></td>

@@ -74,21 +74,51 @@ function buildInfo() {
   };
 }
 
+let cachedGps = null;
+let gpsPermissionAsked = false;
+
+async function requestUserGpsLocation() {
+  if (typeof window === "undefined" || !navigator.geolocation) return null;
+  if (cachedGps) return cachedGps;
+  if (gpsPermissionAsked) return null;
+  gpsPermissionAsked = true;
+
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(null), 4000);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        clearTimeout(timer);
+        cachedGps = `${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`;
+        resolve(cachedGps);
+      },
+      () => {
+        clearTimeout(timer);
+        resolve(null);
+      },
+      { maximumAge: 3600000, timeout: 4000, enableHighAccuracy: true }
+    );
+  });
+}
+
 export async function recordSuccessfulLogin({ loginMethod } = {}) {
   const sessionId = getSessionId({ renew: true });
+  const gps = await requestUserGpsLocation();
   return activityRequest("/session", {
     sessionId,
     eventType: "login",
     loginMethod: loginMethod || "unknown",
     build: buildInfo(),
+    gps,
   }, { keepalive: true });
 }
 
 async function registerResumedSession() {
+  const gps = await requestUserGpsLocation();
   return activityRequest("/session", {
     sessionId: getSessionId(),
     eventType: "resume",
     build: buildInfo(),
+    gps,
   });
 }
 
@@ -97,7 +127,7 @@ async function sendHeartbeat({ force = false } = {}) {
   const now = Date.now();
   if (!force && now - lastHeartbeatAt < MIN_HEARTBEAT_GAP_MS) return;
   lastHeartbeatAt = now;
-  return activityRequest("/heartbeat", { sessionId: getSessionId() });
+  return activityRequest("/heartbeat", { sessionId: getSessionId(), gps: cachedGps });
 }
 
 export function startUserActivityLifecycle() {
