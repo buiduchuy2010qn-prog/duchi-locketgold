@@ -183,6 +183,12 @@ api.interceptors.response.use(
     }
 
     if (status === 403) {
+      const errorCode = error?.response?.data?.error || error?.response?.data?.code;
+      if (errorCode === "ACCOUNT_LOCKED" || errorCode === "SESSION_REVOKED" || String(message).toLowerCase().includes("locked")) {
+        SonnerInfo("⛔ Tài khoản của bạn đã bị Quản Trị Viên khóa và cấm truy cập!");
+        handleLogout();
+        return Promise.reject(error);
+      }
       SonnerInfo(message || "Bạn không có quyền truy cập!");
     }
 

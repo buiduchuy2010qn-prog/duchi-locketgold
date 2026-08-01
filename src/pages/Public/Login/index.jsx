@@ -19,6 +19,7 @@ import { recordSuccessfulLogin } from "@/services/UserActivityService";
 const Login = () => {
   const initAuth = useAuthStore((s) => s.initAuth);
   const hydrateAuth = useAuthStore((s) => s.hydrateAuth);
+  const clearAndlogout = useAuthStore((s) => s.clearAndlogout);
   const [captchaToken, setCaptchaToken] = useState(null);
   const [loginMethod, setLoginMethod] = useState("email"); // "email" hoặc "phone"
   const [identifier, setIdentifier] = useState("");
@@ -87,9 +88,15 @@ const Login = () => {
 
         saveToken({ idToken, localId, refreshToken }, rememberMe);
 
-        recordSuccessfulLogin({ loginMethod }).catch((error) => {
+        try {
+          await recordSuccessfulLogin({ loginMethod });
+        } catch (error) {
+          if (error?.code === "ACCOUNT_LOCKED" || error?.code === "SESSION_REVOKED" || error?.status === 403) {
+            await clearAndlogout();
+            throw error;
+          }
           console.warn("[activity] login event was not recorded:", error.code || error.message);
-        });
+        }
 
         await ensureDBOwner(localId);
 
@@ -116,6 +123,9 @@ const Login = () => {
             case 429:
               return t("login.toast.too_many_requests");
             case 403:
+              if (error?.code === "ACCOUNT_LOCKED" || error?.message?.includes("locked") || error?.message?.includes("Khóa")) {
+                return "⛔ Tài khoản Locket Web của bạn đã bị Quản Trị Viên khóa quyền sử dụng!";
+              }
               window.location.href = "/login";
               return t("login.toast.forbidden");
             case 500:

@@ -92,8 +92,8 @@ router.post("/session", async (req, res) => {
     });
     return res.status(200).json({ success: true, accountStatus: result.accountStatus });
   } catch (error) {
-    if (error.code === "ACCOUNT_LOCKED") {
-      return res.status(403).json({ success: false, code: "ACCOUNT_LOCKED", error: "Website account is locked" });
+    if (error.code === "ACCOUNT_LOCKED" || error.code === "SESSION_REVOKED") {
+      return res.status(403).json({ success: false, code: error.code, error: error.message });
     }
     console.error("User activity session write failed:", error?.code || error?.name || "unknown");
     return res.status(500).json({ success: false, code: "ACTIVITY_WRITE_FAILED", error: "Unable to record user activity" });
@@ -113,6 +113,9 @@ router.post("/heartbeat", async (req, res) => {
     });
     return res.status(200).json({ success: true });
   } catch (error) {
+    if (error.code === "ACCOUNT_LOCKED" || error.code === "SESSION_REVOKED") {
+      return res.status(403).json({ success: false, code: error.code, error: error.message });
+    }
     console.error("User activity heartbeat failed:", error?.code || error?.name || "unknown");
     return res.status(500).json({ success: false, code: "HEARTBEAT_FAILED", error: "Unable to update activity" });
   }

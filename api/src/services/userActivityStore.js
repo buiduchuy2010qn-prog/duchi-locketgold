@@ -313,6 +313,12 @@ async function upsertSession({ identity, sessionId, eventType, loginMethod, cont
 
 async function heartbeatSession({ uid, sessionId, webSource, gps }) {
   await ensureUserActivitySchema();
+  const accountStatus = await getAccountStatus(uid);
+  if (accountStatus === "locked") {
+    const error = new Error("Website account is locked");
+    error.code = "ACCOUNT_LOCKED";
+    throw error;
+  }
   const sql = getSql();
   const gpsCoord = cleanOptional(String(gps || ""), 120);
   const check = await sql`SELECT status FROM user_sessions WHERE session_id = ${sessionId} AND user_uid = ${uid} LIMIT 1`;

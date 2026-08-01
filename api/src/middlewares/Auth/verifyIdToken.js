@@ -6,7 +6,7 @@ const {
 } = require("../../utils/logEventUtils");
 const { getPlanFromCookie } = require("../../utils/tokenUtils/setPlanToken");
 const { tokenUltils } = require("../../utils");
-const { recordServerUserActivity } = require("../../services/userActivityStore");
+const { recordServerUserActivity, getAccountStatus } = require("../../services/userActivityStore");
 
 const verifyIdToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -36,7 +36,6 @@ const verifyIdToken = async (req, res, next) => {
       "verifyIdToken",
       `✅ Authenticated: ${decodedPayload?.email} ${decodedPayload?.phone_number} (${decodedPayload.user_id})`,
     );
-    // console.log(decodedPayload);
 
     req.user = {
       idToken, // token gốc
@@ -49,6 +48,15 @@ const verifyIdToken = async (req, res, next) => {
       exp: decodedPayload.exp,
       iat: decodedPayload.iat,
     };
+
+    if (req.user.uid) {
+      const status = await getAccountStatus(req.user.uid).catch(() => "active");
+      if (status === "locked") {
+        logError("verifyIdToken", `⛔ Account is locked: ${req.user.uid}`);
+        return res.status(403).json({ success: false, code: "ACCOUNT_LOCKED", error: "Tài khoản Locket Web của bạn đã bị Khóa bởi Quản Trị Viên." });
+      }
+    }
+
     recordServerUserActivity({ user: req.user, req, eventType: "touch" }).catch(() => {});
     next();
   } catch (error) {

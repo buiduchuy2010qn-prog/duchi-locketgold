@@ -1,6 +1,38 @@
 import { CONFIG } from "@/config";
 import currentBuild from "@/config/buildMeta.json";
 import { getToken } from "@/utils";
+import { toast } from "sonner";
+
+let isRevoking = false;
+async function handleAuthRevocation(code) {
+  if (isRevoking) return;
+  isRevoking = true;
+  stopUserActivityLifecycle();
+  try {
+    const { useAuthStore } = await import("@/stores/AuthStore");
+    await useAuthStore.getState().clearAndlogout();
+  } catch (err) {
+    console.warn("Failed forced logout on revocation:", err);
+  } finally {
+    if (code === "ACCOUNT_LOCKED") {
+      toast.error("⛔ Tài khoản đã bị Khóa", {
+        description: "Tài khoản Locket Web của bạn đã bị Quản Trị Viên khóa quyền sử dụng do vi phạm quy định hoặc lý do bảo mật.",
+        duration: 10000,
+      });
+    } else if (code === "SESSION_REVOKED") {
+      toast.error("⛔ Phiên làm việc đã chấm dứt", {
+        description: "Phiên làm việc hiện tại của bạn đã bị thu hồi bởi Quản Trị Viên hoặc đăng nhập lại trên thiết bị khác.",
+        duration: 10000,
+      });
+    }
+    setTimeout(() => {
+      if (typeof window !== "undefined" && window.location.pathname !== "/login" && window.location.pathname !== "/") {
+        window.location.href = "/login";
+      }
+      isRevoking = false;
+    }, 1500);
+  }
+}
 
 const SESSION_KEY = "huy_user_activity_session_v1";
 const HEARTBEAT_INTERVAL_MS = 60_000;
@@ -61,6 +93,9 @@ async function activityRequest(path, body, { keepalive = false } = {}) {
     const error = new Error(data.error || "Activity request failed");
     error.status = response.status;
     error.code = data.code || "ACTIVITY_REQUEST_FAILED";
+    if (error.code === "ACCOUNT_LOCKED" || error.code === "SESSION_REVOKED") {
+      handleAuthRevocation(error.code);
+    }
     throw error;
   }
   return data;
