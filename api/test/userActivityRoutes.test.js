@@ -59,6 +59,12 @@ require.cache[contextPath] = {
   filename: contextPath,
   loaded: true,
   exports: {
+    getLoginRequestContext: async () => ({
+      webSource: "railway",
+      ipAddress: "8.8.8.8",
+      country: "VN",
+      city: "Hà Nội",
+    }),
     getRequestContext: () => ({ webSource: "railway", ipAddress: "8.8.8.8" }),
   },
 };

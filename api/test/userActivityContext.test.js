@@ -1,6 +1,7 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 const {
+  getLoginRequestContext,
   getRequestContext,
   normalizePublicIp,
   parseUserAgent,
@@ -55,4 +56,35 @@ test("parses browser, version, operating system and device", () => {
     parseUserAgent("Mozilla/5.0 (Linux; Android 14; Pixel) Firefox/127.0 Mobile"),
     { browser: "Firefox", browserVersion: "127.0", os: "Android", device: "Mobile" },
   );
+});
+
+test("looks up an approximate location for a Railway login without geo headers", async (t) => {
+  const originalFetch = global.fetch;
+  t.after(() => {
+    global.fetch = originalFetch;
+  });
+  global.fetch = async (url, options) => {
+    assert.match(url, /^https:\/\/ipwho\.is\/8\.8\.8\.8\?/);
+    assert.ok(options.signal);
+    return {
+      ok: true,
+      async json() {
+        return { success: true, country_code: "VN", region: "Hà Nội", city: "Hà Nội" };
+      },
+    };
+  };
+
+  const context = await getLoginRequestContext({
+    ip: "10.0.0.1",
+    headers: {
+      origin: "https://huy-locket-production.up.railway.app",
+      "x-real-ip": "8.8.8.8",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0) Chrome/126.0.0.0 Safari/537.36",
+    },
+  });
+
+  assert.equal(context.ipAddress, "8.8.8.8");
+  assert.equal(context.country, "VN");
+  assert.equal(context.region, "Hà Nội");
+  assert.equal(context.city, "Hà Nội");
 });

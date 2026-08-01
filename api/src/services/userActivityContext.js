@@ -1,6 +1,10 @@
 const net = require("node:net");
 
 const UNKNOWN = "Không xác định";
+const IP_LOCATION_TIMEOUT_MS = 1800;
+const IP_LOCATION_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const IP_LOCATION_FAILURE_TTL_MS = 5 * 60 * 1000;
+const ipLocationCache = new Map();
 const TRUSTED_ORIGINS = new Map([
   ["https://duchi.vercel.app", "vercel"],
   ["https://huy-locket-production.up.railway.app", "railway"],
@@ -119,8 +123,59 @@ function getRequestContext(req) {
   };
 }
 
+function cacheIpLocation(ip, value, ttl) {
+  if (ipLocationCache.size >= 500) {
+    ipLocationCache.delete(ipLocationCache.keys().next().value);
+  }
+  ipLocationCache.set(ip, { value, expiresAt: Date.now() + ttl });
+}
+
+async function lookupPublicIpLocation(ipAddress) {
+  if (!ipAddress || ipAddress === UNKNOWN || typeof fetch !== "function") return null;
+  const cached = ipLocationCache.get(ipAddress);
+  if (cached && cached.expiresAt > Date.now()) return cached.value;
+  if (cached) ipLocationCache.delete(ipAddress);
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), IP_LOCATION_TIMEOUT_MS);
+  try {
+    const response = await fetch(
+      `https://ipwho.is/${encodeURIComponent(ipAddress)}?fields=success,country_code,region,city`,
+      {
+        headers: { Accept: "application/json" },
+        signal: controller.signal,
+      },
+    );
+    if (!response.ok) throw new Error(`IP location lookup failed with ${response.status}`);
+    const data = await response.json();
+    if (data?.success !== true) throw new Error("IP location lookup returned no location");
+    const value = {
+      country: String(data.country_code || UNKNOWN).slice(0, 80),
+      region: String(data.region || UNKNOWN).slice(0, 120),
+      city: String(data.city || UNKNOWN).slice(0, 120),
+    };
+    cacheIpLocation(ipAddress, value, IP_LOCATION_CACHE_TTL_MS);
+    return value;
+  } catch {
+    cacheIpLocation(ipAddress, null, IP_LOCATION_FAILURE_TTL_MS);
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function getLoginRequestContext(req) {
+  const context = getRequestContext(req);
+  if (context.ipAddress === UNKNOWN || context.city !== UNKNOWN || context.country !== UNKNOWN) {
+    return context;
+  }
+  const location = await lookupPublicIpLocation(context.ipAddress);
+  return location ? { ...context, ...location } : context;
+}
+
 module.exports = {
   UNKNOWN,
+  getLoginRequestContext,
   getRequestContext,
   getWebSource,
   normalizePublicIp,

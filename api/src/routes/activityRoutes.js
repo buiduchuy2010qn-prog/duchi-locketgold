@@ -1,7 +1,10 @@
 const express = require("express");
 const rateLimit = require("express-rate-limit");
 const { getLocketAuthVerifier } = require("../services/locketAdminVerifier");
-const { getRequestContext } = require("../services/userActivityContext");
+const {
+  getLoginRequestContext,
+  getRequestContext,
+} = require("../services/userActivityContext");
 const {
   endSession,
   hasActivityDatabase,
@@ -66,12 +69,15 @@ router.post("/session", async (req, res) => {
   const eventType = req.body?.eventType === "login" ? "login" : "resume";
   try {
     const identity = normalizeIdentity(req.verifiedLocketUser);
+    const context = eventType === "login"
+      ? await getLoginRequestContext(req)
+      : getRequestContext(req);
     const result = await upsertSession({
       identity,
       sessionId,
       eventType,
       loginMethod: req.body?.loginMethod,
-      context: getRequestContext(req),
+      context,
       build: req.body?.build,
     });
     return res.status(200).json({ success: true, accountStatus: result.accountStatus });
