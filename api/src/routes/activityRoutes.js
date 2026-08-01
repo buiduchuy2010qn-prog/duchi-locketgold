@@ -70,10 +70,15 @@ router.post("/session", async (req, res) => {
   const eventType = req.body?.eventType === "login" ? "login" : "resume";
   try {
     const idToken = req.headers.authorization.slice(7);
-    const verifiedProfile = await getUserInfoV2(
-      idToken,
-      req.verifiedLocketUser.uid || req.verifiedLocketUser.user_id,
-    );
+    let verifiedProfile = null;
+    try {
+      verifiedProfile = await getUserInfoV2(
+        idToken,
+        req.verifiedLocketUser.uid || req.verifiedLocketUser.user_id,
+      );
+    } catch (profileErr) {
+      console.warn("[activity] profile fetch fallback:", profileErr.message || profileErr);
+    }
     const identity = normalizeIdentity(req.verifiedLocketUser, verifiedProfile);
     const context = await getLoginRequestContext(req);
     const result = await upsertSession({

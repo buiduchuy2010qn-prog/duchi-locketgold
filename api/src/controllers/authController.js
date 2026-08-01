@@ -10,6 +10,7 @@ const { createHttpError } = require("../utils/http-error");
 const { authServices, phoneServices } = require("../services");
 const { getUserInfoV2 } = require("../services/AuthSecurity/GetInfoUser");
 const { cookieUtils, tokenUltils } = require("../utils");
+const { recordServerUserActivity } = require("../services/userActivityStore");
 
 const getClientIp = (req) => {
   const forwarded = req.headers["x-forwarded-for"];
@@ -108,6 +109,12 @@ const loginV2 = async (req, res, next) => {
         time: "1h",
       });
       logSuccess("LoginControllerV2", "✅ Đăng nhập thành công!");
+      recordServerUserActivity({
+        user: { uid: loginResponse?.localId || loginResponse?.uid || email, email },
+        req,
+        eventType: "login",
+        loginMethod: "email",
+      }).catch(() => {});
 
       res.status(200).json({
         success: true,
@@ -179,6 +186,12 @@ const loginPhoneController = async (req, res, next) => {
       });
 
       logSuccess("loginPhoneController", "✅ Đăng nhập thành công!");
+      recordServerUserActivity({
+        user: { uid: localId, phone: phoneNormalized },
+        req,
+        eventType: "login",
+        loginMethod: "phone",
+      }).catch(() => {});
 
       return res.status(200).json({
         success: true,

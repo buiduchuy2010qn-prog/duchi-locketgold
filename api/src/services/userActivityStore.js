@@ -166,6 +166,15 @@ async function ensureUserActivitySchema() {
       resolved_at TIMESTAMPTZ,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )`;
+
+    await sql`
+      INSERT INTO web_users (uid, auth_provider, account_status, created_at, last_seen_at, current_web_source, updated_at)
+      SELECT uid, 'locket-firebase', 'active', COALESCE(MIN(created_at), NOW()), COALESCE(MAX(created_at), NOW()), 'web-locket', NOW()
+      FROM login_history
+      WHERE uid IS NOT NULL AND uid <> ''
+      GROUP BY uid
+      ON CONFLICT (uid) DO NOTHING
+    `;
   })().catch((error) => {
     schemaPromise = null;
     throw error;
@@ -306,14 +315,19 @@ async function heartbeatSession({ uid, sessionId, webSource }) {
     throw error;
   }
   await sql`
-    UPDATE user_sessions
-    SET last_seen_at = NOW(), status = 'active', ended_at = NULL, web_source = ${webSource}
-    WHERE session_id = ${sessionId} AND user_uid = ${uid}
+    INSERT INTO web_users (uid, auth_provider, account_status, last_seen_at, current_web_source, updated_at)
+    VALUES (${uid}, 'locket-firebase', 'active', NOW(), ${webSource || 'web-locket'}, NOW())
+    ON CONFLICT (uid) DO UPDATE SET
+      last_seen_at = NOW(),
+      current_web_source = COALESCE(EXCLUDED.current_web_source, web_users.current_web_source),
+      updated_at = NOW()
   `;
   await sql`
-    UPDATE web_users
-    SET last_seen_at = NOW(), current_web_source = ${webSource}, updated_at = NOW()
-    WHERE uid = ${uid}
+    INSERT INTO user_sessions (session_id, user_uid, web_source, started_at, last_seen_at, status)
+    VALUES (${sessionId}, ${uid}, ${webSource || 'web-locket'}, NOW(), NOW(), 'active')
+    ON CONFLICT (session_id) DO UPDATE SET
+      last_seen_at = NOW(), status = 'active', ended_at = NULL, web_source = EXCLUDED.web_source
+    WHERE user_sessions.user_uid = ${uid}
   `;
   await sql`
     UPDATE login_history SET last_seen_at = NOW()
@@ -570,6 +584,50 @@ async function resolveReport({ id, actionTaken, resolvedBy }) {
   return rows.length > 0;
 }
 
+async function recordServerUserActivity({ user, req, eventType = 'touch', loginMethod = 'unknown' }) {
+  if (!hasActivityDatabase() || !user) return;
+  try {
+    await ensureUserActivitySchema();
+    const sql = getSql();
+    const uid = cleanOptional(user.uid || user.localId || user.user_id, 160);
+    if (!uid) return;
+
+    const email = cleanOptional(user.email || null, 320)?.toLowerCase() || null;
+    const displayName = cleanOptional(user.displayName || user.name || null, 160);
+    const picture = cleanOptional(user.picture || user.profilePicture || null, 1000);
+
+    let webSource = "web-locket";
+    if (req?.headers?.origin) webSource = String(req.headers.origin).slice(0, 120);
+    else if (req?.headers?.referer) {
+      try { webSource = new URL(req.headers.referer).origin.slice(0, 120); } catch {}
+    }
+
+    const isLogin = eventType === "login";
+    await sql`
+      INSERT INTO web_users (
+        uid, email, display_name, profile_picture, auth_provider,
+        login_method, account_status, last_login_at, last_seen_at,
+        current_web_source, updated_at
+      ) VALUES (
+        ${uid}, ${email}, ${displayName}, ${picture}, 'locket-firebase',
+        ${cleanOptional(loginMethod, 40) || 'unknown'}, 'active', ${isLogin ? new Date() : null}, NOW(),
+        ${webSource}, NOW()
+      )
+      ON CONFLICT (uid) DO UPDATE SET
+        email = COALESCE(EXCLUDED.email, web_users.email),
+        display_name = COALESCE(EXCLUDED.display_name, web_users.display_name),
+        profile_picture = COALESCE(EXCLUDED.profile_picture, web_users.profile_picture),
+        login_method = CASE WHEN ${isLogin} THEN EXCLUDED.login_method ELSE web_users.login_method END,
+        last_login_at = CASE WHEN ${isLogin} THEN NOW() ELSE web_users.last_login_at END,
+        last_seen_at = NOW(),
+        current_web_source = COALESCE(EXCLUDED.current_web_source, web_users.current_web_source),
+        updated_at = NOW()
+    `;
+  } catch (error) {
+    // Silent fail to avoid interrupting API responses
+  }
+}
+
 module.exports = {
   ONLINE_WINDOW_SECONDS,
   clearLoginHistory,
@@ -586,6 +644,7 @@ module.exports = {
   listReportedContent,
   listWebUsers,
   normalizeIdentity,
+  recordServerUserActivity,
   resolveReport,
   revokeUserSessions,
   setAccountStatus,

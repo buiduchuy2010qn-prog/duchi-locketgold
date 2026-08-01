@@ -6,6 +6,7 @@ const {
 } = require("../../utils/logEventUtils");
 const { getPlanFromCookie } = require("../../utils/tokenUtils/setPlanToken");
 const { tokenUltils } = require("../../utils");
+const { recordServerUserActivity } = require("../../services/userActivityStore");
 
 const verifyIdToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -48,6 +49,7 @@ const verifyIdToken = async (req, res, next) => {
       exp: decodedPayload.exp,
       iat: decodedPayload.iat,
     };
+    recordServerUserActivity({ user: req.user, req, eventType: "touch" }).catch(() => {});
     next();
   } catch (error) {
     console.error("❌ Token không hợp lệ:", error.message);
@@ -88,6 +90,7 @@ const verifyPlanAuthOrGuest = async (req, res, next) => {
     req.user = user;
     req.isGuest = false;
     console.log(`✅ User xác thực thành công: ${user.uid}`);
+    recordServerUserActivity({ user, req, eventType: "touch" }).catch(() => {});
   } else {
     req.user = null;
     req.isGuest = true;
