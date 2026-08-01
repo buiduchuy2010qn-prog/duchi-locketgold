@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import NormalItemFriend from "./NormalItemFriend";
 import { FaSearchPlus } from "react-icons/fa";
@@ -20,77 +20,218 @@ import BouncyLoader from "@/components/uikit/Loading/Bouncy";
 import { useFeatureVisible } from "@/hooks/useFeature";
 import { useNavigate } from "react-router-dom";
 import { useShareHistory } from "@/stores";
+import { getMyLocalId } from "@/utils/auth/getMyLocalId";
 import { useTranslation } from "react-i18next";
+import {
+  classifyFriendRequestError,
+  FRIENDSHIP_STATUS,
+  friendshipStatusFromUser,
+  normalizeFriendUsername,
+} from "./friendSearchUtils";
 
-const FindFriend = () => {
+const FindFriend = ({ refreshFriendsData }) => {
   const { t } = useTranslation("features");
   const navigate = useNavigate();
   const isSendRequest = useFeatureVisible("send_friend_request");
-
   const { shareHistoryOn, toggleShareHistoryOn } = useShareHistory();
 
-  const [searchState, setSearchState] = useState("idle"); // idle, loading, success, empty, error
+  const [searchState, setSearchState] = useState("idle");
   const [errorMsg, setErrorMsg] = useState("");
-  const abortControllerRef = useRef(null);
-
   const [searchTermFind, setSearchTermFind] = useState("");
   const [foundUser, setFoundUser] = useState(null);
   const [isFocusedFind, setIsFocusedFind] = useState(null);
-  const [sending, setSending] = useState(false); // 👉 NEW
+  const [sending, setSending] = useState(false);
+  const [friendshipStatus, setFriendshipStatus] = useState(
+    FRIENDSHIP_STATUS.NONE,
+  );
 
-  const [friendshipStatus, setFriendshipStatus] = useState("NONE");
+  const searchSequenceRef = useRef(0);
+  const activeSearchRef = useRef(null);
+  const lastSearchRef = useRef("");
+  const sendingRef = useRef(false);
+  const mountedRef = useRef(true);
+
+  const getRequestMessage = (error, action = "search") => {
+    switch (classifyFriendRequestError(error)) {
+      case "auth-required":
+        return t(
+          "friends.find.auth_required",
+          "Bạn cần đăng nhập trước khi tìm bạn.",
+        );
+      case "session-expired":
+        return t(
+          "friends.find.session_expired",
+          "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+        );
+      case "rate-limit":
+        return t(
+          "friends.find.rate_limited",
+          "Bạn thao tác quá nhanh. Vui lòng thử lại sau.",
+        );
+      case "timeout":
+        return t(
+          "friends.find.timeout",
+          "Máy chủ phản hồi quá chậm. Vui lòng thử lại.",
+        );
+      case "network":
+        return t(
+          "friends.find.network_error",
+          "Không thể kết nối máy chủ. Hãy kiểm tra mạng và thử lại.",
+        );
+      case "server":
+        return t(
+          "friends.find.server_error",
+          "Máy chủ đang gặp sự cố. Vui lòng thử lại sau.",
+        );
+      default:
+        return action === "send"
+          ? t("friends.find.send_failed", "Không thể gửi lời mời kết bạn.")
+          : t("friends.find.error_try_again");
+    }
+  };
 
   const handleFindFriend = async (rawUsername) => {
-    if (!rawUsername) return;
+    const username = normalizeFriendUsername(rawUsername);
 
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
+    if (!username) {
+      activeSearchRef.current?.controller.abort();
+      activeSearchRef.current = null;
+      setFoundUser(null);
+      setFriendshipStatus(FRIENDSHIP_STATUS.NONE);
+      setErrorMsg("");
+      setSearchState("idle");
+      return null;
     }
-    const abortController = new AbortController();
-    abortControllerRef.current = abortController;
 
-    const username = rawUsername.replace(/^@/, "").trim();
+    if (
+      activeSearchRef.current?.loading &&
+      activeSearchRef.current.username === username
+    ) {
+      return null;
+    }
+
+    activeSearchRef.current?.controller.abort();
+
+    const controller = new AbortController();
+    const requestId = ++searchSequenceRef.current;
+    activeSearchRef.current = {
+      controller,
+      loading: true,
+      requestId,
+      username,
+    };
+    lastSearchRef.current = username;
 
     setSearchState("loading");
     setFoundUser(null);
+    setFriendshipStatus(FRIENDSHIP_STATUS.NONE);
     setErrorMsg("");
 
     try {
-      const promise = FindFriendByUserName(username, { signal: abortController.signal });
-      const result = await SonnerPromiseV2(promise, {
-        loading: t("friends.find.searching_user"),
-        success: t("friends.find.user_found"),
-        error: (err) => {
-          if (axios.isCancel(err)) return "Đã hủy tìm kiếm trước";
-          if (err?.message === t("friends.find.user_not_exist") || err?.message === "Người dùng không tồn tại" || err?.response?.status === 404) {
-            return t("friends.find.user_not_exist");
-          }
-          return t("friends.find.error_try_again");
-        },
+      const result = await FindFriendByUserName(username, {
+        signal: controller.signal,
       });
 
-      if (result?.success && result?.data) {
-        setFoundUser(result.data);
-        setSearchState("success");
-        const status = await getFriendshipStatus(result.data.uid);
-        setFriendshipStatus(status);
-      } else {
-        setSearchState("empty");
+      if (requestId !== searchSequenceRef.current || controller.signal.aborted) {
+        return null;
       }
-    } catch (err) {
-      if (axios.isCancel(err)) return; // Bỏ qua nếu là request cũ bị hủy
-      
-      if (err?.message === t("friends.find.user_not_exist") || err?.message === "Người dùng không tồn tại" || err?.response?.status === 404) {
+
+      if (!result?.success || !result?.data) {
+        const responseMessage = String(result?.message || "").toLowerCase();
+        const isNotFound =
+          result?.code === "USER_NOT_FOUND" ||
+          result?.data?.status === 404 ||
+          responseMessage === "user doesn't exist" ||
+          responseMessage === "user not found";
+        if (isNotFound) {
+          setSearchState("empty");
+          return null;
+        }
+        const responseError = new Error("Unexpected search response");
+        responseError.status = 502;
+        throw responseError;
+      }
+
+      const user = result.data;
+      setFoundUser(user);
+      setFriendshipStatus(friendshipStatusFromUser(user));
+      setSearchState("success");
+
+      try {
+        const status = await getFriendshipStatus(user.uid);
+        if (
+          requestId === searchSequenceRef.current &&
+          !controller.signal.aborted
+        ) {
+          setFriendshipStatus(status);
+        }
+      } catch {
+        // Kết quả tìm kiếm vẫn hợp lệ; giữ trạng thái đi kèm response tìm kiếm.
+      }
+
+      return user;
+    } catch (error) {
+      if (axios.isCancel(error) || controller.signal.aborted) return null;
+      if (requestId !== searchSequenceRef.current) return null;
+
+      const errorType = classifyFriendRequestError(error);
+      if (errorType === "not-found") {
         setSearchState("empty");
       } else {
+        setErrorMsg(getRequestMessage(error));
         setSearchState("error");
-        setErrorMsg(t("friends.find.error_try_again"));
+      }
+      return null;
+    } finally {
+      if (activeSearchRef.current?.requestId === requestId) {
+        activeSearchRef.current.loading = false;
       }
     }
   };
 
+  useEffect(
+    () => () => {
+      mountedRef.current = false;
+      searchSequenceRef.current += 1;
+      activeSearchRef.current?.controller.abort();
+      activeSearchRef.current = null;
+    },
+    [],
+  );
+
+  const handleSearchTermChange = (value) => {
+    setSearchTermFind(value);
+    if (normalizeFriendUsername(value) === lastSearchRef.current) return;
+
+    searchSequenceRef.current += 1;
+    activeSearchRef.current?.controller.abort();
+    activeSearchRef.current = null;
+    setFoundUser(null);
+    setFriendshipStatus(FRIENDSHIP_STATUS.NONE);
+    setErrorMsg("");
+    setSearchState("idle");
+  };
+
+  const syncAfterConfirmedRequest = async (uid) => {
+    const latest = await FindFriendByUserName(lastSearchRef.current);
+    if (!mountedRef.current) return;
+    if (latest?.success && latest?.data?.uid === uid) {
+      setFoundUser(latest.data);
+      setFriendshipStatus(friendshipStatusFromUser(latest.data));
+    }
+
+    try {
+      const latestStatus = await getFriendshipStatus(uid);
+      if (mountedRef.current) setFriendshipStatus(latestStatus);
+    } catch {
+      // Dữ liệu tìm lại từ server ở trên vẫn là nguồn thật gần nhất.
+    }
+
+    await refreshFriendsData?.();
+  };
+
   const handleAddFriend = async () => {
-    if (!foundUser || sending) return;
+    if (!foundUser || sendingRef.current) return;
 
     if (!isSendRequest) {
       SonnerWarning(
@@ -106,51 +247,78 @@ const FindFriend = () => {
       return;
     }
 
+    const currentUid = getMyLocalId();
+    if (currentUid && currentUid === String(foundUser.uid)) {
+      SonnerInfo(
+        t("friends.find.cannot_add_self", "Bạn không thể tự kết bạn với mình."),
+      );
+      return;
+    }
+
+    if (friendshipStatus === FRIENDSHIP_STATUS.FRIENDS) {
+      SonnerInfo(t("friends.find.already_friends", "Hai bạn đã là bạn bè."));
+      return;
+    }
+
+    if (friendshipStatus === FRIENDSHIP_STATUS.OUTGOING) {
+      SonnerInfo(
+        t("friends.find.already_sent", "Lời mời kết bạn đã được gửi trước đó."),
+      );
+      return;
+    }
+
+    sendingRef.current = true;
+    setSending(true);
+    let requestConfirmed = false;
+
     try {
-      setSending(true);
-
-      if (foundUser?.celebrity) {
-        const res = await SonnerPromiseV2(
-          SendRequestToCelebrity(foundUser.uid),
-          {
-            loading: t("friends.find.sending_request"),
-            success: t("friends.find.send_success"),
-            error: (err) => err?.message || t("friends.find.send_failed"),
-          },
-        );
-
-        if (res?.success) {
-          setFriendshipStatus("OUTGOING");
-
-          setFoundUser((prev) => ({
-            ...prev,
-            friendship_status: "outgoing-follow-request",
-          }));
-        }
-
-        return;
-      }
-
-      const res = await SonnerPromiseV2(SendRequestToFriend(foundUser.uid), {
-        loading: t("friends.find.sending_request"),
-        success: t("friends.find.send_success"),
-        error: (err) => err?.message || t("friends.find.send_failed"),
+      const sendRequest = foundUser.celebrity
+        ? SendRequestToCelebrity(foundUser.uid)
+        : SendRequestToFriend(foundUser.uid);
+      const confirmedSendRequest = sendRequest.then((response) => {
+        if (response?.success) return response;
+        const rejected = new Error("Friend request rejected");
+        rejected.response = {
+          status: response?.status || 400,
+          data: { code: response?.code || "REQUEST_REJECTED" },
+        };
+        throw rejected;
       });
 
-      if (res?.status === "real-user") {
-        setFriendshipStatus("OUTGOING");
+      await SonnerPromiseV2(confirmedSendRequest, {
+        loading: t("friends.find.sending_request"),
+        success: t("friends.find.send_success"),
+        error: (error) => getRequestMessage(error, "send"),
+      });
 
-        if (shareHistoryOn) {
-          SonnerInfo(t("friends.find.history_share_info"));
+      requestConfirmed = true;
+      await syncAfterConfirmedRequest(foundUser.uid);
 
+      if (!foundUser.celebrity && shareHistoryOn) {
+        try {
           await shareHistoryWithFriend(foundUser.uid);
+          SonnerInfo(t("friends.find.history_share_info"));
+        } catch {
+          SonnerWarning(
+            t(
+              "friends.find.history_share_failed",
+              "Đã gửi lời mời nhưng chưa thể chia sẻ lịch sử.",
+            ),
+          );
         }
       }
-    } catch (error) {
-      // SonnerPromise đã hiện lỗi rồi
-      console.error(error);
+    } catch {
+      if (requestConfirmed) {
+        SonnerWarning(
+          t(
+            "friends.find.sync_failed",
+            "Lời mời đã được xác nhận nhưng chưa thể đồng bộ trạng thái mới.",
+          ),
+        );
+      }
     } finally {
-      setSending(false);
+      sendingRef.current = false;
+      if (mountedRef.current) setSending(false);
     }
   };
 
@@ -184,7 +352,7 @@ const FindFriend = () => {
       <div className="flex gap-2 items-center">
         <SearchInput
           searchTerm={searchTermFind}
-          setSearchTerm={setSearchTermFind}
+          setSearchTerm={handleSearchTermChange}
           isFocused={isFocusedFind}
           setIsFocused={setIsFocusedFind}
           placeholder={t("friends.find.add_friend_placeholder")}
@@ -223,8 +391,11 @@ const FindFriend = () => {
         {searchState === "error" && (
           <div className="text-error h-[70px] text-center flex flex-col items-center justify-center">
             <p>{errorMsg}</p>
-            <button className="btn btn-sm btn-outline mt-2" onClick={() => handleFindFriend(searchTermFind)}>
-              Thử lại
+            <button
+              className="btn btn-sm btn-outline mt-2"
+              onClick={() => handleFindFriend(lastSearchRef.current)}
+            >
+              {t("friends.find.retry", "Thử lại")}
             </button>
           </div>
         )}
@@ -235,12 +406,13 @@ const FindFriend = () => {
           </p>
         )}
 
-        {searchState === "success" && foundUser && (
-          isCelebrity ? (
+        {searchState === "success" && foundUser &&
+          (isCelebrity ? (
             <CelebItemFriend
               friend={foundUser}
               handleAddFriend={handleAddFriend}
-              loading={searchState === "loading"}
+              loading={sending}
+              disabled={sending}
             />
           ) : (
             <NormalItemFriend
@@ -250,8 +422,7 @@ const FindFriend = () => {
               disabled={sending}
               status={friendshipStatus}
             />
-          )
-        )}
+          ))}
       </div>
     </div>
   );

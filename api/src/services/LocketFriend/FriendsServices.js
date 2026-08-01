@@ -195,7 +195,10 @@ const FindFriendByUserName = async (idToken, username) => {
 
     return response.data?.result;
   } catch (error) {
-    console.error("❌ Lỗi khi tìm bạn:", error.response?.data || error.message);
+    console.error("[friends] upstream user lookup failed", {
+      status: error?.response?.status || null,
+      code: error?.code || null,
+    });
     throw error;
   }
 };

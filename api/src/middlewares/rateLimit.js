@@ -63,10 +63,63 @@ const rejectLimiter = rateLimit({
   },
 });
 
+const friendSearchLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      code: "RATE_LIMITED",
+      message: "Bạn tìm kiếm quá nhanh. Vui lòng thử lại sau.",
+    });
+  },
+});
+
+const friendRequestLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 12,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      code: "RATE_LIMITED",
+      message: "Bạn gửi quá nhiều lời mời. Vui lòng thử lại sau.",
+    });
+  },
+});
+
+const idolReadLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const idolAdminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 40,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      code: "RATE_LIMITED",
+      message: "Bạn thao tác quản trị quá nhanh. Vui lòng thử lại sau.",
+    });
+  },
+});
+
 module.exports = {
   apiLimiter,
+  friendRequestLimiter,
+  friendSearchLimiter,
   getLimiter,
+  idolAdminLimiter,
+  idolReadLimiter,
   refreshLimiter,
   loginV2Limiter,
-  rejectLimiter
+  rejectLimiter,
 };

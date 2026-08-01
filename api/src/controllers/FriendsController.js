@@ -255,12 +255,24 @@ const deleteFriendsController = async (req, res, next) => {
 const SendRequestToFriendsController = async (req, res, next) => {
   logInfo("SendRequestToFriends", "📩 Nhận yêu cầu gửi lời mời bạn bè");
   const { idToken } = req.user;
-  const { friendUid } = req.body.data;
-  const { token } = req.appcheck;
+  const token = req.appcheck?.token;
 
   try {
+    const friendUid = req.body?.data?.friendUid;
     if (!idToken || !friendUid) {
-      throw new Error("Thiếu idToken hoặc friendUid");
+      return res.status(400).json({
+        success: false,
+        code: "INVALID_REQUEST",
+        message: "Thiếu người dùng cần kết bạn.",
+      });
+    }
+
+    if (String(req.user.localId) === String(friendUid)) {
+      return res.status(400).json({
+        success: false,
+        code: "SELF_REQUEST",
+        message: "Bạn không thể tự kết bạn với mình.",
+      });
     }
 
     const responseData = await requestservices.SendToFriendRequest({
@@ -268,24 +280,26 @@ const SendRequestToFriendsController = async (req, res, next) => {
       friendUid,
       appcheckToken: token,
     });
-    // logInfo(responseData)
-    if (responseData) {
+    if (responseData?.success) {
       logInfo("SendRequestToFriends", `✅ Đã gửi kết bạn tới: ${friendUid}`);
-      res.status(200).json({
+      return res.status(200).json({
         success: true,
         message: "ok",
-        data: responseData,
-      });
-    } else {
-      logInfo("SendRequestToFriends", `❌ Không xoá được bạn: ${friendUid}`);
-      res.status(400).json({
-        success: false,
-        message: responseData.message || "❌ Xoá bạn thất bại",
-        data: null,
+        data: responseData.data,
       });
     }
+
+    const status = [400, 401, 403, 404, 409, 429].includes(responseData?.status)
+      ? responseData.status
+      : 502;
+    return res.status(status).json({
+      success: false,
+      code: responseData?.code || "UPSTREAM_ERROR",
+      message: responseData?.message || "Không thể gửi lời mời kết bạn.",
+      data: null,
+    });
   } catch (error) {
-    logError("SendRequestToFriends", "❌ Lỗi khi xoá bạn", error.message);
+    logError("SendRequestToFriends", "❌ Lỗi khi gửi kết bạn", error.message);
     next(error);
   }
 };
@@ -296,12 +310,24 @@ const SendRequestToCelebrityController = async (req, res, next) => {
     "📩 Nhận yêu cầu gửi lời mời bạn bè",
   );
   const { idToken } = req.user;
-  const { friendUid } = req.body;
-  const { token } = req.appcheck;
+  const friendUid = req.body?.friendUid;
+  const token = req.appcheck?.token;
 
   try {
     if (!idToken || !friendUid) {
-      throw new Error("Thiếu idToken hoặc friendUid");
+      return res.status(400).json({
+        success: false,
+        code: "INVALID_REQUEST",
+        message: "Thiếu người dùng cần theo dõi.",
+      });
+    }
+
+    if (String(req.user.localId) === String(friendUid)) {
+      return res.status(400).json({
+        success: false,
+        code: "SELF_REQUEST",
+        message: "Bạn không thể tự kết bạn với mình.",
+      });
     }
 
     const responseData = await requestservices.SendAddCelebrity(
@@ -309,28 +335,27 @@ const SendRequestToCelebrityController = async (req, res, next) => {
       friendUid,
       token,
     );
-    // logInfo(responseData)
-    if (responseData) {
+    if (responseData?.success) {
       logInfo(
         "SendRequestToCelebrityController",
         `✅ Đã gửi kết bạn tới: ${friendUid}`,
       );
-      res.status(200).json({
+      return res.status(200).json({
         success: true,
         message: "ok",
-        data: friendUid,
-      });
-    } else {
-      logInfo(
-        "SendRequestToCelebrityController",
-        `❌ Không gửi kết bạn bạn: ${friendUid}`,
-      );
-      res.status(400).json({
-        success: false,
-        message: responseData.message || "❌ gửi kết bạn thất bại",
-        data: null,
+        data: responseData.data,
       });
     }
+
+    const status = [400, 401, 403, 404, 409, 429].includes(responseData?.status)
+      ? responseData.status
+      : 502;
+    return res.status(status).json({
+      success: false,
+      code: responseData?.code || "UPSTREAM_ERROR",
+      message: responseData?.message || "Không thể gửi yêu cầu theo dõi.",
+      data: null,
+    });
   } catch (error) {
     logError(
       "SendRequestToCelebrityController",
@@ -392,7 +417,12 @@ const getUserController = async (req, res, next) => {
 
   try {
     const { idToken } = req.user;
-    const { username, link } = req.body;
+    const rawUsername = req.body?.username;
+    const link = req.body?.link;
+    const username =
+      typeof rawUsername === "string"
+        ? rawUsername.trim().replace(/^@/, "").trim()
+        : "";
 
     if (!idToken) {
       return res.status(401).json({
@@ -405,7 +435,17 @@ const getUserController = async (req, res, next) => {
     if (!username && !link) {
       return res.status(400).json({
         success: false,
+        code: "INVALID_REQUEST",
         message: "Cần cung cấp username hoặc link",
+        data: null,
+      });
+    }
+
+    if (username.length > 64) {
+      return res.status(400).json({
+        success: false,
+        code: "INVALID_USERNAME",
+        message: "Username không hợp lệ.",
         data: null,
       });
     }
@@ -413,8 +453,6 @@ const getUserController = async (req, res, next) => {
     let result;
 
     if (username) {
-      console.log("Searching by username:", username);
-
       result = await friendservices.FindFriendByUserName(idToken, username);
     } else if (link) {
       // result = await friendservices.resolveLink(
@@ -423,10 +461,20 @@ const getUserController = async (req, res, next) => {
       // );
     }
     if (result?.status === 404) {
-      return res.status(200).json({
+      return res.status(404).json({
         success: false,
-        message: "User doesn't exist",
-        data: result,
+        code: "USER_NOT_FOUND",
+        message: "Người dùng không tồn tại.",
+        data: null,
+      });
+    }
+
+    if (!result?.data) {
+      return res.status(502).json({
+        success: false,
+        code: "UPSTREAM_INVALID_RESPONSE",
+        message: "Không nhận được dữ liệu hợp lệ từ Locket.",
+        data: null,
       });
     }
 
@@ -437,10 +485,38 @@ const getUserController = async (req, res, next) => {
     });
   } catch (error) {
     logError("getUserController", "❌ Lỗi khi tìm người dùng", error.message);
+    const upstreamStatus = Number(error?.response?.status);
+    if (upstreamStatus === 404) {
+      return res.status(404).json({
+        success: false,
+        code: "USER_NOT_FOUND",
+        message: "Người dùng không tồn tại.",
+        data: null,
+      });
+    }
+    if (upstreamStatus === 429) {
+      return res.status(429).json({
+        success: false,
+        code: "RATE_LIMITED",
+        message: "Bạn tìm kiếm quá nhanh. Vui lòng thử lại sau.",
+        data: null,
+      });
+    }
+    if (upstreamStatus === 401 || upstreamStatus === 403) {
+      return res.status(401).json({
+        success: false,
+        code: "SESSION_EXPIRED",
+        message: "Phiên đăng nhập không còn hợp lệ.",
+        data: null,
+      });
+    }
 
-    return res.status(500).json({
+    return res.status(upstreamStatus ? 502 : 500).json({
       success: false,
-      message: error.message || "Lỗi server",
+      code: upstreamStatus ? "UPSTREAM_ERROR" : "INTERNAL_ERROR",
+      message: upstreamStatus
+        ? "Không thể kết nối dịch vụ Locket."
+        : "Lỗi máy chủ.",
       data: null,
     });
   }

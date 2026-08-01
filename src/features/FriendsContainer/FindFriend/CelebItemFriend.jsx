@@ -2,12 +2,17 @@ import React from "react";
 import { Plus, UserRoundCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-export default function CelebItemFriend({ friend, handleAddFriend }) {
+export default function CelebItemFriend({
+  friend,
+  handleAddFriend,
+  loading = false,
+  disabled = false,
+}) {
   const { t } = useTranslation("features");
   const friendCount = friend?.celebrity_data?.friend_count || 0;
   const maxFriends = friend?.celebrity_data?.max_friends || 0;
 
-  const isSlotFull = friendCount >= maxFriends;
+  const isSlotFull = maxFriends > 0 && friendCount >= maxFriends;
 
   const progressPercent =
     maxFriends > 0 ? Math.min((friendCount / maxFriends) * 100, 100) : 0;
@@ -48,6 +53,8 @@ export default function CelebItemFriend({ friend, handleAddFriend }) {
           friend={friend}
           isFullSlot={isSlotFull}
           onAdd={handleAddFriend}
+          loading={loading}
+          disabled={disabled}
         />
       </div>
 
@@ -76,7 +83,13 @@ export default function CelebItemFriend({ friend, handleAddFriend }) {
   );
 }
 
-function FriendActionButton({ friend, isFullSlot = false, onAdd }) {
+function FriendActionButton({
+  friend,
+  isFullSlot = false,
+  onAdd,
+  loading = false,
+  disabled = false,
+}) {
   const { t } = useTranslation("features");
   const status = friend?.friendship_status;
 
@@ -97,10 +110,10 @@ function FriendActionButton({ friend, isFullSlot = false, onAdd }) {
   if (status === "follower-waitlist") {
     return (
       <button
-        disabled={isFullSlot}
+        disabled={isFullSlot || disabled || loading}
         onClick={(e) => {
           e.stopPropagation();
-          if (isFullSlot) return;
+          if (isFullSlot || disabled || loading) return;
           onAdd?.(friend.uid);
         }}
         className={`${baseClass} ${
@@ -128,20 +141,26 @@ function FriendActionButton({ friend, isFullSlot = false, onAdd }) {
   // default
   return (
     <button
-      disabled={isFullSlot}
+      disabled={isFullSlot || disabled || loading}
       onClick={(e) => {
         e.stopPropagation();
-        if (isFullSlot) return;
+        if (isFullSlot || disabled || loading) return;
         onAdd?.(friend.uid);
       }}
       className={`${baseClass} ${
-        isFullSlot
+        isFullSlot || disabled || loading
           ? "bg-gray-200 text-gray-400 cursor-not-allowed"
           : "bg-yellow-500 text-black hover:bg-yellow-400"
       }`}
     >
-      <Plus className="w-5 h-5" />
-      {t("friends.celeb.follow")}
+      {loading ? (
+        <span className="loading loading-spinner loading-xs" />
+      ) : (
+        <Plus className="w-5 h-5" />
+      )}
+      {loading
+        ? t("friends.find.sending_request", "Đang gửi...")
+        : t("friends.celeb.follow")}
     </button>
   );
 }

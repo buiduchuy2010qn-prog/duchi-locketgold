@@ -25,6 +25,7 @@ import {
   ScrollText,
   BookUser,
   HardDrive,
+  Star,
 } from "lucide-react";
 import { useAppNavigation } from "@/context/AppContext";
 import { MenuItem } from "./MenuItem";
@@ -175,6 +176,12 @@ const Sidebar = () => {
                 to: "/admin/users",
                 icon: UserRound,
                 text: "Quản lý Người dùng",
+                badge: "Admin",
+              },
+              {
+                to: "/admin/idols",
+                icon: Star,
+                text: "Quản lý idol",
                 badge: "Admin",
               },
             ],

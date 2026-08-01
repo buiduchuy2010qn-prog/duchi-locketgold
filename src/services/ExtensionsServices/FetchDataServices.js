@@ -1,5 +1,5 @@
 import { PUBLIC_API } from "@/config/apiConfig";
-import { instanceBaseData } from "@/libs";
+import { instanceBaseData, instanceMain } from "@/libs";
 
 /**
  * Lấy danh sách hoặc chi tiết bài viết.
@@ -91,11 +91,17 @@ export const getListCelebrity = async () => {
 
 export const getListCelebrityV2 = async () => {
   try {
-    const res = await instanceBaseData.get(PUBLIC_API.celebratesV2);
-    return res.data;
+    const res = await instanceMain.get("api/idols");
+    if (!res.data?.success || !Array.isArray(res.data?.data)) {
+      throw new Error("INVALID_IDOL_RESPONSE");
+    }
+    return res.data.data;
   } catch (error) {
-    console.error("🚨 Lỗi khi gọi API:", error.message);
-    return null;
+    console.error("[idols] list request failed", {
+      status: error?.response?.status || null,
+      code: error?.response?.data?.code || error?.code || null,
+    });
+    throw error;
   }
 };
 

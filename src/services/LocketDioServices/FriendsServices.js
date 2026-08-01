@@ -82,23 +82,28 @@ export const loadFriendDetailsV3 = async (friends) => {
 
 // Hàm tìm bạn qua username
 export const FindFriendByUserName = async (eqfriend, config = {}) => {
+  const { idToken } = utils.getToken();
+  if (!idToken) {
+    const error = new Error("Authentication required");
+    error.code = "AUTH_REQUIRED";
+    error.status = 401;
+    throw error;
+  }
+
   try {
     const body = {
       username: eqfriend,
     };
-    const response = await instanceMain.post(
-      "https://api-beta.locket-dio.com/locket/getUserByData",
-      body,
-      config
-    );
+    const response = await instanceMain.post("locket/getUserByData", body, config);
 
     return response.data;
   } catch (error) {
-    if (axios.isCancel(error)) {
-      console.log("Tìm bạn bị hủy:", error.message);
-      throw error;
+    if (!axios.isCancel(error)) {
+      console.error("[friends] search request failed", {
+        status: error?.response?.status || null,
+        code: error?.code || null,
+      });
     }
-    console.error("❌ Lỗi khi tìm bạn:", error.response?.data || error.message);
     throw error;
   }
 };

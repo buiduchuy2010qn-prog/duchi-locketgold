@@ -137,28 +137,31 @@ export const getOutgoingRequestFriend = async (
 
 export const SendRequestToFriend = async (uid) => {
   try {
-    const response = await api.post("https://api-beta.locket-dio.com/locket/sendFriendRequestV2", {
+    const response = await api.post("locket/sendFriendRequestV2", {
       data: { friendUid: uid },
     });
-    
-    return response.data?.data?.result?.data;
+
+    return response.data;
   } catch (error) {
-    console.error("❌ Lỗi khi tìm bạn:", error.response?.data || error.message);
+    console.error("[friends] send request failed", {
+      status: error?.response?.status || null,
+      code: error?.response?.data?.code || error?.code || null,
+    });
     throw error;
   }
 };
 
 export const SendRequestToCelebrity = async (uid) => {
   try {
-    const response = await api.post(
-      "https://api-beta.locket-dio.com/locket/sendCelebrityRequestV2",
-      {
-        friendUid: uid,
-      },
-    );
-    return response?.data;
+    const response = await api.post("locket/sendCelebrityRequestV2", {
+      friendUid: uid,
+    });
+    return response.data;
   } catch (error) {
-    console.error("❌ Lỗi khi tìm bạn:", error.response?.data || error.message);
+    console.error("[friends] send celebrity request failed", {
+      status: error?.response?.status || null,
+      code: error?.response?.data?.code || error?.code || null,
+    });
     throw error;
   }
 };

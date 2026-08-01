@@ -4,6 +4,23 @@ const constants = require("../../utils/constants");
 const { instanceLocketV2 } = require("../../libs");
 const { createAnalytics } = require("../LocketAnalytics");
 
+const normalizeUpstreamFailure = (error, fallbackMessage) => {
+  const status = Number(error?.response?.status) || 502;
+  let code = "UPSTREAM_ERROR";
+
+  if (status === 401 || status === 403) code = "UPSTREAM_AUTH_FAILED";
+  if (status === 404) code = "USER_NOT_FOUND";
+  if (status === 409) code = "REQUEST_CONFLICT";
+  if (status === 429) code = "RATE_LIMITED";
+
+  return {
+    success: false,
+    status,
+    code,
+    message: fallbackMessage,
+  };
+};
+
 const getAllFriendRequests = async (
   idToken,
   localId,
@@ -289,19 +306,28 @@ const SendToFriendRequest = async ({ idToken, friendUid, appcheckToken }) => {
       meta: { idToken: idToken, appCheckToken: appcheckToken },
     });
 
-    console.log(response.data);
+    const result = response.data?.result;
+    if (result?.data === null || result?.data === undefined) {
+      return {
+        success: false,
+        status: 400,
+        code: "UPSTREAM_REJECTED",
+        message: "Locket không chấp nhận lời mời kết bạn.",
+      };
+    }
 
-    return response.data;
-  } catch (error) {
-    console.error(
-      `❌ Lỗi khi gọi API gửi lời mời kết bạn đến ${friendUid}:`,
-      error?.response?.data || error.message,
-    );
     return {
-      success: false,
-      uid: friendUid,
-      message: error?.response?.data || error.message,
+      success: true,
+      data: result.data,
     };
+  } catch (error) {
+    console.error("[friends] upstream sendFriendRequest failed", {
+      status: error?.response?.status || null,
+    });
+    return normalizeUpstreamFailure(
+      error,
+      "Không thể gửi lời mời kết bạn qua Locket.",
+    );
   }
 };
 
@@ -367,32 +393,29 @@ const SendAddCelebrity = async (idToken, friend_uid, token) => {
     const response = await instanceLocketV2.post("sendFollowRequest", body, {
       meta: { idToken, appCheckToken: token },
     });
-    console.log(response.data);
-
-    if (response.data?.result?.data !== null) {
-      console.log(`✅ Đã chấp nhận lời mời kết bạn từ: ${friend_uid}`);
-      return { success: true, uid: friend_uid };
-    } else {
-      console.error(
-        `❌ Không thể chấp nhận lời mời kết bạn từ ${friend_uid}:`,
-        response.data?.result?.message,
-      );
+    const result = response.data?.result;
+    if (result?.data === null || result?.data === undefined) {
       return {
         success: false,
-        uid: friend_uid,
-        message: response.data?.result?.message || "Không rõ lỗi",
+        status: 400,
+        code: "UPSTREAM_REJECTED",
+        message: "Locket không chấp nhận yêu cầu theo dõi.",
       };
     }
-  } catch (error) {
-    console.error(
-      `❌ Lỗi khi gọi API chấp nhận lời mời kết bạn từ ${friend_uid}:`,
-      error?.response?.data || error.message,
-    );
+
     return {
-      success: false,
+      success: true,
+      data: result.data,
       uid: friend_uid,
-      message: error?.response?.data || error.message,
     };
+  } catch (error) {
+    console.error("[friends] upstream sendFollowRequest failed", {
+      status: error?.response?.status || null,
+    });
+    return normalizeUpstreamFailure(
+      error,
+      "Không thể gửi yêu cầu theo dõi qua Locket.",
+    );
   }
 };
 

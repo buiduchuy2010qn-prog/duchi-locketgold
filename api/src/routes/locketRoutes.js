@@ -7,6 +7,10 @@ const { verifyIdToken, verifyplanAuth, verifyDioToken, onlyMemberCheck } = requi
 const { checkAppMeta } = require("../middlewares/checkMeta");
 const { initializeAppCheck } = require("../modules/appcheck");
 const { validateOverlayType } = require("../middlewares/validateOverlayType");
+const {
+  friendRequestLimiter,
+  friendSearchLimiter,
+} = require("../middlewares/rateLimit");
 
 //Moment V2
 // router.post("/getMomentV2", verifyIdToken, momentcontroll.GetMomentsControll);
@@ -23,8 +27,8 @@ router.post("/sendMessageV2", verifyIdToken, momentcontroll.SendMessageControll)
 router.post("/deleteFriendV2", verifyIdToken, friendcontroll.deleteFriendsController);
 
 // ==================== Friend Requests V2 ====================
-router.post("/sendFriendRequestV2", checkAppMeta, verifyIdToken, verifyDioToken, initializeAppCheck, friendcontroll.SendRequestToFriendsController);
-router.post("/sendCelebrityRequestV2", checkAppMeta, verifyIdToken, verifyDioToken, initializeAppCheck, friendcontroll.SendRequestToCelebrityController);
+router.post("/sendFriendRequestV2", friendRequestLimiter, checkAppMeta, verifyIdToken, verifyDioToken, initializeAppCheck, friendcontroll.SendRequestToFriendsController);
+router.post("/sendCelebrityRequestV2", friendRequestLimiter, checkAppMeta, verifyIdToken, verifyDioToken, initializeAppCheck, friendcontroll.SendRequestToCelebrityController);
 
 router.post("/getIncomingFriendRequestsV2", verifyIdToken, friendcontroll.getFriendsRequestController);
 
@@ -38,6 +42,6 @@ router.post("/deleteOutgoingRequestV2", verifyIdToken, friendcontroll.deleteOutg
 router.post("/acceptFriendRequestV2", verifyIdToken, friendcontroll.AcceptFriendsController);
 
 // Get Friend
-router.post("/getUserByData", verifyIdToken, friendcontroll.getUserController);
+router.post("/getUserByData", friendSearchLimiter, verifyIdToken, friendcontroll.getUserController);
 
 module.exports = router;

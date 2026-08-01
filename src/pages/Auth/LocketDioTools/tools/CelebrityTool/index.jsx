@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { CONFIG } from "@/config";
 import {
   fetchUserById,
@@ -15,20 +15,29 @@ import {
   SonnerSuccess,
   SonnerWarning,
 } from "@/components/uikit/SonnerToast";
-import { Copy, RefreshCcw } from "lucide-react";
-import { useFeatureVisible, useGetCode } from "@/hooks/useFeature";
+import { RefreshCcw } from "lucide-react";
+import { useFeatureVisible } from "@/hooks/useFeature";
 import { PiExport } from "react-icons/pi";
 import LockedPremiumFeature from "../../Layout/LockedPremiumFeature";
-import { useAuthStore } from "@/stores";
-import { useNavigate } from "react-router-dom";
+
+const mergeIdolWithUser = (idol, user) => ({
+  uid: idol.uid,
+  username: idol.username,
+  first_name: idol.displayName,
+  last_name: "",
+  profile_picture_url: idol.avatarUrl,
+  celebrity: true,
+  ...(user || {}),
+  idol_record_id: idol.id,
+  locket_url: idol.locketUrl,
+  country_code: idol.countryCode,
+});
 
 export default function CelebrateTool() {
   const isCelebrityFeature = useFeatureVisible("celebrity_tool");
-  const codeUser = useGetCode();
-  const navigate = useNavigate();
-  const fetchUserData = useAuthStore((s) => s.fetchUserData);
   const [userDetails, setUserDetails] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState("");
 
   const [activeTab, setActiveTab] = useState("all");
   const [processingUid, setProcessingUid] = useState(null);
@@ -45,55 +54,51 @@ export default function CelebrateTool() {
     localStorage.setItem("celebrate_country", countryCode);
   }, [countryCode]);
 
-  const fetchCelebrates = async () => {
+  const fetchCelebrates = useCallback(async () => {
     setLoading(true);
+    setLoadError("");
 
     try {
-      const cacheKey = "celebrate_cache";
-      const cachedData = localStorage.getItem(cacheKey);
-
-      if (cachedData) {
-        const { data, timestamp } = JSON.parse(cachedData);
-
-        const now = Date.now();
-        const threeHours = 3 * 60 * 60 * 1000;
-
-        if (data && now - timestamp < threeHours) {
-          setCelebrateList(data);
-          setLoading(false);
-          return;
-        }
-      }
-
       const result = await getListCelebrityV2();
+      const grouped = (result || []).reduce((groups, idol) => {
+        const country = idol.countryCode || "OTHER";
+        if (!groups[country]) groups[country] = [];
+        groups[country].push(idol);
+        return groups;
+      }, {});
 
-      setCelebrateList(result || {});
-
-      localStorage.setItem(
-        cacheKey,
-        JSON.stringify({
-          data: result,
-          timestamp: Date.now(),
-        }),
-      );
+      setCelebrateList(grouped);
     } catch (err) {
+      setCelebrateList({});
+      setUserDetails([]);
+      setLoadError(
+        err?.response?.data?.message || "Không thể tải danh sách idol thật.",
+      );
       SonnerError("Không thể tải danh sách Celebrate.");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchDetails = async (list) => {
-    if (!list?.length) return;
+  const fetchDetails = useCallback(async (currentList, missingUsers, cache) => {
+    if (!missingUsers?.length) return;
 
     setLoading(true);
 
     try {
-      const details = await Promise.all(
-        list.map((item) => fetchUserById(item?.uid)),
+      const detailResults = await Promise.allSettled(
+        missingUsers.map(async (item) => {
+          try {
+            const user = await fetchUserById(item?.uid);
+            return mergeIdolWithUser(item, user);
+          } catch {
+            return mergeIdolWithUser(item, null);
+          }
+        }),
       );
-
-      const validUsers = details.filter(Boolean);
+      const validUsers = detailResults
+        .filter((result) => result.status === "fulfilled" && result.value)
+        .map((result) => result.value);
 
       // 🔥 merge vào cache
       setUserMap((prev) => {
@@ -106,25 +111,14 @@ export default function CelebrateTool() {
         return newMap;
       });
 
-      // 🔥 build lại danh sách hiện tại
-      let currentList = [];
-
-      if (countryCode === "ALL") {
-        currentList = Object.values(celebrateList).flat();
-      } else {
-        currentList = celebrateList[countryCode] || [];
-      }
-
       setUserDetails(
         currentList
           .map((item) => {
-            return (
-              validUsers.find((u) => u.uid === item.uid) || userMap[item.uid]
-            );
+            return validUsers.find((u) => u.uid === item.uid) || cache[item.uid];
           })
           .filter(Boolean),
       );
-    } catch (err) {
+    } catch {
       SonnerError(
         "Phiên đăng nhập hết hạn",
         "Vui lòng xoá tab và truy cập lại.",
@@ -132,38 +126,43 @@ export default function CelebrateTool() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const handleRefresh = async () => {
     const refreshPromise = (async () => {
-      // lấy list mới
       const result = await getListCelebrityV2();
+      const grouped = (result || []).reduce((groups, idol) => {
+        const country = idol.countryCode || "OTHER";
+        if (!groups[country]) groups[country] = [];
+        groups[country].push(idol);
+        return groups;
+      }, {});
 
-      setCelebrateList(result || {});
-
-      localStorage.setItem(
-        "celebrate_cache",
-        JSON.stringify({
-          data: result,
-          timestamp: Date.now(),
-        }),
-      );
+      setCelebrateList(grouped);
+      setLoadError("");
 
       // chỉ lấy country hiện tại
       let currentList = [];
 
       if (countryCode === "ALL") {
-        currentList = Object.values(result || {}).flat();
+        currentList = Object.values(grouped).flat();
       } else {
-        currentList = result?.[countryCode] || [];
+        currentList = grouped[countryCode] || [];
       }
 
-      // fetch users
-      const details = await Promise.all(
-        currentList.map((item) => fetchUserById(item?.uid)),
+      const detailResults = await Promise.allSettled(
+        currentList.map(async (item) => {
+          try {
+            const user = await fetchUserById(item?.uid);
+            return mergeIdolWithUser(item, user);
+          } catch {
+            return mergeIdolWithUser(item, null);
+          }
+        }),
       );
-
-      const validUsers = details.filter(Boolean);
+      const validUsers = detailResults
+        .filter((detail) => detail.status === "fulfilled" && detail.value)
+        .map((detail) => detail.value);
 
       // update cache map
       setUserMap((prev) => {
@@ -218,7 +217,7 @@ export default function CelebrateTool() {
     if (isCelebrityFeature) {
       fetchCelebrates();
     }
-  }, [isCelebrityFeature]);
+  }, [fetchCelebrates, isCelebrityFeature]);
 
   useEffect(() => {
     if (!isCelebrityFeature) return;
@@ -243,8 +242,8 @@ export default function CelebrateTool() {
     }
 
     // 🔥 chỉ fetch những uid chưa có
-    fetchDetails(missingUsers);
-  }, [celebrateList, countryCode, isCelebrityFeature]);
+    fetchDetails(currentList, missingUsers, userMap);
+  }, [celebrateList, countryCode, fetchDetails, isCelebrityFeature, userMap]);
 
   const handleAddUid = async (uid) => {
     if (!uid || !uid.trim()) {
@@ -274,7 +273,7 @@ export default function CelebrateTool() {
       } else {
         SonnerWarning("UID không hợp lệ hoặc đã tồn tại!");
       }
-    } catch (err) {
+    } catch {
       SonnerError("❌ Thêm UID thất bại.");
     } finally {
       setProcessingUid(null);
@@ -436,6 +435,17 @@ export default function CelebrateTool() {
               <SkeletonItem key={index} />
             ))}
           </>
+        ) : loadError ? (
+          <div className="h-full flex flex-col items-center justify-center p-3 text-center">
+            <p className="text-sm text-error">{loadError}</p>
+            <button
+              type="button"
+              className="btn btn-sm btn-outline mt-2"
+              onClick={fetchCelebrates}
+            >
+              Thử lại
+            </button>
+          </div>
         ) : categorized[activeTab]?.length > 0 ? (
           categorized[activeTab].map((user) => (
             <CelebrateItem

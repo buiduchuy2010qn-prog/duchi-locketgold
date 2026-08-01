@@ -135,7 +135,7 @@ const FriendsContainer = () => {
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-3 py-6 space-y-6">
           {/* Tìm kiếm */}
-          <FindFriend />
+          <FindFriend refreshFriendsData={refreshFriendsData} />
 
           {/* Danh sách bạn bè */}
           <FriendList

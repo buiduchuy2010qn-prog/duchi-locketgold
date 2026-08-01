@@ -11,6 +11,7 @@ const { storageRoutes } = require("../modules/storage/routes");
 const { draftRoutes } = require("../modules/drafts");
 const { healthController } = require("../controllers");
 const adminRoutes = require("./adminRoutes");
+const idolRoutes = require("./idolRoutes");
 
 module.exports = (app) => {
   app.get("/", (req, res) => {
@@ -35,6 +36,7 @@ module.exports = (app) => {
   app.use("/api", appCheckRoutes);
   app.use("/api", weatherRoutes);
   app.use("/api", musicRoutes);
+  app.use("/api/idols", idolRoutes);
   // Self-host temp media (presignedV3 + media-temp GET). PUT raw mounted in app.js
   app.use("/api", storageRoutes);
   // Account-synced moment drafts (metadata + private media on API disk)
