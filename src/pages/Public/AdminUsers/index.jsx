@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
   Clock,
   Info,
   Lock,
-  LogOut,
   RefreshCw,
   Search,
   Unlock,
@@ -13,18 +13,14 @@ import {
 import { SonnerInfo } from "@/components/uikit/SonnerToast";
 import {
   adminRequest,
-  clearAdminSession,
   hasAdminSession,
-  signInAdmin,
   verifyAdminSession,
 } from "@/services/AdminAuthService";
 
 export default function AdminUsers() {
+  const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
   const [checkingAdmin, setCheckingAdmin] = useState(hasAdminSession());
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [signingIn, setSigningIn] = useState(false);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -43,7 +39,7 @@ export default function AdminUsers() {
       setUsers(data.users || []);
       setPageToken(data.pageToken || null);
     } catch (requestError) {
-      setError(`Không thể tải danh sách tài khoản quản trị. ${requestError.message}`);
+      setError(`Không thể tải danh sách người dùng. ${requestError.message}`);
     } finally {
       setLoading(false);
       setCheckingAdmin(false);
@@ -53,6 +49,7 @@ export default function AdminUsers() {
   useEffect(() => {
     if (!hasAdminSession()) {
       setCheckingAdmin(false);
+      navigate("/login", { replace: true });
       return undefined;
     }
 
@@ -66,39 +63,16 @@ export default function AdminUsers() {
       .catch((requestError) => {
         if (!active) return;
         setIsAdmin(false);
-        setError(requestError.message);
         setCheckingAdmin(false);
+        SonnerInfo(requestError.status === 403
+          ? "Tài khoản này không có quyền quản trị"
+          : "Phiên đăng nhập đã hết hạn");
+        navigate("/locket", { replace: true });
       });
     return () => {
       active = false;
     };
-  }, [fetchUsers]);
-
-  const handleAdminLogin = async (event) => {
-    event.preventDefault();
-    setSigningIn(true);
-    setError(null);
-    try {
-      const verified = await signInAdmin(email, password);
-      if (!verified) throw new Error("Tài khoản không có quyền admin");
-      setPassword("");
-      setIsAdmin(true);
-      await fetchUsers();
-    } catch (requestError) {
-      setIsAdmin(false);
-      setError(requestError.message || "Đăng nhập admin thất bại");
-    } finally {
-      setSigningIn(false);
-      setCheckingAdmin(false);
-    }
-  };
-
-  const handleAdminLogout = () => {
-    clearAdminSession();
-    setIsAdmin(false);
-    setUsers([]);
-    setSelectedUser(null);
-  };
+  }, [fetchUsers, navigate]);
 
   const handleToggleLock = async (user) => {
     setActionLoading(`lock-${user.uid}`);
@@ -128,7 +102,7 @@ export default function AdminUsers() {
       await adminRequest(`/users/${encodeURIComponent(user.uid)}/auth`, { method: "DELETE" });
       setUsers((current) => current.filter((entry) => entry.uid !== user.uid));
       setSelectedUser(null);
-      SonnerInfo("Đã xóa tài khoản quản trị");
+      SonnerInfo("Đã xóa tài khoản người dùng");
     } catch (requestError) {
       SonnerInfo(`Lỗi thao tác: ${requestError.message}`);
     } finally {
@@ -147,28 +121,8 @@ export default function AdminUsers() {
 
   if (!isAdmin) {
     return (
-      <div className="flex items-center justify-center min-h-screen p-4 animate-fade-in">
-        <form className="card w-full max-w-sm bg-base-100 border border-base-200 shadow-xl" onSubmit={handleAdminLogin}>
-          <div className="card-body">
-            <h1 className="card-title">Đăng nhập quản trị Huy Locket</h1>
-            <p className="text-sm text-base-content/60">
-              Tài khoản admin riêng của dự án woww-7720f, không phải tài khoản Locket chính thức.
-            </p>
-            <label className="form-control w-full">
-              <span className="label-text mb-1">Email admin</span>
-              <input className="input input-bordered w-full" type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} required />
-            </label>
-            <label className="form-control w-full">
-              <span className="label-text mb-1">Mật khẩu</span>
-              <input className="input input-bordered w-full" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required />
-            </label>
-            {error && <p className="text-sm text-error">{error}</p>}
-            <button className="btn btn-primary w-full" type="submit" disabled={signingIn}>
-              {signingIn && <span className="loading loading-spinner loading-sm" />}
-              Đăng nhập admin
-            </button>
-          </div>
-        </form>
+      <div className="flex justify-center items-center min-h-screen">
+        <span className="loading loading-spinner loading-lg text-primary" />
       </div>
     );
   }
@@ -184,10 +138,10 @@ export default function AdminUsers() {
       <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Lock className="text-primary" /> Quản lý quản trị viên
+            <Lock className="text-primary" /> Quản lý người dùng
           </h1>
           <p className="text-sm text-base-content/60 mt-1">
-            Firebase Auth riêng của Huy Locket (woww-7720f)
+            Chỉ tài khoản Huy Locket được cấp quyền admin mới truy cập được
           </p>
         </div>
         <div className="flex gap-2 w-full md:w-auto">
@@ -195,24 +149,23 @@ export default function AdminUsers() {
             <input type="text" placeholder="Tìm email, tên, uid..." className="input input-bordered w-full pl-10" value={search} onChange={(event) => setSearch(event.target.value)} />
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50" />
           </div>
-          <button type="button" className="btn btn-ghost btn-circle" title="Đăng xuất admin" onClick={handleAdminLogout}><LogOut size={18} /></button>
         </div>
       </div>
 
       <div className="bg-base-100 rounded-xl shadow-sm border border-base-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="table w-full">
-            <thead><tr className="bg-base-200/50"><th>Quản trị viên</th><th>Phương thức</th><th>Trạng thái</th><th>Ngày tạo</th><th className="text-right">Thao tác</th></tr></thead>
+            <thead><tr className="bg-base-200/50"><th>Người dùng</th><th>Phương thức</th><th>Trạng thái</th><th>Ngày tạo</th><th className="text-right">Thao tác</th></tr></thead>
             <tbody>
               {loading ? (
                 <tr><td colSpan="5" className="text-center py-12"><span className="loading loading-spinner loading-lg text-primary" /></td></tr>
               ) : error ? (
                 <tr><td colSpan="5" className="text-center py-12"><AlertTriangle size={32} className="mx-auto text-error mb-2" /><p className="text-error">{error}</p><button type="button" onClick={() => fetchUsers()} className="btn btn-sm btn-outline mt-4"><RefreshCw size={14} /> Thử lại</button></td></tr>
               ) : filteredUsers.length === 0 ? (
-                <tr><td colSpan="5" className="text-center py-12 text-base-content/50">Không có tài khoản quản trị phù hợp.</td></tr>
+                <tr><td colSpan="5" className="text-center py-12 text-base-content/50">Không có người dùng phù hợp.</td></tr>
               ) : filteredUsers.map((user) => (
                 <tr key={user.uid} className="hover">
-                  <td><div className="font-medium">{user.displayName || "Quản trị viên"}</div><div className="text-xs text-base-content/60">{user.email || user.uid}</div></td>
+                  <td><div className="font-medium">{user.displayName || "Người dùng"}</div><div className="text-xs text-base-content/60">{user.email || user.uid}</div></td>
                   <td><span className="badge badge-ghost badge-sm">{user.provider}</span></td>
                   <td>{user.disabled ? <span className="badge badge-error badge-sm gap-1"><Lock size={12} /> Đã khóa</span> : <span className="badge badge-success badge-sm gap-1"><Unlock size={12} /> Hoạt động</span>}</td>
                   <td className="text-sm text-base-content/80">{new Date(user.creationTime).toLocaleDateString("vi-VN")}</td>
@@ -230,7 +183,7 @@ export default function AdminUsers() {
         <div className="modal modal-open modal-bottom sm:modal-middle" onClick={() => setSelectedUser(null)}>
           <div className="modal-box max-w-3xl" onClick={(event) => event.stopPropagation()}>
             <button type="button" className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" onClick={() => setSelectedUser(null)}>✕</button>
-            <h3 className="font-bold text-lg mb-1">{selectedUser.displayName || "Quản trị viên"}</h3>
+            <h3 className="font-bold text-lg mb-1">{selectedUser.displayName || "Người dùng"}</h3>
             <p className="text-sm text-base-content/60 mb-1">{selectedUser.email || selectedUser.uid}</p>
             <p className="text-xs text-base-content/40 mb-6 font-mono">UID: {selectedUser.uid}</p>
             <div className="flex flex-wrap gap-2 mb-6">

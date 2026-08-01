@@ -39,7 +39,6 @@ import { isAdminUser } from "@/utils/googleDrive";
 import { getMyLocalId } from "@/utils/auth/getMyLocalId";
 import {
   hasAdminSession,
-  subscribeAdminSession,
   verifyAdminSession,
 } from "@/services/AdminAuthService";
 
@@ -66,7 +65,7 @@ const Sidebar = () => {
   useEffect(() => {
     let active = true;
     const checkAdmin = async () => {
-      if (!hasAdminSession()) {
+      if (!user || !hasAdminSession()) {
         if (active) setIsAdmin(false);
         return;
       }
@@ -78,12 +77,10 @@ const Sidebar = () => {
       }
     };
     checkAdmin();
-    const unsubscribe = subscribeAdminSession(checkAdmin);
     return () => {
       active = false;
-      unsubscribe();
     };
-  }, []);
+  }, [user]);
 
   const drawerRef = useRef(null);
 
@@ -317,7 +314,7 @@ const Sidebar = () => {
           items: [{
             to: "/admin/users",
             icon: UserRound,
-            text: "Quản lý quản trị viên",
+            text: "Quản lý người dùng",
             badge: "Admin",
           }],
         }]

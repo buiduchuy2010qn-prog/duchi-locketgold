@@ -3,14 +3,17 @@ const http = require("node:http");
 const test = require("node:test");
 const express = require("express");
 
-const adminAuth = {
+const adminAuth = {};
+const locketAuthVerifier = {
   async verifyIdToken(token) {
     if (token === "verified-admin") {
-      return { uid: "admin-user", email: "admin@example.test", admin: true };
+      return { uid: "admin-user", email: "admin@example.test" };
     }
-    return { uid: "regular-user", email: "user@example.test", admin: false };
+    return { uid: "regular-user", email: "user@example.test" };
   },
 };
+
+process.env.ADMIN_LOCKET_UIDS = "admin-user";
 
 const firebaseServicePath = require.resolve("../src/services/adminFirebase");
 require.cache[firebaseServicePath] = {
@@ -21,6 +24,17 @@ require.cache[firebaseServicePath] = {
     ADMIN_FIREBASE_PROJECT_ID: "woww-7720f",
     getAdminAuth: () => adminAuth,
     getInitializationError: () => null,
+  },
+};
+
+const verifierServicePath = require.resolve("../src/services/locketAdminVerifier");
+require.cache[verifierServicePath] = {
+  id: verifierServicePath,
+  filename: verifierServicePath,
+  loaded: true,
+  exports: {
+    getAdminLocketUids: () => new Set(["admin-user"]),
+    getLocketAuthVerifier: () => locketAuthVerifier,
   },
 };
 
@@ -43,7 +57,7 @@ test.after(async () => {
   await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
 });
 
-test("admin endpoints reject requests without a Firebase admin token", async () => {
+test("admin endpoints reject requests without a Locket token", async () => {
   const response = await fetch(`${baseUrl}/api/admin/verify`);
   assert.equal(response.status, 401);
 });
@@ -58,7 +72,7 @@ test("a verified regular user receives 403 without UID disclosure", async () => 
   assert.equal(JSON.stringify(body).includes("regular-user"), false);
 });
 
-test("a verified admin claim is accepted for the dedicated project", async () => {
+test("the allowlisted Locket UID is accepted", async () => {
   const response = await fetch(`${baseUrl}/api/admin/verify`, {
     headers: { Authorization: "Bearer verified-admin" },
   });

@@ -1,11 +1,14 @@
 const express = require("express");
-const rateLimit = require("express-rate-limit");
 const { neon } = require("@neondatabase/serverless");
 const {
   ADMIN_FIREBASE_PROJECT_ID,
   getAdminAuth,
   getInitializationError,
 } = require("../services/adminFirebase");
+const {
+  getAdminLocketUids,
+  getLocketAuthVerifier,
+} = require("../services/locketAdminVerifier");
 
 const router = express.Router();
 
@@ -18,96 +21,6 @@ function getDatabaseUrl() {
 const databaseUrl = getDatabaseUrl();
 const sql = databaseUrl ? neon(databaseUrl) : null;
 
-const adminLoginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, error: "Too many admin sign-in attempts" },
-});
-
-function getAdminWebApiKey() {
-  const value = process.env.ADMIN_FIREBASE_WEB_API_KEY;
-  return typeof value === "string" ? value.trim() : "";
-}
-
-async function parseFirebaseResponse(response) {
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const error = new Error("Firebase Authentication request failed");
-    error.status = response.status;
-    throw error;
-  }
-  return payload;
-}
-
-router.post("/session/login", adminLoginLimiter, async (req, res) => {
-  res.setHeader("Cache-Control", "no-store, max-age=0");
-  const email = typeof req.body?.email === "string" ? req.body.email.trim() : "";
-  const password = typeof req.body?.password === "string" ? req.body.password : "";
-  const apiKey = getAdminWebApiKey();
-
-  if (!email || !password) {
-    return res.status(400).json({ success: false, error: "Email and password are required" });
-  }
-  if (!apiKey) {
-    return res.status(503).json({ success: false, error: "Admin authentication is not configured" });
-  }
-
-  try {
-    const response = await fetch(
-      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${encodeURIComponent(apiKey)}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, returnSecureToken: true }),
-      },
-    );
-    const session = await parseFirebaseResponse(response);
-    return res.status(200).json({
-      success: true,
-      idToken: session.idToken,
-      refreshToken: session.refreshToken,
-      expiresIn: session.expiresIn,
-      email: session.email,
-      projectId: ADMIN_FIREBASE_PROJECT_ID,
-    });
-  } catch (error) {
-    const status = error.status === 400 ? 401 : 502;
-    return res.status(status).json({ success: false, error: "Admin sign-in failed" });
-  }
-});
-
-router.post("/session/refresh", async (req, res) => {
-  res.setHeader("Cache-Control", "no-store, max-age=0");
-  const refreshToken = typeof req.body?.refreshToken === "string" ? req.body.refreshToken : "";
-  const apiKey = getAdminWebApiKey();
-  if (!refreshToken || !apiKey) {
-    return res.status(400).json({ success: false, error: "Invalid refresh request" });
-  }
-
-  try {
-    const response = await fetch(
-      `https://securetoken.googleapis.com/v1/token?key=${encodeURIComponent(apiKey)}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ grant_type: "refresh_token", refresh_token: refreshToken }),
-      },
-    );
-    const session = await parseFirebaseResponse(response);
-    return res.status(200).json({
-      success: true,
-      idToken: session.id_token,
-      refreshToken: session.refresh_token,
-      expiresIn: session.expires_in,
-      projectId: ADMIN_FIREBASE_PROJECT_ID,
-    });
-  } catch {
-    return res.status(401).json({ success: false, error: "Admin session expired" });
-  }
-});
-
 async function requireAdmin(req, res, next) {
   const adminAuth = getAdminAuth();
   if (!adminAuth) {
@@ -118,14 +31,22 @@ async function requireAdmin(req, res, next) {
     return res.status(503).json({ success: false, error: "Admin authentication is unavailable" });
   }
 
+  const allowedUids = getAdminLocketUids();
+  if (allowedUids.size === 0) {
+    return res.status(503).json({ success: false, error: "Admin allowlist is unavailable" });
+  }
+
   const authorization = req.headers.authorization;
   if (!authorization?.startsWith("Bearer ")) {
     return res.status(401).json({ success: false, error: "Unauthorized" });
   }
 
   try {
-    const decodedToken = await adminAuth.verifyIdToken(authorization.slice(7), true);
-    if (decodedToken.admin !== true) {
+    const decodedToken = await getLocketAuthVerifier().verifyIdToken(
+      authorization.slice(7),
+      false,
+    );
+    if (!allowedUids.has(decodedToken.uid)) {
       return res.status(403).json({ success: false, error: "Admin permission required" });
     }
     req.adminAuth = adminAuth;

@@ -29,7 +29,6 @@ const ErrorReferencePage = React.lazy(() => import("../pages/Public/ErrorReferen
 const ReferencePage = React.lazy(() => import("../pages/Public/APIDocs"));
 const BirthdayPage = React.lazy(() => import("../pages/Public/BirthdayPage"));
 const AdminGoogleDrive = React.lazy(() => import("../pages/Public/AdminGoogleDrive"));
-const AdminUsers = React.lazy(() => import("../pages/Public/AdminUsers"));
 const SpotifyCallback = React.lazy(
   () => import("../pages/Public/SpotifyCallback"),
 );
@@ -66,7 +65,6 @@ export const publicRoutes = [
 
   { path: "/settings", component: Settings, title: `Cài đặt | ${APP_NAME}` },
   { path: "/admin/google-drive", component: AdminGoogleDrive, title: `Google Drive Admin | ${APP_NAME}` },
-  { path: "/admin/users", component: AdminUsers, title: `Quản trị Huy Locket | ${APP_NAME}` },
   { path: "/devpage", component: DevPage, title: `Dev Page | ${APP_NAME}` },
   { path: "/reference", component: ReferencePage, title: `API Docs | ${APP_NAME}` },
   { path: "/incidents", component: ErrorReferencePage, title: `Trung tâm sự cố | ${APP_NAME}` },
