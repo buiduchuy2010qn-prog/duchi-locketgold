@@ -6,6 +6,7 @@ const {
   getInitializationError,
 } = require("../services/adminFirebase");
 const {
+  getAdminLocketEmails,
   getAdminLocketUids,
   getLocketAuthVerifier,
 } = require("../services/locketAdminVerifier");
@@ -32,7 +33,8 @@ async function requireAdmin(req, res, next) {
   }
 
   const allowedUids = getAdminLocketUids();
-  if (allowedUids.size === 0) {
+  const allowedEmails = getAdminLocketEmails();
+  if (allowedUids.size === 0 && allowedEmails.size === 0) {
     return res.status(503).json({ success: false, error: "Admin allowlist is unavailable" });
   }
 
@@ -46,14 +48,16 @@ async function requireAdmin(req, res, next) {
       authorization.slice(7),
       false,
     );
-    if (!allowedUids.has(decodedToken.uid)) {
+    const tokenEmail = String(decodedToken.email || "").trim().toLowerCase();
+    if (!allowedUids.has(decodedToken.uid) && !allowedEmails.has(tokenEmail)) {
       return res.status(403).json({ success: false, error: "Admin permission required" });
     }
     req.adminAuth = adminAuth;
     req.adminUid = decodedToken.uid;
     req.adminEmail = decodedToken.email || null;
     return next();
-  } catch {
+  } catch (error) {
+    console.warn("Admin Locket token verification failed:", error?.code || error?.name || "unknown");
     return res.status(401).json({ success: false, error: "Unauthorized" });
   }
 }

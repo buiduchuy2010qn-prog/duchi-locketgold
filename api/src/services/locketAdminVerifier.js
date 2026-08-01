@@ -20,12 +20,22 @@ function getAdminLocketUids() {
   );
 }
 
+function getAdminLocketEmails() {
+  return new Set(
+    String(process.env.ADMIN_LOCKET_EMAILS || "")
+      .split(/[,;\s]+/)
+      .map((value) => value.trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
+
 function getLocketAuthVerifier() {
   return firebaseAdmin.auth(getVerifierApp());
 }
 
 module.exports = {
   LOCKET_FIREBASE_PROJECT_ID,
+  getAdminLocketEmails,
   getAdminLocketUids,
   getLocketAuthVerifier,
 };

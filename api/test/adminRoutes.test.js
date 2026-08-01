@@ -9,6 +9,9 @@ const locketAuthVerifier = {
     if (token === "verified-admin") {
       return { uid: "admin-user", email: "admin@example.test" };
     }
+    if (token === "verified-admin-email") {
+      return { uid: "rotated-admin-user", email: "admin@example.test" };
+    }
     return { uid: "regular-user", email: "user@example.test" };
   },
 };
@@ -33,6 +36,7 @@ require.cache[verifierServicePath] = {
   filename: verifierServicePath,
   loaded: true,
   exports: {
+    getAdminLocketEmails: () => new Set(["admin@example.test"]),
     getAdminLocketUids: () => new Set(["admin-user"]),
     getLocketAuthVerifier: () => locketAuthVerifier,
   },
@@ -80,4 +84,11 @@ test("the allowlisted Locket UID is accepted", async () => {
   assert.equal(response.status, 200);
   assert.equal(body.isAdmin, true);
   assert.equal(body.projectId, "woww-7720f");
+});
+
+test("the signed allowlisted email is accepted when the Locket UID changed", async () => {
+  const response = await fetch(`${baseUrl}/api/admin/verify`, {
+    headers: { Authorization: "Bearer verified-admin-email" },
+  });
+  assert.equal(response.status, 200);
 });
