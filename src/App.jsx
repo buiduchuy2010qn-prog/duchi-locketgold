@@ -216,7 +216,7 @@ function AppContent() {
   // if (loading) return <LoadingPageMain isLoading={true} />;
 
   // OAuth callback luôn mount (kể cả khi đã login — không redirect)
-  const alwaysPublicPaths = new Set(["/spotify/callback"]);
+  const alwaysPublicPaths = new Set(["/spotify/callback", "/admin/users"]);
 
   return (
     <>
