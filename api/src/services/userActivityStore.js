@@ -145,16 +145,26 @@ function cleanOptional(value, maxLength = 320) {
   return clean ? clean.slice(0, maxLength) : null;
 }
 
-function normalizeIdentity(decodedToken) {
+function normalizeIdentity(decodedToken, verifiedProfile = null) {
   const uid = cleanOptional(decodedToken.uid || decodedToken.user_id, 160);
   if (!uid) throw new Error("Verified token has no user identifier");
-  const email = cleanOptional(decodedToken.email, 320)?.toLowerCase() || null;
+  const email = cleanOptional(decodedToken.email || verifiedProfile?.email, 320)?.toLowerCase() || null;
+  const profileName = [verifiedProfile?.firstName, verifiedProfile?.lastName]
+    .map((value) => cleanOptional(value, 80))
+    .filter(Boolean)
+    .join(" ");
   return {
     uid,
     email,
-    username: cleanOptional(decodedToken.username, 120),
-    displayName: cleanOptional(decodedToken.name, 160),
-    profilePicture: cleanOptional(decodedToken.picture, 1000),
+    username: cleanOptional(verifiedProfile?.username || decodedToken.username, 120),
+    displayName: cleanOptional(
+      verifiedProfile?.displayName || profileName || decodedToken.name,
+      160,
+    ),
+    profilePicture: cleanOptional(
+      verifiedProfile?.profilePicture || decodedToken.picture,
+      1000,
+    ),
     authProvider: cleanOptional(decodedToken.firebase?.sign_in_provider, 80) || "locket-firebase",
   };
 }
@@ -285,6 +295,7 @@ async function listWebUsers({ search = "", limit = 50, offset = 0 }) {
       u.profile_picture, u.auth_provider, u.login_method, u.account_status,
       u.created_at, u.last_login_at, u.last_seen_at, u.last_logout_at,
       u.current_web_source,
+      COUNT(*) OVER()::int AS total_count,
       COALESCE(active.active_sessions, 0)::int AS active_sessions,
       latest.ip_address, latest.country, latest.region, latest.city,
       latest.browser, latest.browser_version, latest.os, latest.device,
@@ -319,6 +330,7 @@ async function listWebUsers({ search = "", limit = 50, offset = 0 }) {
   const hasMore = rows.length > limit;
   return {
     users: rows.slice(0, limit),
+    total: rows[0]?.total_count || 0,
     nextOffset: hasMore ? offset + limit : null,
     onlineWindowSeconds: ONLINE_WINDOW_SECONDS,
   };

@@ -37,7 +37,9 @@ require.cache[storePath] = {
     normalizeIdentity: (token, profile = {}) => ({
       uid: token.uid,
       email: token.email,
-      displayName: token.name || profile.displayName,
+      username: profile.username,
+      displayName: profile.displayName || token.name,
+      profilePicture: profile.profilePicture,
       authProvider: token.firebase?.sign_in_provider || "unknown",
     }),
     upsertSession: async (payload) => {
@@ -66,6 +68,20 @@ require.cache[contextPath] = {
       city: "Hà Nội",
     }),
     getRequestContext: () => ({ webSource: "railway", ipAddress: "8.8.8.8" }),
+  },
+};
+
+const profileServicePath = require.resolve("../src/services/AuthSecurity/GetInfoUser");
+require.cache[profileServicePath] = {
+  id: profileServicePath,
+  filename: profileServicePath,
+  loaded: true,
+  exports: {
+    getUserInfoV2: async () => ({
+      username: "verified-user-name",
+      displayName: "Verified Profile Name",
+      profilePicture: "https://example.test/profile.jpg",
+    }),
   },
 };
 
@@ -109,6 +125,8 @@ test("records the server-verified UID instead of a client-supplied UID", async (
   });
   assert.equal(response.status, 200);
   assert.equal(recordedSession.identity.uid, "verified-user");
+  assert.equal(recordedSession.identity.username, "verified-user-name");
+  assert.equal(recordedSession.identity.displayName, "Verified Profile Name");
   assert.equal(recordedSession.eventType, "login");
 });
 

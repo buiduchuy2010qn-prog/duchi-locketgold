@@ -79,6 +79,7 @@ require.cache[activityStorePath] = {
         build_id: "test-build",
         commit_hash: "abcdef12",
       }],
+      total: 1,
       nextOffset: null,
       onlineWindowSeconds: 150,
     }),
@@ -145,6 +146,7 @@ test("the admin user list returns the latest login IP, location and browser vers
   const body = await response.json();
   assert.equal(response.status, 200);
   assert.equal(body.users.length, 1);
+  assert.equal(body.totalUsers, 1);
   assert.deepEqual(body.users[0].latestLoginData, {
     created_at: "2026-08-01T01:00:00.000Z",
     ip_address: "203.0.113.9",

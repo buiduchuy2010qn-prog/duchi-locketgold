@@ -1,6 +1,7 @@
 const express = require("express");
 const rateLimit = require("express-rate-limit");
 const { getLocketAuthVerifier } = require("../services/locketAdminVerifier");
+const { getUserInfoV2 } = require("../services/AuthSecurity/GetInfoUser");
 const {
   getLoginRequestContext,
   getRequestContext,
@@ -68,7 +69,12 @@ router.post("/session", async (req, res) => {
   if (!sessionId) return;
   const eventType = req.body?.eventType === "login" ? "login" : "resume";
   try {
-    const identity = normalizeIdentity(req.verifiedLocketUser);
+    const idToken = req.headers.authorization.slice(7);
+    const verifiedProfile = await getUserInfoV2(
+      idToken,
+      req.verifiedLocketUser.uid || req.verifiedLocketUser.user_id,
+    );
+    const identity = normalizeIdentity(req.verifiedLocketUser, verifiedProfile);
     const context = eventType === "login"
       ? await getLoginRequestContext(req)
       : getRequestContext(req);

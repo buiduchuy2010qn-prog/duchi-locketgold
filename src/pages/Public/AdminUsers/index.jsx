@@ -53,8 +53,7 @@ function sourceLabel(source) {
 }
 
 function userName(user) {
-  if (user.isAdmin) return user.displayName || "Bùi Đức Huy";
-  return user.displayName || user.username || "Người dùng Huy Locket";
+  return user.displayName || user.username || "Chưa có tên hồ sơ";
 }
 
 function errorMessage(error) {
@@ -84,6 +83,7 @@ export default function AdminUsers() {
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [pageToken, setPageToken] = useState(null);
+  const [totalUsers, setTotalUsers] = useState(0);
   const [onlineWindowSeconds, setOnlineWindowSeconds] = useState(150);
   const [selectedUser, setSelectedUser] = useState(null);
   const [history, setHistory] = useState([]);
@@ -97,7 +97,7 @@ export default function AdminUsers() {
     setError(null);
     try {
       const query = token ? `&pageToken=${encodeURIComponent(token)}` : "";
-      const data = await adminRequest(`/users?limit=50${query}`);
+      const data = await adminRequest(`/users?limit=100${query}`);
       setUsers((current) => {
         if (!token) return data.users || [];
         const merged = new Map(current.map((entry) => [entry.uid, entry]));
@@ -105,6 +105,7 @@ export default function AdminUsers() {
         return Array.from(merged.values());
       });
       setPageToken(data.pageToken || null);
+      setTotalUsers(Number(data.totalUsers || 0));
       setOnlineWindowSeconds(data.onlineWindowSeconds || 150);
     } catch (requestError) {
       setError({ code: requestError.code, message: errorMessage(requestError) });
@@ -231,7 +232,7 @@ export default function AdminUsers() {
             <Lock className="text-primary" /> Quản lý người dùng
           </h1>
           <p className="text-sm text-base-content/60 mt-1">
-            Người dùng Huy Locket được ghi nhận bằng token đã xác minh phía server
+            {totalUsers} người dùng Huy Locket được ghi nhận bằng token đã xác minh phía server
           </p>
         </div>
         <div className="relative w-full md:w-80">
@@ -281,6 +282,7 @@ export default function AdminUsers() {
                     <div className="font-medium flex items-center gap-2">
                       {userName(user)}
                       {user.isAdmin && <span className="badge badge-primary badge-xs font-bold">ADMIN</span>}
+                      {!user.displayName && !user.username && <span className="badge badge-ghost badge-xs">UID thật · chưa có tên</span>}
                     </div>
                     <div className="text-xs text-base-content/60">{user.email || user.username || user.uid}</div>
                   </td>
@@ -317,6 +319,12 @@ export default function AdminUsers() {
           </table>
         </div>
       </div>
+
+      {!loading && !error && (
+        <p className="mt-3 text-xs text-base-content/60 text-center">
+          Đang hiển thị {users.length}/{totalUsers} người dùng đã xác minh
+        </p>
+      )}
 
       {!loading && !error && pageToken && !search.trim() && (
         <div className="mt-4 flex justify-center">

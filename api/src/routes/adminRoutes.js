@@ -155,6 +155,7 @@ router.get("/users", requireActivityDatabase, async (req, res) => {
     return res.status(200).json({
       success: true,
       users,
+      totalUsers: result.total,
       pageToken: result.nextOffset === null ? null : String(result.nextOffset),
       onlineWindowSeconds: result.onlineWindowSeconds,
       historyStartedAt: users.reduce((oldest, user) => {
