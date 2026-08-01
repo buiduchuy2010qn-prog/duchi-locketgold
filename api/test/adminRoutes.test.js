@@ -42,6 +42,51 @@ require.cache[verifierServicePath] = {
   },
 };
 
+const activityStorePath = require.resolve("../src/services/userActivityStore");
+require.cache[activityStorePath] = {
+  id: activityStorePath,
+  filename: activityStorePath,
+  loaded: true,
+  exports: {
+    clearLoginHistory: async () => 0,
+    getLoginHistory: async () => [],
+    getWebUser: async () => null,
+    hasActivityDatabase: () => true,
+    listWebUsers: async () => ({
+      users: [{
+        uid: "admin-user",
+        email: "admin@example.test",
+        auth_provider: "password",
+        login_method: "email",
+        account_status: "active",
+        created_at: "2026-08-01T00:00:00.000Z",
+        last_login_at: "2026-08-01T01:00:00.000Z",
+        last_seen_at: "2026-08-01T01:05:00.000Z",
+        current_web_source: "vercel",
+        active_sessions: 1,
+        latest_login_event_at: "2026-08-01T01:00:00.000Z",
+        ip_address: "203.0.113.9",
+        country: "VN",
+        region: "HN",
+        city: "Hà Nội",
+        browser: "Chrome",
+        browser_version: "126.0",
+        os: "Windows",
+        device: "Desktop",
+        latest_login_method: "email",
+        latest_web_source: "vercel",
+        web_version: "Beta1.3.6",
+        build_id: "test-build",
+        commit_hash: "abcdef12",
+      }],
+      nextOffset: null,
+      onlineWindowSeconds: 150,
+    }),
+    setAccountStatus: async () => true,
+    writeAudit: async () => {},
+  },
+};
+
 const adminRoutes = require("../src/routes/adminRoutes");
 
 let server;
@@ -91,4 +136,29 @@ test("the signed allowlisted email is accepted when the Locket UID changed", asy
     headers: { Authorization: "Bearer verified-admin-email" },
   });
   assert.equal(response.status, 200);
+});
+
+test("the admin user list returns the latest login IP, location and browser version", async () => {
+  const response = await fetch(`${baseUrl}/api/admin/users`, {
+    headers: { Authorization: "Bearer verified-admin" },
+  });
+  const body = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(body.users.length, 1);
+  assert.deepEqual(body.users[0].latestLoginData, {
+    created_at: "2026-08-01T01:00:00.000Z",
+    ip_address: "203.0.113.9",
+    country: "VN",
+    region: "HN",
+    city: "Hà Nội",
+    browser: "Chrome",
+    browser_version: "126.0",
+    os: "Windows",
+    device: "Desktop",
+    login_method: "email",
+    web_source: "vercel",
+    web_version: "Beta1.3.6",
+    build_id: "test-build",
+    commit_hash: "abcdef12",
+  });
 });

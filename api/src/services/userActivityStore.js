@@ -288,6 +288,8 @@ async function listWebUsers({ search = "", limit = 50, offset = 0 }) {
       COALESCE(active.active_sessions, 0)::int AS active_sessions,
       latest.ip_address, latest.country, latest.region, latest.city,
       latest.browser, latest.browser_version, latest.os, latest.device,
+      latest.login_method AS latest_login_method,
+      latest.web_source AS latest_web_source,
       latest.web_version, latest.build_id, latest.commit_hash,
       latest.created_at AS latest_login_event_at,
       latest.ended_at AS latest_session_ended_at

@@ -242,7 +242,7 @@ export default function AdminUsers() {
 
       <div className="alert alert-info mb-4 text-sm">
         <Info size={18} />
-        <span>Lịch sử chỉ được ghi nhận từ thời điểm hệ thống theo dõi được kích hoạt. Trạng thái đang hoạt động là ước tính từ heartbeat gần nhất.</span>
+        <span>Người dùng cũ chỉ được bổ sung khi có dấu vết xác thực thật trong log còn lưu. IP, vị trí và trình duyệt chỉ có từ những lần đăng nhập sau khi hệ thống theo dõi được kích hoạt.</span>
       </div>
 
       <div className="bg-base-100 rounded-xl shadow-sm border border-base-200 overflow-hidden">
@@ -251,24 +251,32 @@ export default function AdminUsers() {
             <thead>
               <tr className="bg-base-200/50">
                 <th>Người dùng</th>
-                <th>Đăng nhập</th>
+                <th>Đăng nhập gần nhất</th>
+                <th>IP / vị trí</th>
+                <th>Trình duyệt / phiên bản</th>
                 <th>Tài khoản</th>
                 <th>Hoạt động gần nhất</th>
-                <th>Lần đăng nhập</th>
                 <th>Nguồn web</th>
-                <th>Ngày tạo</th>
+                <th>Ghi nhận từ</th>
                 <th className="text-right">Chi tiết</th>
               </tr>
             </thead>
             <tbody>
               {loading && users.length === 0 ? (
-                <tr><td colSpan="8" className="text-center py-12"><span className="loading loading-spinner loading-lg text-primary" /></td></tr>
+                <tr><td colSpan="9" className="text-center py-12"><span className="loading loading-spinner loading-lg text-primary" /></td></tr>
               ) : error ? (
-                <tr><td colSpan="8" className="text-center py-12"><AlertTriangle size={32} className="mx-auto text-error mb-2" /><p className="text-error">{error.message}</p><button type="button" onClick={() => fetchUsers()} className="btn btn-sm btn-outline mt-4"><RefreshCw size={14} /> Thử lại</button></td></tr>
+                <tr><td colSpan="9" className="text-center py-12"><AlertTriangle size={32} className="mx-auto text-error mb-2" /><p className="text-error">{error.message}</p><button type="button" onClick={() => fetchUsers()} className="btn btn-sm btn-outline mt-4"><RefreshCw size={14} /> Thử lại</button></td></tr>
               ) : filteredUsers.length === 0 ? (
-                <tr><td colSpan="8" className="text-center py-12 text-base-content/50">Chưa có người dùng website đã xác thực phù hợp.</td></tr>
-              ) : filteredUsers.map((user) => (
-                <tr key={user.uid} className="hover">
+                <tr><td colSpan="9" className="text-center py-12 text-base-content/50">Chưa có người dùng website đã xác thực phù hợp.</td></tr>
+              ) : filteredUsers.map((user) => {
+                const latestLogin = user.latestLoginData;
+                const location = latestLogin
+                  ? [latestLogin.city, latestLogin.region, latestLogin.country]
+                    .filter((value) => value && value !== UNKNOWN)
+                    .join(", ") || UNKNOWN
+                  : UNKNOWN;
+                return (
+                  <tr key={user.uid} className="hover">
                   <td>
                     <div className="font-medium flex items-center gap-2">
                       {userName(user)}
@@ -276,19 +284,35 @@ export default function AdminUsers() {
                     </div>
                     <div className="text-xs text-base-content/60">{user.email || user.username || user.uid}</div>
                   </td>
-                  <td><span className="badge badge-ghost badge-sm">{user.loginMethod || user.provider || UNKNOWN}</span></td>
+                  <td className="min-w-40">
+                    {latestLogin ? (
+                      <>
+                        <div className="text-sm whitespace-nowrap">{formatDateTime(latestLogin.created_at)}</div>
+                        <span className="badge badge-ghost badge-xs mt-1">{latestLogin.login_method || user.loginMethod || user.provider || UNKNOWN}</span>
+                      </>
+                    ) : <span className="text-sm text-base-content/50">Chưa ghi nhận</span>}
+                  </td>
+                  <td className="min-w-48">
+                    <div className="font-mono text-xs">{latestLogin?.ip_address || UNKNOWN}</div>
+                    <div className="inline-flex items-center gap-1 mt-1 text-xs text-base-content/70"><MapPin size={12} /> {location}</div>
+                  </td>
+                  <td className="min-w-52">
+                    <div className="inline-flex items-center gap-1 text-sm"><Monitor size={13} /> {latestLogin?.browser || UNKNOWN}{latestLogin?.browser_version && latestLogin.browser_version !== UNKNOWN ? ` ${latestLogin.browser_version}` : ""}</div>
+                    <div className="text-xs text-base-content/60">{latestLogin ? `${latestLogin.os || UNKNOWN} · ${latestLogin.device || UNKNOWN}` : UNKNOWN}</div>
+                    <div className="text-xs text-base-content/50 mt-1">Web {latestLogin?.web_version || "—"} · <span className="font-mono">{latestLogin?.commit_hash || latestLogin?.build_id || "—"}</span></div>
+                  </td>
                   <td>{user.disabled ? <span className="badge badge-error badge-sm gap-1"><Lock size={12} /> Đã khóa</span> : <span className="badge badge-success badge-sm gap-1"><Unlock size={12} /> Hoạt động</span>}</td>
                   <td>
                     {isOnline(user)
                       ? <span className="badge badge-success badge-sm gap-1"><Activity size={12} /> Đang hoạt động · {user.activeSessions} phiên</span>
                       : <span className="text-sm text-base-content/70">{user.lastLogoutAt && new Date(user.lastLogoutAt) >= new Date(user.lastSeenAt || 0) ? "Đã đăng xuất" : relativeActivity(user.lastSeenAt)}</span>}
                   </td>
-                  <td className="text-sm">{formatDateTime(user.lastSignInTime)}</td>
-                  <td><span className="badge badge-outline badge-sm">{sourceLabel(user.webSource)}</span></td>
+                  <td><span className="badge badge-outline badge-sm">{sourceLabel(latestLogin?.web_source || user.webSource)}</span></td>
                   <td className="text-sm">{formatDate(user.creationTime)}</td>
                   <td className="text-right"><button type="button" className="btn btn-sm btn-ghost btn-circle" onClick={() => openUser(user)} title="Xem chi tiết"><Info size={18} /></button></td>
-                </tr>
-              ))}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

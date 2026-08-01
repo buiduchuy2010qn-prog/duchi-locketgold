@@ -143,6 +143,8 @@ router.get("/users", requireActivityDatabase, async (req, res) => {
         browser_version: user.browser_version,
         os: user.os,
         device: user.device,
+        login_method: user.latest_login_method,
+        web_source: user.latest_web_source,
         web_version: user.web_version,
         build_id: user.build_id,
         commit_hash: user.commit_hash,
