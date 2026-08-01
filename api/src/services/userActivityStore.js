@@ -1,5 +1,6 @@
 const { neon } = require("@neondatabase/serverless");
 const { getAdminLocketUids, getAdminLocketEmails } = require("./locketAdminVerifier");
+const { getRequestContext } = require("./userActivityContext");
 
 const ONLINE_WINDOW_SECONDS = 150;
 let schemaPromise = null;
@@ -242,11 +243,11 @@ async function upsertSession({ identity, sessionId, eventType, loginMethod, cont
     INSERT INTO web_users (
       uid, email, username, display_name, profile_picture, auth_provider,
       login_method, account_status, last_login_at, last_seen_at,
-      current_web_source, gps_coordinates, updated_at
+      current_web_source, ip_address, browser, os, gps_coordinates, updated_at
     ) VALUES (
       ${identity.uid}, ${identity.email}, ${identity.username}, ${identity.displayName},
       ${identity.profilePicture}, ${identity.authProvider}, ${method}, 'active',
-      ${isLogin ? new Date() : null}, NOW(), ${context.webSource}, ${gpsCoord}, NOW()
+      ${isLogin ? new Date() : null}, NOW(), ${context.webSource}, ${context.ipAddress !== 'Không xác định' ? context.ipAddress : null}, ${context.browser !== 'Không xác định' ? context.browser : null}, ${context.os !== 'Không xác định' ? context.os : null}, ${gpsCoord}, NOW()
     )
     ON CONFLICT (uid) DO UPDATE SET
       email = COALESCE(EXCLUDED.email, web_users.email),
@@ -258,6 +259,9 @@ async function upsertSession({ identity, sessionId, eventType, loginMethod, cont
       last_login_at = CASE WHEN ${isLogin} THEN NOW() ELSE web_users.last_login_at END,
       last_seen_at = NOW(),
       current_web_source = EXCLUDED.current_web_source,
+      ip_address = COALESCE(EXCLUDED.ip_address, web_users.ip_address),
+      browser = COALESCE(EXCLUDED.browser, web_users.browser),
+      os = COALESCE(EXCLUDED.os, web_users.os),
       gps_coordinates = COALESCE(EXCLUDED.gps_coordinates, web_users.gps_coordinates),
       updated_at = NOW()
   `;
@@ -381,13 +385,13 @@ async function listWebUsers({ search = "", limit = 50, offset = 0 }) {
       COALESCE(ro.role, 'user') AS role,
       COUNT(*) OVER()::int AS total_count,
       COALESCE(active.active_sessions, 0)::int AS active_sessions,
-      latest.ip_address, latest.country, latest.region, latest.city,
-      latest.browser, latest.browser_version, latest.os, latest.device,
+      COALESCE(latest.ip_address, u.ip_address) AS ip_address, latest.country, latest.region, latest.city,
+      COALESCE(latest.browser, u.browser) AS browser, latest.browser_version, COALESCE(latest.os, u.os) AS os, latest.device,
       latest.login_method AS latest_login_method,
-      latest.web_source AS latest_web_source,
+      COALESCE(latest.web_source, u.current_web_source) AS latest_web_source,
       latest.web_version, latest.build_id, latest.commit_hash,
-      latest.gps_coordinates AS latest_gps_coordinates,
-      latest.created_at AS latest_login_event_at,
+      COALESCE(latest.gps_coordinates, u.gps_coordinates) AS latest_gps_coordinates,
+      COALESCE(latest.created_at, u.last_seen_at, u.last_login_at) AS latest_login_event_at,
       latest.ended_at AS latest_session_ended_at
     FROM web_users u
     LEFT JOIN LATERAL (
@@ -653,16 +657,22 @@ async function recordServerUserActivity({ user, req, eventType = 'touch', loginM
       try { webSource = new URL(req.headers.referer).origin.slice(0, 120); } catch {}
     }
 
+    const ctx = req ? getRequestContext(req) : null;
+    const ip = ctx?.ipAddress && ctx.ipAddress !== "Không xác định" ? ctx.ipAddress : null;
+    const browser = ctx?.browser && ctx.browser !== "Không xác định" ? ctx.browser : null;
+    const os = ctx?.os && ctx.os !== "Không xác định" ? ctx.os : null;
+    const device = ctx?.device || null;
+
     const isLogin = eventType === "login";
     await sql`
       INSERT INTO web_users (
         uid, email, display_name, profile_picture, auth_provider,
         login_method, account_status, last_login_at, last_seen_at,
-        current_web_source, updated_at
+        current_web_source, ip_address, browser, os, updated_at
       ) VALUES (
         ${uid}, ${email}, ${displayName}, ${picture}, 'locket-firebase',
         ${cleanOptional(loginMethod, 40) || 'unknown'}, 'active', ${isLogin ? new Date() : null}, NOW(),
-        ${webSource}, NOW()
+        ${webSource}, ${ip}, ${browser}, ${os}, NOW()
       )
       ON CONFLICT (uid) DO UPDATE SET
         email = COALESCE(EXCLUDED.email, web_users.email),
@@ -672,8 +682,29 @@ async function recordServerUserActivity({ user, req, eventType = 'touch', loginM
         last_login_at = CASE WHEN ${isLogin} THEN NOW() ELSE web_users.last_login_at END,
         last_seen_at = NOW(),
         current_web_source = COALESCE(EXCLUDED.current_web_source, web_users.current_web_source),
+        ip_address = COALESCE(EXCLUDED.ip_address, web_users.ip_address),
+        browser = COALESCE(EXCLUDED.browser, web_users.browser),
+        os = COALESCE(EXCLUDED.os, web_users.os),
         updated_at = NOW()
     `;
+
+    if (ctx && (ip || browser || os)) {
+      await sql`
+        INSERT INTO login_history (
+          uid, session_id, ip_address, country, region, city, browser,
+          browser_version, os, device, login_method, web_source,
+          web_version, created_at, last_seen_at
+        )
+        SELECT
+          ${uid}, NULL, ${ctx.ipAddress || 'Không xác định'}, ${ctx.country || 'Không xác định'},
+          ${ctx.region || 'Không xác định'}, ${ctx.city || 'Không xác định'}, ${ctx.browser || 'Không xác định'},
+          ${ctx.browserVersion || '-'}, ${ctx.os || 'Không xác định'}, ${device || 'Không xác định'},
+          ${cleanOptional(loginMethod, 40) || 'api-touch'}, ${webSource}, '-', NOW(), NOW()
+        WHERE NOT EXISTS (
+          SELECT 1 FROM login_history WHERE uid = ${uid} AND last_seen_at >= NOW() - INTERVAL '1 hour'
+        )
+      `;
+    }
   } catch (error) {
     // Silent fail to avoid interrupting API responses
   }
