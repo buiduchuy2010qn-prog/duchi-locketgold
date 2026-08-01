@@ -19,6 +19,7 @@ const routes = require("./src/routes");
 const initChatSocket = require("./src/socket");
 const errorHandler = require("./src/middlewares/errorHandler.js");
 const { printServerBanner } = require("./src/utils/printServerBanner.js");
+const { antiBotMiddleware, globalDDoSShield } = require("./src/middlewares/antiBot.js");
 
 const {
   connectRedis,
@@ -139,6 +140,8 @@ io.use((socket, next) => {
 initChatSocket(io);
 
 // ── Express middleware ────────────────────────────────────────
+app.use(globalDDoSShield);
+app.use(antiBotMiddleware);
 app.use(cookieParser());
 
 // Binary media upload (presigned PUT) — BEFORE json parser
