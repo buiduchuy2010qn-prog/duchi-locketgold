@@ -53,6 +53,11 @@ function sourceLabel(source) {
   return UNKNOWN;
 }
 
+function loginMethodLabel(method) {
+  if (method === "session-resume") return "Khôi phục phiên";
+  return method || UNKNOWN;
+}
+
 function userName(user) {
   return user.displayName || user.username || "Chưa có tên hồ sơ";
 }
@@ -334,7 +339,7 @@ export default function AdminUsers() {
                     {latestLogin ? (
                       <>
                         <div className="text-sm whitespace-nowrap">{formatDateTime(latestLogin.created_at)}</div>
-                        <span className="badge badge-ghost badge-xs mt-1">{latestLogin.login_method || user.loginMethod || user.provider || UNKNOWN}</span>
+                        <span className="badge badge-ghost badge-xs mt-1">{loginMethodLabel(latestLogin.login_method || user.loginMethod || user.provider)}</span>
                       </>
                     ) : <span className="text-sm text-base-content/50">Chưa ghi nhận</span>}
                   </td>
@@ -433,7 +438,7 @@ export default function AdminUsers() {
                           <td className="font-mono text-xs">{entry.ip_address || UNKNOWN}</td>
                           <td><span className="inline-flex items-center gap-1"><MapPin size={12} /> {[entry.city, entry.region, entry.country].filter((value) => value && value !== UNKNOWN).join(", ") || UNKNOWN}</span></td>
                           <td>{entry.browser || UNKNOWN} {entry.browser_version && entry.browser_version !== UNKNOWN ? entry.browser_version : ""}<br /><span className="text-xs text-base-content/60">{entry.os || UNKNOWN} · {entry.device || UNKNOWN}</span></td>
-                          <td>{entry.login_method || UNKNOWN}</td>
+                          <td>{loginMethodLabel(entry.login_method)}</td>
                           <td>{entry.web_version || "—"}<br /><span className="text-xs font-mono">{entry.commit_hash || entry.build_id || "—"}</span></td>
                           <td>{sourceLabel(entry.web_source)}</td>
                           <td>{entry.ended_at ? <span className="badge badge-ghost badge-xs">Đã đăng xuất</span> : entryOnline ? <span className="badge badge-success badge-xs">Đang hoạt động</span> : <span className="badge badge-warning badge-xs">Mất heartbeat</span>}</td>

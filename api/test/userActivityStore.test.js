@@ -1,6 +1,9 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { normalizeIdentity } = require("../src/services/userActivityStore");
+const {
+  normalizeIdentity,
+  shouldRecordLoginHistory,
+} = require("../src/services/userActivityStore");
 
 test("uses only the verified Locket profile for the visible user identity", () => {
   const identity = normalizeIdentity(
@@ -24,4 +27,10 @@ test("uses only the verified Locket profile for the visible user identity", () =
   assert.equal(identity.displayName, "Verified Profile");
   assert.equal(identity.profilePicture, "https://example.test/profile.jpg");
   assert.equal(identity.authProvider, "password");
+});
+
+test("records actual sign-ins and resumed browser sessions in login history", () => {
+  assert.equal(shouldRecordLoginHistory("login"), true);
+  assert.equal(shouldRecordLoginHistory("resume"), true);
+  assert.equal(shouldRecordLoginHistory("heartbeat"), false);
 });

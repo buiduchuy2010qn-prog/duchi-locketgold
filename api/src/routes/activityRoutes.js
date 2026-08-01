@@ -75,9 +75,7 @@ router.post("/session", async (req, res) => {
       req.verifiedLocketUser.uid || req.verifiedLocketUser.user_id,
     );
     const identity = normalizeIdentity(req.verifiedLocketUser, verifiedProfile);
-    const context = eventType === "login"
-      ? await getLoginRequestContext(req)
-      : getRequestContext(req);
+    const context = await getLoginRequestContext(req);
     const result = await upsertSession({
       identity,
       sessionId,

@@ -169,6 +169,10 @@ function normalizeIdentity(decodedToken, verifiedProfile = null) {
   };
 }
 
+function shouldRecordLoginHistory(eventType) {
+  return eventType === "login" || eventType === "resume";
+}
+
 async function getAccountStatus(uid) {
   await ensureUserActivitySchema();
   const sql = getSql();
@@ -180,7 +184,9 @@ async function upsertSession({ identity, sessionId, eventType, loginMethod, cont
   await ensureUserActivitySchema();
   const sql = getSql();
   const isLogin = eventType === "login";
+  const recordsHistory = shouldRecordLoginHistory(eventType);
   const method = cleanOptional(loginMethod, 40) || "unknown";
+  const historyMethod = eventType === "resume" ? "session-resume" : method;
   const version = cleanOptional(build?.version, 40);
   const buildId = cleanOptional(build?.buildId, 120);
   const commitHash = cleanOptional(build?.commitHash, 80);
@@ -226,7 +232,7 @@ async function upsertSession({ identity, sessionId, eventType, loginMethod, cont
     WHERE user_sessions.user_uid = EXCLUDED.user_uid
   `;
 
-  if (isLogin) {
+  if (recordsHistory) {
     await sql`
       INSERT INTO login_history (
         uid, session_id, ip_address, country, region, city, browser,
@@ -235,7 +241,7 @@ async function upsertSession({ identity, sessionId, eventType, loginMethod, cont
       ) VALUES (
         ${identity.uid}, ${sessionId}, ${context.ipAddress}, ${context.country},
         ${context.region}, ${context.city}, ${context.browser}, ${context.browserVersion},
-        ${context.os}, ${context.device}, ${method}, ${context.webSource},
+        ${context.os}, ${context.device}, ${historyMethod}, ${context.webSource},
         ${version}, ${buildId}, ${commitHash}, NOW(), NOW()
       )
       ON CONFLICT (session_id) WHERE session_id IS NOT NULL DO UPDATE SET
@@ -399,6 +405,7 @@ module.exports = {
   listWebUsers,
   normalizeIdentity,
   setAccountStatus,
+  shouldRecordLoginHistory,
   upsertSession,
   writeAudit,
 };
