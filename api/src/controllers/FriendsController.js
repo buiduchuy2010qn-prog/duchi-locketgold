@@ -459,6 +459,8 @@ const getUserController = async (req, res, next) => {
       //   idToken,
       //   link
       // );
+    }
+
     if (result?.status === 404 || !result || !result?.data || Object.keys(result?.data || {}).length === 0) {
       return res.status(404).json({
         success: false,
