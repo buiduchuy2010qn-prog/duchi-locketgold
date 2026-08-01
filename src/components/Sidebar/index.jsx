@@ -60,27 +60,34 @@ const Sidebar = () => {
   const isDriveAdmin =
     Boolean(user) &&
     isAdminUser(localId, { email, localId, uid: user?.uid || localId });
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(isDriveAdmin || false);
 
   useEffect(() => {
     let active = true;
+    if (isDriveAdmin) {
+      setIsAdmin(true);
+    }
     const checkAdmin = async () => {
-      if (!user || !hasAdminSession()) {
+      if (!user) {
         if (active) setIsAdmin(false);
+        return;
+      }
+      if (isDriveAdmin) {
+        if (active) setIsAdmin(true);
         return;
       }
       try {
         const verified = await verifyAdminSession();
-        if (active) setIsAdmin(verified);
+        if (active) setIsAdmin(verified || isDriveAdmin);
       } catch {
-        if (active) setIsAdmin(false);
+        if (active) setIsAdmin(isDriveAdmin);
       }
     };
     checkAdmin();
     return () => {
       active = false;
     };
-  }, [user]);
+  }, [user, isDriveAdmin]);
 
   const drawerRef = useRef(null);
 
@@ -308,7 +315,7 @@ const Sidebar = () => {
   ];
 
   const menuSections = [
-    ...(isAdmin
+    ...(isAdmin || isDriveAdmin
       ? [{
           title: "Quản trị Huy Locket",
           items: [{
