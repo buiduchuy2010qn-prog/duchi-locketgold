@@ -10,6 +10,7 @@ const {
   getLocketAuthVerifier,
 } = require("../services/locketAdminVerifier");
 const {
+  checkAdminPinSet,
   clearLoginHistory,
   createAdminSession,
   getLoginHistory,
@@ -22,7 +23,9 @@ const {
   resolveReport,
   revokeUserSessions,
   setAccountStatus,
+  setAdminPin,
   setUserRole,
+  verifyAdminPin,
   verifyAdminSessionToken,
   writeAudit,
 } = require("../services/userActivityStore");
@@ -143,14 +146,23 @@ async function audit(req, action, targetUid, details, status = "success") {
 
 router.use(requireAdmin);
 
-router.get("/verify", (req, res) => {
+router.get("/verify", async (req, res) => {
   res.setHeader("Cache-Control", "no-store, max-age=0");
+  let hasPin = false;
+  if (hasActivityDatabase()) {
+    try {
+      hasPin = await checkAdminPinSet(req.adminUid);
+    } catch (e) {
+      console.warn("Failed to check admin PIN status:", e.message);
+    }
+  }
   return res.status(200).json({
     success: true,
     email: req.adminEmail,
     uid: req.adminUid,
     role: req.adminRole,
     isAdmin: true,
+    hasPin,
     projectId: ADMIN_FIREBASE_PROJECT_ID,
     activityDatabaseConfigured: hasActivityDatabase(),
   });
@@ -158,20 +170,36 @@ router.get("/verify", (req, res) => {
 
 router.post("/session/create", requireActivityDatabase, async (req, res) => {
   res.setHeader("Cache-Control", "no-store, max-age=0");
-  const now = Math.floor(Date.now() / 1000);
-  // Ensure token auth_time is within 15 minutes for session creation
-  if (now - (req.authTime || 0) > 900) {
-    return res.status(401).json({
-      success: false,
-      code: "FRESH_AUTH_REQUIRED",
-      error: "Vui lòng đăng nhập lại trước khi khởi tạo phiên quản trị nhạy cảm.",
-    });
-  }
   try {
+    const { pin } = req.body || {};
+    if (!pin || typeof pin !== "string" || !/^\d{4,8}$/.test(pin.trim())) {
+      return res.status(400).json({
+        success: false,
+        code: "INVALID_PIN_FORMAT",
+        error: "Mã PIN bảo mật phải là dãy số gồm từ 4 đến 8 chữ số.",
+      });
+    }
+    const pinStr = pin.trim();
+    const alreadySet = await checkAdminPinSet(req.adminUid);
+    if (!alreadySet) {
+      await setAdminPin(req.adminUid, pinStr, req.adminRole);
+      await audit(req, "SETUP_ADMIN_PIN", req.adminUid, "First time admin PIN set");
+    } else {
+      const isCorrect = await verifyAdminPin(req.adminUid, pinStr);
+      if (!isCorrect) {
+        await audit(req, "FAILED_ADMIN_PIN", req.adminUid, "Failed PIN verification", "failure");
+        return res.status(401).json({
+          success: false,
+          code: "INVALID_ADMIN_PIN",
+          error: "Mã PIN bảo mật không chính xác. Vui lòng thử lại!",
+        });
+      }
+    }
+
     const token = crypto.randomBytes(32).toString("hex");
     const hash = crypto.createHash("sha256").update(token).digest("hex");
     await createAdminSession(req.adminUid, hash, 30);
-    await audit(req, "CREATE_ADMIN_SESSION", req.adminUid, "Started 30-minute privileged admin session");
+    await audit(req, "CREATE_ADMIN_SESSION", req.adminUid, "Started 30-minute privileged admin session via PIN");
     return res.status(200).json({
       success: true,
       adminSessionToken: token,
@@ -181,6 +209,32 @@ router.post("/session/create", requireActivityDatabase, async (req, res) => {
   } catch (error) {
     console.error("Failed to create admin session:", error?.message || "unknown");
     return res.status(500).json({ success: false, error: "Không thể tạo phiên quản trị" });
+  }
+});
+
+router.post("/pin/change", requireActivityDatabase, async (req, res) => {
+  res.setHeader("Cache-Control", "no-store, max-age=0");
+  try {
+    const { oldPin, newPin } = req.body || {};
+    if (!oldPin || !newPin) {
+      return res.status(400).json({ success: false, error: "Vui lòng nhập đầy đủ mã PIN hiện tại và mới" });
+    }
+    if (!/^\d{4,8}$/.test(String(newPin).trim())) {
+      return res.status(400).json({ success: false, error: "Mã PIN mới phải là dãy số gồm từ 4 đến 8 chữ số" });
+    }
+    const alreadySet = await checkAdminPinSet(req.adminUid);
+    if (alreadySet) {
+      const correct = await verifyAdminPin(req.adminUid, String(oldPin).trim());
+      if (!correct) {
+        return res.status(401).json({ success: false, error: "Mã PIN hiện tại không chính xác!" });
+      }
+    }
+    await setAdminPin(req.adminUid, String(newPin).trim(), req.adminRole);
+    await audit(req, "CHANGE_ADMIN_PIN", req.adminUid, "Changed admin numeric PIN");
+    return res.status(200).json({ success: true, message: "Đổi mã PIN Quản Trị thành công!" });
+  } catch (error) {
+    console.error("Failed to change admin PIN:", error?.message || "unknown");
+    return res.status(500).json({ success: false, error: "Lỗi hệ thống khi đổi mã PIN" });
   }
 });
 

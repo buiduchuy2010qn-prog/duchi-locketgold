@@ -146,6 +146,7 @@ async function ensureUserActivitySchema() {
       assigned_by TEXT,
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )`;
+    await sql`ALTER TABLE admin_roles ADD COLUMN IF NOT EXISTS pin_hash TEXT`;
 
     await sql`CREATE TABLE IF NOT EXISTS admin_sessions (
       token_hash TEXT PRIMARY KEY,
@@ -548,6 +549,42 @@ async function verifyAdminSessionToken(uid, tokenHash, extendMinutes = 30) {
   return false;
 }
 
+function hashPin(pin) {
+  const crypto = require("node:crypto");
+  return crypto.createHash("sha256").update(String(pin || "").trim() + "_huy_locket_pin_salt").digest("hex");
+}
+
+async function checkAdminPinSet(uid) {
+  if (!uid) return false;
+  await ensureUserActivitySchema();
+  const sql = getSql();
+  const rows = await sql`SELECT pin_hash FROM admin_roles WHERE uid = ${uid} LIMIT 1`;
+  return Boolean(rows[0]?.pin_hash);
+}
+
+async function verifyAdminPin(uid, pin) {
+  if (!uid || !pin) return false;
+  await ensureUserActivitySchema();
+  const sql = getSql();
+  const rows = await sql`SELECT pin_hash FROM admin_roles WHERE uid = ${uid} LIMIT 1`;
+  const storedHash = rows[0]?.pin_hash;
+  if (!storedHash) return false;
+  return hashPin(pin) === storedHash;
+}
+
+async function setAdminPin(uid, pin, role = "super_admin") {
+  if (!uid || !pin) throw new Error("Missing uid or pin");
+  await ensureUserActivitySchema();
+  const sql = getSql();
+  const hashed = hashPin(pin);
+  await sql`
+    INSERT INTO admin_roles (uid, role, pin_hash, assigned_by, updated_at)
+    VALUES (${uid}, ${role}, ${hashed}, 'self', NOW())
+    ON CONFLICT (uid) DO UPDATE SET pin_hash = EXCLUDED.pin_hash, updated_at = NOW()
+  `;
+  return true;
+}
+
 async function listAuditLogs({ action = "", adminUid = "", limit = 100, offset = 0 }) {
   await ensureUserActivitySchema();
   const sql = getSql();
@@ -638,6 +675,7 @@ async function recordServerUserActivity({ user, req, eventType = 'touch', loginM
 
 module.exports = {
   ONLINE_WINDOW_SECONDS,
+  checkAdminPinSet,
   clearLoginHistory,
   createAdminSession,
   endSession,
@@ -656,9 +694,11 @@ module.exports = {
   resolveReport,
   revokeUserSessions,
   setAccountStatus,
+  setAdminPin,
   setUserRole,
   shouldRecordLoginHistory,
   upsertSession,
+  verifyAdminPin,
   verifyAdminSessionToken,
   writeAudit,
 };

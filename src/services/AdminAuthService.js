@@ -88,15 +88,26 @@ export async function getAdminRoleInfo() {
     role: result.role || "user",
     uid: result.uid,
     email: result.email,
+    hasPin: result.hasPin || false,
   };
 }
 
-export async function startShortAdminSession() {
-  const result = await adminRequest("/session/create", { method: "POST" });
+export async function startShortAdminSession(pin) {
+  const result = await adminRequest("/session/create", {
+    method: "POST",
+    body: JSON.stringify({ pin }),
+  });
   if (result.adminSessionToken) {
     setShortAdminSessionToken(result.adminSessionToken);
   }
   return result;
+}
+
+export async function changeAdminPin(oldPin, newPin) {
+  return adminRequest("/pin/change", {
+    method: "POST",
+    body: JSON.stringify({ oldPin, newPin }),
+  });
 }
 
 export function hasAdminSession() {

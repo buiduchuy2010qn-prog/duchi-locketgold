@@ -22,13 +22,13 @@ import {
 import { SonnerInfo } from "@/components/uikit/SonnerToast";
 import {
   adminRequest,
+  changeAdminPin,
   clearShortAdminSessionToken,
   getAdminRoleInfo,
   hasAdminSession,
   hasShortAdminSession,
   startShortAdminSession,
 } from "@/services/AdminAuthService";
-import { loginWithEmail } from "@/services/LocketDioServices/AuthServices";
 
 const UNKNOWN = "Không xác định";
 const LIVE_REFRESH_INTERVAL_MS = 5_000;
@@ -111,11 +111,19 @@ export default function AdminUsers() {
   const [checkingAdmin, setCheckingAdmin] = useState(hasAdminSession());
   const [activeTab, setActiveTab] = useState("users"); // "users" | "audit" | "reports"
 
-  // Cổng bảo mật Quản trị viên (Password Gate) right on entering Admin Page
+  // Cổng bảo mật Quản trị viên (PIN Gate) right on entering Admin Page
+  const [hasPin, setHasPin] = useState(false);
   const [isGateUnlocked, setIsGateUnlocked] = useState(hasShortAdminSession());
   const [gatePassword, setGatePassword] = useState("");
   const [gateLoading, setGateLoading] = useState(false);
   const [gateError, setGateError] = useState(null);
+
+  // Change PIN modal states
+  const [changePinModalOpen, setChangePinModalOpen] = useState(false);
+  const [changePinOld, setChangePinOld] = useState("");
+  const [changePinNew, setChangePinNew] = useState("");
+  const [changePinLoading, setChangePinLoading] = useState(false);
+  const [changePinError, setChangePinError] = useState(null);
 
   // User tab states
   const [users, setUsers] = useState([]);
@@ -257,7 +265,8 @@ export default function AdminUsers() {
         setCurrentRole(info.role || "user");
         setCurrentUserUid(info.uid || "");
         setCurrentEmail(info.email || localStorage.getItem("email") || "");
-        
+        setHasPin(info.hasPin || false);
+
         // If already unlocked (valid session in last 30 mins), load users
         if (info.isAdmin && hasShortAdminSession()) {
           setIsGateUnlocked(true);
@@ -352,33 +361,26 @@ export default function AdminUsers() {
 
   const handleGateSubmit = async (e) => {
     e.preventDefault();
-    if (!gatePassword.trim()) {
-      setGateError("Vui lòng nhập mật khẩu tài khoản Locket để mở khóa.");
+    if (!gatePassword.trim() || !/^\d{4,8}$/.test(gatePassword.trim())) {
+      setGateError("Vui lòng nhập mã PIN bảo mật (dãy số từ 4 đến 8 chữ số).");
       return;
     }
     setGateLoading(true);
     setGateError(null);
     try {
-      const emailToAuth = currentEmail || localStorage.getItem("email") || "";
-      if (!emailToAuth) {
-        throw new Error("Không xác định được email đang đăng nhập để xác minh");
+      await startShortAdminSession(gatePassword.trim());
+      if (!hasPin) {
+        SonnerInfo("🎉 Thiết lập Mã PIN số Quản Trị viên thành công! Cổng bảo mật đã mở.");
+        setHasPin(true);
+      } else {
+        SonnerInfo("Xác minh mã PIN thành công! Cổng bảo mật Admin đã mở cho 30 phút tới.");
       }
-      const authData = await loginWithEmail({ email: emailToAuth, password: gatePassword, captchaToken: "" });
-      if (authData?.idToken || authData?.token) {
-        const token = authData.idToken || authData.token;
-        try {
-          if (localStorage.getItem("idToken")) localStorage.setItem("idToken", token);
-          if (sessionStorage.getItem("idToken")) sessionStorage.setItem("idToken", token);
-        } catch { /* ignore */ }
-      }
-      await startShortAdminSession();
-      SonnerInfo("Xác minh thành công! Cổng bảo mật Admin đã mở cho 30 phút tới.");
       setIsGateUnlocked(true);
       fetchUsers();
     } catch (err) {
-      setGateError(err.message || "Xác minh mật khẩu thất bại. Kiểm tra lại mật khẩu Locket.");
+      setGateError(err.message || "Xác minh mã PIN thất bại. Vui lòng kiểm tra lại mã PIN.");
     } finally {
-      setGatePassword(""); // Wipe out password from RAM immediately
+      setGatePassword("");
       setGateLoading(false);
     }
   };
@@ -390,7 +392,7 @@ export default function AdminUsers() {
       if (err?.code === "ADMIN_SESSION_EXPIRED" || err?.code === "FRESH_AUTH_REQUIRED" || err?.status === 401) {
         clearShortAdminSessionToken();
         setPendingCallback(() => actionFn);
-        setReauthError("Phiên thao tác nhạy cảm đã hết hạn sau 30 phút. Vui lòng xác minh lại mật khẩu.");
+        setReauthError("Phiên thao tác nhạy cảm đã hết hạn sau 30 phút. Vui lòng xác minh lại mã PIN bảo mật.");
         setReauthModalOpen(true);
       } else {
         SonnerInfo(`Lỗi thao tác: ${err.message || "Không xác định"}`);
@@ -451,38 +453,51 @@ export default function AdminUsers() {
 
   const handleReauthSubmit = async (event) => {
     event.preventDefault();
-    if (!reauthPassword.trim()) {
-      setReauthError("Vui lòng nhập mật khẩu tài khoản Locket");
+    if (!reauthPassword.trim() || !/^\d{4,8}$/.test(reauthPassword.trim())) {
+      setReauthError("Vui lòng nhập mã PIN số quản trị (4 - 8 chữ số)");
       return;
     }
     setReauthLoading(true);
     setReauthError(null);
     try {
-      const emailToAuth = currentEmail || localStorage.getItem("email") || "";
-      if (!emailToAuth) {
-        throw new Error("Không xác định được email đang đăng nhập để xác minh lại");
-      }
-      const authData = await loginWithEmail({ email: emailToAuth, password: reauthPassword, captchaToken: "" });
-      if (authData?.idToken || authData?.token) {
-        const token = authData.idToken || authData.token;
-        try {
-          if (localStorage.getItem("idToken")) localStorage.setItem("idToken", token);
-          if (sessionStorage.getItem("idToken")) sessionStorage.setItem("idToken", token);
-        } catch { /* ignore */ }
-      }
-      await startShortAdminSession();
-      SonnerInfo("Xác minh lại thành công. Phiên quản trị gia hạn 30 phút.");
+      await startShortAdminSession(reauthPassword.trim());
+      SonnerInfo("Xác minh lại mã PIN thành công. Phiên quản trị gia hạn 30 phút.");
       setReauthModalOpen(false);
       setIsGateUnlocked(true);
       if (pendingCallback) {
         await pendingCallback();
       }
     } catch (err) {
-      setReauthError(err.message || "Xác minh mật khẩu thất bại. Kiểm tra lại mật khẩu.");
+      setReauthError(err.message || "Xác minh mã PIN thất bại. Kiểm tra lại mã PIN của bạn.");
     } finally {
       setReauthPassword("");
       setReauthLoading(false);
       setPendingCallback(null);
+    }
+  };
+
+  const handleChangePinSubmit = async (e) => {
+    e.preventDefault();
+    if (!changePinOld.trim() || !changePinNew.trim()) {
+      setChangePinError("Vui lòng nhập đầy đủ mã PIN hiện tại và mã PIN mới.");
+      return;
+    }
+    if (!/^\d{4,8}$/.test(changePinNew.trim())) {
+      setChangePinError("Mã PIN mới phải là dãy số gồm từ 4 đến 8 chữ số.");
+      return;
+    }
+    setChangePinLoading(true);
+    setChangePinError(null);
+    try {
+      await changeAdminPin(changePinOld.trim(), changePinNew.trim());
+      SonnerInfo("✨ Đổi mã PIN số Bảo Mật Quản Trị thành công!");
+      setChangePinModalOpen(false);
+      setChangePinOld("");
+      setChangePinNew("");
+    } catch (err) {
+      setChangePinError(err.message || "Đổi mã PIN thất bại. Vui lòng kiểm tra lại mã PIN hiện tại.");
+    } finally {
+      setChangePinLoading(false);
     }
   };
 
@@ -523,9 +538,15 @@ export default function AdminUsers() {
             <p className="text-xs text-base-content/70 mb-2 leading-relaxed font-medium">
               Chào Quản trị viên <strong className="text-base-content font-bold">{currentEmail || "Huy Locket"}</strong> ({roleBadge(currentRole)}).
             </p>
-            <p className="text-[11px] text-base-content/60 leading-relaxed mb-6 bg-base-200/80 p-3 rounded-xl border border-base-300">
-              Để bảo vệ quyền lực tối thượng và tài nguyên người dùng, bạn cần xác minh lại <strong>Mật Khẩu Locket</strong> trước khi truy cập. Phiên làm việc sẽ mở khóa an toàn trong <strong>30 phút</strong>.
-            </p>
+            {!hasPin ? (
+              <p className="text-[11px] text-info bg-info/10 p-3.5 rounded-2xl border border-info/30 mb-6 leading-relaxed text-left">
+                ✨ <strong>Thiết Lập Mã PIN Lần Đầu:</strong> Bạn chưa có Mã PIN số bảo mật riêng cho khu vực Quản Trị. Vui lòng nhập dãy số (4 - 8 chữ số) để làm Mã PIN mở khóa nhanh và an toàn. Về sau bạn có thể tự động thay đổi trong hệ thống!
+              </p>
+            ) : (
+              <p className="text-[11px] text-base-content/60 leading-relaxed mb-6 bg-base-200/80 p-3.5 rounded-2xl border border-base-300 text-left">
+                🛡️ Để bảo vệ quyền lực tối thượng và tài nguyên người dùng, bạn cần xác minh bằng <strong>Mã PIN số bảo mật Quản trị</strong> riêng biệt. Phiên làm việc sẽ mở khóa an toàn trong <strong>30 phút</strong>.
+              </p>
+            )}
 
             {gateError && (
               <div className="alert alert-error text-xs py-2.5 mb-5 rounded-xl text-left shadow-sm">
@@ -537,16 +558,19 @@ export default function AdminUsers() {
             <form onSubmit={handleGateSubmit} className="w-full space-y-4">
               <div className="form-control w-full text-left">
                 <label className="label text-[11px] font-extrabold tracking-wider text-base-content/70 uppercase">
-                  MẬT KHẨU TÀI KHOẢN LOCKET
+                  {hasPin ? "MÃ PIN SỐ BẢO MẬT QUẢN TRỊ" : "THIẾT LẬP MÃ PIN SỐ QUẢN TRỊ (4 - 8 SỐ)"}
                 </label>
                 <div className="relative">
                   <input
                     type="password"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={8}
                     required
-                    placeholder="Nhập mật khẩu Locket hiện tại..."
-                    className="input input-bordered w-full rounded-2xl pr-10 shadow-inner text-sm h-12 border-primary/30 focus:border-primary font-medium"
+                    placeholder={hasPin ? "Nhập mã PIN số của bạn..." : "Tạo mã PIN (ví dụ: 201068)..."}
+                    className="input input-bordered w-full rounded-2xl pr-10 shadow-inner text-sm h-12 border-primary/30 focus:border-primary font-bold tracking-widest text-center text-lg"
                     value={gatePassword}
-                    onChange={(e) => setGatePassword(e.target.value)}
+                    onChange={(e) => setGatePassword(e.target.value.replace(/[^0-9]/g, ""))}
                     disabled={gateLoading}
                     autoFocus
                   />
@@ -560,7 +584,7 @@ export default function AdminUsers() {
                 disabled={gateLoading || !gatePassword.trim()}
               >
                 {!gateLoading && <CheckCircle size={18} />}
-                {gateLoading ? "Đang xác minh bảo mật..." : "Mở Khóa Trung Tâm Quản Trị"}
+                {gateLoading ? "Đang xác minh..." : (hasPin ? "Mở Khóa Trung Tâm Quản Trị" : "Xác Nhận & Tạo Mã PIN Bảo Mật")}
               </button>
             </form>
 
@@ -593,9 +617,22 @@ export default function AdminUsers() {
           <button
             type="button"
             onClick={() => {
+              setChangePinOld("");
+              setChangePinNew("");
+              setChangePinError(null);
+              setChangePinModalOpen(true);
+            }}
+            className="btn btn-sm btn-outline btn-primary gap-1.5 shadow-sm font-bold rounded-xl bg-primary/10 hover:bg-primary text-primary hover:text-primary-content"
+            title="Tự động thay đổi mã PIN Bảo Mật số cho Quản trị viên"
+          >
+            <Key size={15} /> Đổi Mã PIN Quản Trị
+          </button>
+          <button
+            type="button"
+            onClick={() => {
               clearShortAdminSessionToken();
               setIsGateUnlocked(false);
-              SonnerInfo("Đã khóa trang Quản Trị. Vui lòng nhập mật khẩu khi truy cập lại.");
+              SonnerInfo("Đã khóa trang Quản Trị. Vui lòng nhập mã PIN bảo mật khi truy cập lại.");
             }}
             className="btn btn-sm btn-outline btn-error gap-1.5 shadow-sm font-semibold rounded-xl"
             title="Khóa ngay phiên làm việc admin hiện tại"
@@ -1196,15 +1233,15 @@ export default function AdminUsers() {
         </div>
       )}
 
-      {/* MODAL XÁC MINH LẠI MẬT KHẨU LOCKET KHI ĐÃ HẾT HẠN PHIÊN NHẠY CẢM */}
+      {/* MODAL XÁC MINH LẠI MÃ PIN KHI ĐÃ HẾT HẠN PHIÊN NHẠY CẢM */}
       {reauthModalOpen && (
         <div className="modal modal-open modal-bottom sm:modal-middle" onClick={() => setReauthModalOpen(false)}>
           <div className="modal-box max-w-md rounded-3xl p-6 border-2 border-primary/40 shadow-2xl bg-base-100" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-black text-lg flex items-center gap-2 text-primary mb-2">
-              🔐 Xác Minh Lại Mật Khẩu Locket
+              🔐 Xác Minh Lại Mã PIN Quản Trị
             </h3>
             <p className="text-xs text-base-content/70 leading-relaxed mb-4 font-medium">
-              Phiên thao tác quản trị 30 phút của bạn đã hết hạn. Để tiếp tục thực hiện lệnh nhạy cảm cho <strong>{currentEmail || "Tài khoản của bạn"}</strong>, vui lòng xác minh lại mật khẩu. Mật khẩu không bao giờ được lưu lại trên máy chủ hoặc trình duyệt.
+              Phiên thao tác quản trị 30 phút của bạn đã hết hạn. Để tiếp tục thực hiện lệnh nhạy cảm cho <strong>{currentEmail || "Tài khoản của bạn"}</strong>, vui lòng xác minh lại bằng Mã PIN số bảo mật.
             </p>
 
             {reauthError && (
@@ -1215,14 +1252,17 @@ export default function AdminUsers() {
 
             <form onSubmit={handleReauthSubmit} className="space-y-4">
               <div className="form-control">
-                <label className="label text-[11px] font-extrabold text-base-content/70 tracking-wider uppercase">MẬT KHẨU TÀI KHOẢN LOCKET</label>
+                <label className="label text-[11px] font-extrabold text-base-content/70 tracking-wider uppercase">MÃ PIN SỐ BẢO MẬT (4 - 8 SỐ)</label>
                 <input
                   type="password"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={8}
                   required
-                  placeholder="Nhập mật khẩu Locket của bạn..."
-                  className="input input-bordered w-full rounded-2xl pr-10 shadow-inner text-sm h-11 font-medium border-primary/30 focus:border-primary"
+                  placeholder="Nhập mã PIN của bạn..."
+                  className="input input-bordered w-full rounded-2xl pr-10 shadow-inner text-sm h-11 font-bold tracking-widest text-center text-lg border-primary/30 focus:border-primary"
                   value={reauthPassword}
-                  onChange={(e) => setReauthPassword(e.target.value)}
+                  onChange={(e) => setReauthPassword(e.target.value.replace(/[^0-9]/g, ""))}
                   disabled={reauthLoading}
                   autoFocus
                 />
@@ -1232,6 +1272,68 @@ export default function AdminUsers() {
                 <button type="button" className="btn btn-sm btn-ghost rounded-xl px-4 font-bold" onClick={() => { setReauthModalOpen(false); setPendingCallback(null); }} disabled={reauthLoading}>Hủy bỏ</button>
                 <button type="submit" className="btn btn-sm btn-primary rounded-xl px-6 font-extrabold h-10 shadow-md" disabled={reauthLoading || !reauthPassword.trim()}>
                   {reauthLoading ? <span className="loading loading-spinner loading-xs" /> : "Xác minh & Tiếp tục thao tác"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL ĐỔI MÃ PIN QUẢN TRỊ VIÊN */}
+      {changePinModalOpen && (
+        <div className="modal modal-open modal-bottom sm:modal-middle" onClick={() => setChangePinModalOpen(false)}>
+          <div className="modal-box max-w-md rounded-3xl p-6 border-2 border-primary/40 shadow-2xl bg-base-100" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-black text-lg flex items-center gap-2 text-primary mb-2">
+              🔑 Đổi Mã PIN Số Bảo Mật Quản Trị
+            </h3>
+            <p className="text-xs text-base-content/70 leading-relaxed mb-4 font-medium">
+              Bạn có thể tự do thay đổi Mã PIN số bảo mật dành riêng cho khu vực quản trị viên tại đây.
+            </p>
+
+            {changePinError && (
+              <div className="alert alert-error text-xs py-2 mb-4 rounded-xl font-medium">
+                <AlertTriangle size={16} className="shrink-0" /> <span>{changePinError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleChangePinSubmit} className="space-y-4">
+              <div className="form-control">
+                <label className="label text-[11px] font-extrabold text-base-content/70 tracking-wider uppercase">MÃ PIN HIỆN TẠI (CŨ)</label>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={8}
+                  required
+                  placeholder="Nhập mã PIN hiện tại..."
+                  className="input input-bordered w-full rounded-2xl shadow-inner text-sm h-11 font-bold tracking-widest text-center text-lg border-base-300 focus:border-primary"
+                  value={changePinOld}
+                  onChange={(e) => setChangePinOld(e.target.value.replace(/[^0-9]/g, ""))}
+                  disabled={changePinLoading}
+                  autoFocus
+                />
+              </div>
+
+              <div className="form-control">
+                <label className="label text-[11px] font-extrabold text-base-content/70 tracking-wider uppercase">MÃ PIN SỐ MỚI (4 - 8 CHỮ SỐ)</label>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={8}
+                  required
+                  placeholder="Nhập mã PIN số mới..."
+                  className="input input-bordered w-full rounded-2xl shadow-inner text-sm h-11 font-bold tracking-widest text-center text-lg border-primary/40 focus:border-primary text-primary"
+                  value={changePinNew}
+                  onChange={(e) => setChangePinNew(e.target.value.replace(/[^0-9]/g, ""))}
+                  disabled={changePinLoading}
+                />
+              </div>
+
+              <div className="modal-action flex items-center justify-end gap-2 pt-3 border-t border-base-200">
+                <button type="button" className="btn btn-sm btn-ghost rounded-xl px-4 font-bold" onClick={() => setChangePinModalOpen(false)} disabled={changePinLoading}>Hủy bỏ</button>
+                <button type="submit" className="btn btn-sm btn-primary rounded-xl px-6 font-extrabold h-10 shadow-md" disabled={changePinLoading || !changePinOld.trim() || !changePinNew.trim()}>
+                  {changePinLoading ? <span className="loading loading-spinner loading-xs" /> : "Lưu Mã PIN Mới"}
                 </button>
               </div>
             </form>
