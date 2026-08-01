@@ -4,6 +4,7 @@ const test = require("node:test");
 const express = require("express");
 
 const adminAuth = {};
+let auditWrites = 0;
 const locketAuthVerifier = {
   async verifyIdToken(token) {
     if (token === "verified-admin") {
@@ -84,7 +85,9 @@ require.cache[activityStorePath] = {
       onlineWindowSeconds: 150,
     }),
     setAccountStatus: async () => true,
-    writeAudit: async () => {},
+    writeAudit: async () => {
+      auditWrites += 1;
+    },
   },
 };
 
@@ -163,4 +166,13 @@ test("the admin user list returns the latest login IP, location and browser vers
     build_id: "test-build",
     commit_hash: "abcdef12",
   });
+});
+
+test("live user refresh does not create repeated audit rows", async () => {
+  const writesBeforeRefresh = auditWrites;
+  const response = await fetch(`${baseUrl}/api/admin/users?live=1`, {
+    headers: { Authorization: "Bearer verified-admin" },
+  });
+  assert.equal(response.status, 200);
+  assert.equal(auditWrites, writesBeforeRefresh);
 });

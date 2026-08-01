@@ -151,7 +151,9 @@ router.get("/users", requireActivityDatabase, async (req, res) => {
       } : null,
     }));
 
-    await audit(req.adminUid, "LIST_WEB_USERS", null, "Listed verified Huy Locket website users");
+    if (req.query.live !== "1") {
+      await audit(req.adminUid, "LIST_WEB_USERS", null, "Listed verified Huy Locket website users");
+    }
     return res.status(200).json({
       success: true,
       users,

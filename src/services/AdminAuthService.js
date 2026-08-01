@@ -31,6 +31,7 @@ export async function adminRequest(path, options = {}) {
   const response = await fetch(endpoint(path), {
     ...options,
     credentials: "include",
+    cache: options.cache || "no-store",
     headers: {
       "Content-Type": "application/json",
       ...(options.headers || {}),

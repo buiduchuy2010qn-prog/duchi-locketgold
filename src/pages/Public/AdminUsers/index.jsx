@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Activity,
@@ -21,6 +21,7 @@ import {
 } from "@/services/AdminAuthService";
 
 const UNKNOWN = "Không xác định";
+const LIVE_REFRESH_INTERVAL_MS = 5_000;
 
 function formatDateTime(value) {
   if (!value) return "—";
@@ -91,27 +92,53 @@ export default function AdminUsers() {
   const [historyError, setHistoryError] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
   const [clearHistoryConfirm, setClearHistoryConfirm] = useState(false);
+  const rootRefreshInFlight = useRef(false);
 
-  const fetchUsers = useCallback(async (token = "") => {
-    setLoading(true);
-    setError(null);
+  const fetchUsers = useCallback(async (token = "", { silent = false, live = false } = {}) => {
+    const isRootRefresh = !token;
+    if (isRootRefresh && rootRefreshInFlight.current) return;
+    if (isRootRefresh) rootRefreshInFlight.current = true;
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
-      const query = token ? `&pageToken=${encodeURIComponent(token)}` : "";
-      const data = await adminRequest(`/users?limit=100${query}`);
+      const query = new URLSearchParams({ limit: "100" });
+      if (token) query.set("pageToken", token);
+      if (live) query.set("live", "1");
+      const data = await adminRequest(`/users?${query.toString()}`);
+      const nextUsers = data.users || [];
       setUsers((current) => {
-        if (!token) return data.users || [];
+        if (!token && !live) return nextUsers;
+        if (!token && live) {
+          const refreshed = new Set(nextUsers.map((entry) => entry.uid));
+          return [...nextUsers, ...current.filter((entry) => !refreshed.has(entry.uid))];
+        }
         const merged = new Map(current.map((entry) => [entry.uid, entry]));
-        for (const entry of data.users || []) merged.set(entry.uid, entry);
+        for (const entry of nextUsers) merged.set(entry.uid, entry);
         return Array.from(merged.values());
       });
-      setPageToken(data.pageToken || null);
+      if (!token) {
+        setSelectedUser((current) => {
+          if (!current) return current;
+          const updated = nextUsers.find((entry) => entry.uid === current.uid);
+          return updated ? { ...current, ...updated } : current;
+        });
+      }
+      setPageToken((current) => live && current ? current : data.pageToken || null);
       setTotalUsers(Number(data.totalUsers || 0));
       setOnlineWindowSeconds(data.onlineWindowSeconds || 150);
+      setError(null);
     } catch (requestError) {
-      setError({ code: requestError.code, message: errorMessage(requestError) });
+      if (!silent || requestError.status === 401 || requestError.status === 403) {
+        setError({ code: requestError.code, message: errorMessage(requestError) });
+      }
     } finally {
-      setLoading(false);
-      setCheckingAdmin(false);
+      if (isRootRefresh) rootRefreshInFlight.current = false;
+      if (!silent) {
+        setLoading(false);
+        setCheckingAdmin(false);
+      }
     }
   }, []);
 
@@ -140,6 +167,23 @@ export default function AdminUsers() {
       active = false;
     };
   }, [fetchUsers, navigate]);
+
+  useEffect(() => {
+    if (!isAdmin) return undefined;
+    const refreshLiveUsers = () => {
+      if (document.hidden) return;
+      fetchUsers("", { silent: true, live: true });
+    };
+    const timer = window.setInterval(refreshLiveUsers, LIVE_REFRESH_INTERVAL_MS);
+    const handleVisibilityChange = () => {
+      if (!document.hidden) refreshLiveUsers();
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [fetchUsers, isAdmin]);
 
   const filteredUsers = useMemo(() => {
     const normalized = search.trim().toLowerCase();
@@ -232,7 +276,7 @@ export default function AdminUsers() {
             <Lock className="text-primary" /> Quản lý người dùng
           </h1>
           <p className="text-sm text-base-content/60 mt-1">
-            {totalUsers} người dùng Huy Locket được ghi nhận bằng token đã xác minh phía server
+            {totalUsers} người dùng Huy Locket được ghi nhận bằng token đã xác minh phía server · Tự cập nhật trong tối đa 5 giây
           </p>
         </div>
         <div className="relative w-full md:w-80">
