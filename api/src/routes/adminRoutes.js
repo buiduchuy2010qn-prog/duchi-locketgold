@@ -10,6 +10,7 @@ const {
   getAdminLocketUids,
   getLocketAuthVerifier,
 } = require("../services/locketAdminVerifier");
+const { getWebUsers, updateWebUserLock } = require("../services/userTracker");
 
 const router = express.Router();
 
@@ -135,7 +136,46 @@ router.get("/users", requireAdmin, async (req, res) => {
       latestLoginData: historyByUid[user.uid] || null,
     }));
 
-    await auditLog(req.adminUid, "LIST_USERS", null, "Listed admin identities");
+    // Pull real web users tracked in PostgreSQL DB and merge them with Firebase Admin accounts
+    const webUsers = await getWebUsers(search);
+    const webUserMapped = webUsers.map((u) => ({
+      uid: u.uid,
+      email: u.email || null,
+      displayName: u.display_name || u.username || "Người dùng Locket",
+      photoURL: u.profile_picture || null,
+      disabled: u.disabled === true,
+      creationTime: u.created_at ? new Date(u.created_at).toISOString() : new Date().toISOString(),
+      lastSignInTime: u.last_sign_in_at ? new Date(u.last_sign_in_at).toISOString() : new Date().toISOString(),
+      provider: u.provider || "Locket Official",
+      isAdmin: (u.email && u.email.toLowerCase() === "buiduchuy2010qn@gmail.com") || getAdminLocketUids().has(u.uid) || getAdminLocketEmails().has((u.email || "").toLowerCase()),
+      latestLoginData: {
+        created_at: u.last_sign_in_at || u.created_at || new Date().toISOString(),
+        os: u.os || "Desktop / App",
+        browser: u.browser || "App / Web",
+        ip_address: u.ip_address || "N/A",
+      },
+    }));
+
+    const userMap = new Map();
+    for (const u of users) {
+      userMap.set(u.uid, u);
+    }
+    for (const u of webUserMapped) {
+      if (userMap.has(u.uid)) {
+        const existing = userMap.get(u.uid);
+        userMap.set(u.uid, {
+          ...existing,
+          displayName: u.displayName !== "Người dùng Locket" ? u.displayName : existing.displayName,
+          latestLoginData: u.latestLoginData || existing.latestLoginData,
+          isAdmin: existing.isAdmin || u.isAdmin,
+        });
+      } else {
+        userMap.set(u.uid, u);
+      }
+    }
+    users = Array.from(userMap.values());
+
+    await auditLog(req.adminUid, "LIST_USERS", null, "Listed admin identities and web users");
     return res.status(200).json({
       success: true,
       users,
@@ -156,11 +196,18 @@ router.delete("/users/:uid/auth", requireAdmin, async (req, res) => {
     return res.status(403).json({ success: false, error: "Cannot delete yourself" });
   }
   try {
-    await req.adminAuth.deleteUser(targetUid);
-    await auditLog(req.adminUid, "DELETE_AUTH", targetUid, "Admin identity deleted");
+    try {
+      await req.adminAuth.deleteUser(targetUid);
+    } catch {
+      // Ignore if user is only in web_users database
+    }
+    if (sql) {
+      try { await sql`DELETE FROM web_users WHERE uid = ${targetUid}`; } catch {}
+    }
+    await auditLog(req.adminUid, "DELETE_AUTH", targetUid, "User account deleted");
     return res.status(200).json({ success: true });
   } catch (error) {
-    console.error("Failed to delete admin identity:", error.message);
+    console.error("Failed to delete user account:", error.message);
     return res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
@@ -173,12 +220,17 @@ router.post("/users/:uid/lock", requireAdmin, async (req, res) => {
     return res.status(403).json({ success: false, error: "Cannot lock yourself" });
   }
   try {
-    await req.adminAuth.updateUser(targetUid, { disabled: true });
-    await req.adminAuth.revokeRefreshTokens(targetUid);
-    await auditLog(req.adminUid, "LOCK_USER", targetUid, "Admin identity locked");
+    try {
+      await req.adminAuth.updateUser(targetUid, { disabled: true });
+      await req.adminAuth.revokeRefreshTokens(targetUid);
+    } catch {
+      // Ignore if user is only in web_users database
+    }
+    await updateWebUserLock(targetUid, true);
+    await auditLog(req.adminUid, "LOCK_USER", targetUid, "User account locked");
     return res.status(200).json({ success: true });
   } catch (error) {
-    console.error("Failed to lock admin identity:", error.message);
+    console.error("Failed to lock user account:", error.message);
     return res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
@@ -188,11 +240,16 @@ router.post("/users/:uid/unlock", requireAdmin, async (req, res) => {
   const targetUid = req.params.uid;
   if (!targetUid) return res.status(400).json({ success: false, error: "Bad Request" });
   try {
-    await req.adminAuth.updateUser(targetUid, { disabled: false });
-    await auditLog(req.adminUid, "UNLOCK_USER", targetUid, "Admin identity unlocked");
+    try {
+      await req.adminAuth.updateUser(targetUid, { disabled: false });
+    } catch {
+      // Ignore if user is only in web_users database
+    }
+    await updateWebUserLock(targetUid, false);
+    await auditLog(req.adminUid, "UNLOCK_USER", targetUid, "User account unlocked");
     return res.status(200).json({ success: true });
   } catch (error) {
-    console.error("Failed to unlock admin identity:", error.message);
+    console.error("Failed to unlock user account:", error.message);
     return res.status(500).json({ success: false, error: "Internal server error" });
   }
 });

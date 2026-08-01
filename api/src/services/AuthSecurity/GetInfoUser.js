@@ -2,6 +2,7 @@ const constants = require("../../utils/constants");
 const axios = require("axios");
 const { verifyCustomeToken } = require("./AuthServices");
 const { instanceFirestore, instanceFirebaseV2 } = require("../../libs");
+const { trackWebUser } = require("../userTracker");
 
 // Lấy thông tin người dùng
 const getUserInfoV2 = async (idToken, localId) => {
@@ -23,7 +24,7 @@ const getUserInfoV2 = async (idToken, localId) => {
 
     const userDataV2 = firestoreResponse?.data;
     // console.log(userDataV2);
-    return {
+    const result = {
       uid: userDataV2?.fields?.uid?.stringValue || userData.localId,
       localId: userData.localId || localId,
       customAuth: userData.customAuth || null,
@@ -48,6 +49,8 @@ const getUserInfoV2 = async (idToken, localId) => {
         userDataV2?.fields?.birthday?.mapValue?.fields?.encoded_mdd
           ?.integerValue || null,
     };
+    trackWebUser(result).catch(() => {});
+    return result;
   } catch (error) {
     console.error(
       "❌ Lỗi khi lấy thông tin người dùng:",
