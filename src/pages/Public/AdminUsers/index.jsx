@@ -167,7 +167,7 @@ export default function AdminUsers() {
                 <tr key={user.uid} className="hover">
                   <td>
                     <div className="font-medium flex items-center gap-2">
-                      {user.displayName || (user.email === "buiduchuy2010qn@gmail.com" || user.isAdmin ? "Bùi Đức Huy" : "Người dùng Web")}
+                      {(user.email === "buiduchuy2010qn@gmail.com" || user.isAdmin) ? "Bùi Đức Huy" : (user.displayName === "Người dùng ẩn danh" || !user.displayName ? "Người dùng Locket (Web)" : user.displayName)}
                       {(user.isAdmin || user.email === "buiduchuy2010qn@gmail.com") && (
                         <span className="badge badge-primary badge-xs font-bold">ADMIN</span>
                       )}
@@ -192,18 +192,26 @@ export default function AdminUsers() {
           <div className="modal-box max-w-3xl" onClick={(event) => event.stopPropagation()}>
             <button type="button" className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" onClick={() => setSelectedUser(null)}>✕</button>
             <h3 className="font-bold text-lg mb-1 flex items-center gap-2">
-              {selectedUser.displayName || (selectedUser.email === "buiduchuy2010qn@gmail.com" || selectedUser.isAdmin ? "Bùi Đức Huy" : "Người dùng Web")}
+              {(selectedUser.email === "buiduchuy2010qn@gmail.com" || selectedUser.isAdmin) ? "Bùi Đức Huy" : (selectedUser.displayName === "Người dùng ẩn danh" || !selectedUser.displayName ? "Người dùng Locket (Web)" : selectedUser.displayName)}
               {(selectedUser.isAdmin || selectedUser.email === "buiduchuy2010qn@gmail.com") && (
                 <span className="badge badge-primary badge-sm">ADMIN</span>
               )}
             </h3>
             <p className="text-sm text-base-content/60 mb-1">{selectedUser.email || selectedUser.uid}</p>
             <p className="text-xs text-base-content/40 mb-6 font-mono">UID: {selectedUser.uid}</p>
-            <div className="flex flex-wrap gap-2 mb-6">
-              <button type="button" className={`btn btn-sm ${selectedUser.disabled ? "btn-success" : "btn-warning"}`} onClick={() => handleToggleLock(selectedUser)} disabled={Boolean(actionLoading)}>{actionLoading === `lock-${selectedUser.uid}` ? <span className="loading loading-spinner loading-xs" /> : selectedUser.disabled ? <Unlock size={14} /> : <Lock size={14} />}{selectedUser.disabled ? "Mở khóa" : "Khóa tài khoản"}</button>
-              <button type="button" className={`btn btn-sm btn-error ${deleteConfirmStep === 1 ? "animate-pulse" : ""}`} onClick={() => handleDeleteAuth(selectedUser)} disabled={Boolean(actionLoading)}>{actionLoading === `delete-${selectedUser.uid}` ? <span className="loading loading-spinner loading-xs" /> : <UserX size={14} />}{deleteConfirmStep === 0 ? "Xóa tài khoản" : "Nhấn lại để xác nhận"}</button>
-            </div>
-            {deleteConfirmStep === 1 && <div className="alert alert-error mb-6 text-sm py-2"><AlertTriangle size={16} /><span>Thao tác này xóa vĩnh viễn tài khoản khỏi Firebase Auth riêng.</span></div>}
+            {(selectedUser.isAdmin || selectedUser.email === "buiduchuy2010qn@gmail.com") ? (
+              <div className="alert alert-info bg-primary/10 border-primary/20 text-primary mb-6 py-2.5 px-4 text-sm font-medium flex items-center gap-2">
+                <span>🛡️ <strong>Tài khoản Quản trị viên tối cao:</strong> Được bảo vệ tuyệt đối khỏi mọi thao tác khóa hoặc xóa.</span>
+              </div>
+            ) : (
+              <>
+                <div className="flex flex-wrap gap-2 mb-6">
+                  <button type="button" className={`btn btn-sm ${selectedUser.disabled ? "btn-success" : "btn-warning"}`} onClick={() => handleToggleLock(selectedUser)} disabled={Boolean(actionLoading)}>{actionLoading === `lock-${selectedUser.uid}` ? <span className="loading loading-spinner loading-xs" /> : selectedUser.disabled ? <Unlock size={14} /> : <Lock size={14} />}{selectedUser.disabled ? "Mở khóa" : "Khóa tài khoản"}</button>
+                  <button type="button" className={`btn btn-sm btn-error ${deleteConfirmStep === 1 ? "animate-pulse" : ""}`} onClick={() => handleDeleteAuth(selectedUser)} disabled={Boolean(actionLoading)}>{actionLoading === `delete-${selectedUser.uid}` ? <span className="loading loading-spinner loading-xs" /> : <UserX size={14} />}{deleteConfirmStep === 0 ? "Xóa tài khoản" : "Nhấn lại để xác nhận"}</button>
+                </div>
+                {deleteConfirmStep === 1 && <div className="alert alert-error mb-6 text-sm py-2"><AlertTriangle size={16} /><span>Thao tác này xóa vĩnh viễn tài khoản và cấm truy cập web.</span></div>}
+              </>
+            )}
             <h4 className="font-semibold flex items-center gap-2 mb-3 border-b border-base-200 pb-2"><Clock size={16} /> Đăng nhập gần nhất</h4>
             {selectedUser.latestLoginData ? <div className="text-sm">{new Date(selectedUser.latestLoginData.created_at).toLocaleString("vi-VN")} · {selectedUser.latestLoginData.os} · {selectedUser.latestLoginData.browser}</div> : <p className="text-sm text-base-content/50">Chưa có lịch sử đăng nhập được ghi nhận.</p>}
           </div>

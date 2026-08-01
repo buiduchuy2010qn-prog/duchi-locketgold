@@ -115,25 +115,42 @@ router.get("/users", requireAdmin, async (req, res) => {
         || user.uid.toLowerCase().includes(search));
     }
 
-    const uids = users.map((user) => user.uid);
     let loginData = [];
-    if (sql && uids.length > 0) {
+    if (sql) {
       try {
-        loginData = await sql`
-          SELECT DISTINCT ON (uid) uid, ip_address, country, city, browser, os, device, created_at
-          FROM login_history
-          WHERE uid = ANY(${uids})
-          ORDER BY uid, created_at DESC
-        `;
+        if (search) {
+          const s = `%${search}%`;
+          loginData = await sql`
+            SELECT DISTINCT ON (uid) uid, ip_address, country, city, browser, os, device, created_at
+            FROM login_history
+            WHERE LOWER(uid) LIKE ${s} OR LOWER(COALESCE(ip_address, '')) LIKE ${s} OR LOWER(COALESCE(city, '')) LIKE ${s}
+            ORDER BY uid, created_at DESC
+            LIMIT 200
+          `;
+        } else {
+          loginData = await sql`
+            SELECT DISTINCT ON (uid) uid, ip_address, country, city, browser, os, device, created_at
+            FROM login_history
+            ORDER BY uid, created_at DESC
+            LIMIT 200
+          `;
+        }
       } catch (error) {
         console.error("Admin login history query failed:", error.message);
       }
     }
 
-    const historyByUid = Object.fromEntries(loginData.map((entry) => [entry.uid, entry]));
-    users = users.map((user) => ({
-      ...user,
-      latestLoginData: historyByUid[user.uid] || null,
+    const loginUsersMapped = loginData.map((entry) => ({
+      uid: entry.uid,
+      email: null,
+      displayName: "Người dùng Locket (Web)",
+      photoURL: null,
+      disabled: false,
+      creationTime: entry.created_at ? new Date(entry.created_at).toISOString() : new Date().toISOString(),
+      lastSignInTime: entry.created_at ? new Date(entry.created_at).toISOString() : new Date().toISOString(),
+      provider: entry.os || entry.browser ? `${entry.os || "Web"} / ${entry.browser || "App"}` : "Locket Web",
+      isAdmin: getAdminLocketUids().has(entry.uid),
+      latestLoginData: entry,
     }));
 
     // Pull real web users tracked in PostgreSQL DB and merge them with Firebase Admin accounts
@@ -157,15 +174,29 @@ router.get("/users", requireAdmin, async (req, res) => {
     }));
 
     const userMap = new Map();
-    for (const u of users) {
+    // 1. Put login history users first as baseline
+    for (const u of loginUsersMapped) {
       userMap.set(u.uid, u);
     }
+    // 2. Override/enrich with Firebase Auth admin identities
+    for (const u of users) {
+      const existing = userMap.get(u.uid) || {};
+      userMap.set(u.uid, {
+        ...existing,
+        ...u,
+        latestLoginData: existing.latestLoginData || u.latestLoginData || null,
+        isAdmin: existing.isAdmin || u.isAdmin || (u.email && u.email.toLowerCase() === "buiduchuy2010qn@gmail.com"),
+      });
+    }
+    // 3. Override/enrich with active tracked Locket profiles from DB
     for (const u of webUserMapped) {
       if (userMap.has(u.uid)) {
         const existing = userMap.get(u.uid);
         userMap.set(u.uid, {
           ...existing,
-          displayName: u.displayName !== "Người dùng Locket" ? u.displayName : existing.displayName,
+          email: u.email || existing.email,
+          displayName: (u.displayName && u.displayName !== "Người dùng Locket") ? u.displayName : existing.displayName,
+          photoURL: u.photoURL || existing.photoURL,
           latestLoginData: u.latestLoginData || existing.latestLoginData,
           isAdmin: existing.isAdmin || u.isAdmin,
         });
@@ -173,7 +204,23 @@ router.get("/users", requireAdmin, async (req, res) => {
         userMap.set(u.uid, u);
       }
     }
-    users = Array.from(userMap.values());
+
+    users = Array.from(userMap.values()).map((user) => {
+      const isOwner = user.email?.toLowerCase() === "buiduchuy2010qn@gmail.com" || getAdminLocketUids().has(user.uid) || user.isAdmin;
+      if (isOwner) {
+        user.displayName = "Bùi Đức Huy";
+        user.isAdmin = true;
+      } else if (!user.displayName || user.displayName === "Người dùng ẩn danh") {
+        user.displayName = "Người dùng Locket (Web)";
+      }
+      return user;
+    });
+
+    users.sort((a, b) => {
+      if (a.isAdmin && !b.isAdmin) return -1;
+      if (!a.isAdmin && b.isAdmin) return 1;
+      return new Date(b.lastSignInTime || 0) - new Date(a.lastSignInTime || 0);
+    });
 
     await auditLog(req.adminUid, "LIST_USERS", null, "Listed admin identities and web users");
     return res.status(200).json({
