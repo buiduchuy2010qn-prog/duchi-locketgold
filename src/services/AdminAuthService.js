@@ -14,6 +14,7 @@ async function parseResponse(response) {
   if (!response.ok) {
     const error = new Error(data.error || "Admin request failed");
     error.status = response.status;
+    error.code = data.code || "ADMIN_REQUEST_FAILED";
     throw error;
   }
   return data;

@@ -16,6 +16,7 @@ import {
 } from "@/utils";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { endUserActivitySession } from "@/services/UserActivityService";
 
 const ONE_DAY = 1000 * 60 * 60 * 24;
 
@@ -247,6 +248,13 @@ export const useAuthStore = create(
           }
         } catch (e) {
           console.warn("logout draft check", e);
+        }
+
+        // Best-effort close the verified website session while the ID token still exists.
+        try {
+          await endUserActivitySession();
+        } catch (error) {
+          console.warn("[activity] logout event was not recorded:", error.code || error.message);
         }
 
         // 1) Xóa token / storage TRƯỚC — tránh hydrateAuth set lại isAuth

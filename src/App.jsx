@@ -35,6 +35,7 @@ import RestoreDraftModal, {
 } from "./components/MomentDraft/RestoreDraftModal";
 import DraftLibrary from "./components/MomentDraft/DraftLibrary";
 import { useConnectivityStore } from "./stores/useConnectivityStore";
+import { useUserActivityLifecycle } from "./hooks/useUserActivityLifecycle";
 
 function App() {
   return (
@@ -77,6 +78,7 @@ function AppContent() {
 
   // Unpublished moment draft: autosave + restore modal (IndexedDB)
   useMomentDraftLifecycle();
+  useUserActivityLifecycle(isAuth);
 
   // Online/offline + health (no aggressive ping — store throttles)
   useEffect(() => {

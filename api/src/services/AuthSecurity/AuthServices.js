@@ -3,7 +3,6 @@ const constants = require("../../utils/constants");
 const { instanceFirebaseV2 } = require("../../libs/instanceFirebase");
 const { createGoogleInstance, instanceLocketV2 } = require("../../libs");
 const { firebase } = require("../../config/app.config");
-const { trackWebUser } = require("../userTracker");
 
 // Hàm xử lý đăng nhập
 const handleLogin = async (email, password) => {
@@ -17,7 +16,6 @@ const handleLogin = async (email, password) => {
     "verifyPassword",
     loginPayload,
   );
-  trackWebUser(response.data).catch(() => {});
   return response.data;
 };
 

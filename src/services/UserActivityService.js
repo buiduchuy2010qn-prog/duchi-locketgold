@@ -1,0 +1,142 @@
+import { CONFIG } from "@/config";
+import currentBuild from "@/config/buildMeta.json";
+import { getToken } from "@/utils";
+
+const SESSION_KEY = "huy_user_activity_session_v1";
+const HEARTBEAT_INTERVAL_MS = 60_000;
+const MIN_HEARTBEAT_GAP_MS = 30_000;
+const RAILWAY_ACTIVITY_API = import.meta.env.VITE_ACTIVITY_API_URL
+  || "https://huy-locket-api-production.up.railway.app";
+
+let heartbeatTimer = null;
+let visibilityHandler = null;
+let lastHeartbeatAt = 0;
+
+function activityBaseUrl() {
+  if (typeof window !== "undefined") {
+    if (window.location.hostname === "duchi.vercel.app") return "/api/activity";
+    if (window.location.hostname === "huy-locket-production.up.railway.app") {
+      return `${String(RAILWAY_ACTIVITY_API).replace(/\/$/, "")}/api/activity`;
+    }
+  }
+  const configured = String(CONFIG.api.baseUrl || "/dio-api")
+    .replace(/\/$/, "");
+  return `${configured}/api/activity`;
+}
+
+function createSessionId() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  const bytes = new Uint8Array(16);
+  globalThis.crypto?.getRandomValues?.(bytes);
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+function getSessionId({ renew = false } = {}) {
+  if (renew) sessionStorage.removeItem(SESSION_KEY);
+  let sessionId = sessionStorage.getItem(SESSION_KEY);
+  if (!sessionId) {
+    sessionId = createSessionId();
+    sessionStorage.setItem(SESSION_KEY, sessionId);
+  }
+  return sessionId;
+}
+
+async function activityRequest(path, body, { keepalive = false } = {}) {
+  const { idToken } = getToken();
+  if (!idToken) return null;
+  const response = await fetch(`${activityBaseUrl()}${path}`, {
+    method: "POST",
+    keepalive,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${idToken}`,
+    },
+    body: JSON.stringify(body),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(data.error || "Activity request failed");
+    error.status = response.status;
+    error.code = data.code || "ACTIVITY_REQUEST_FAILED";
+    throw error;
+  }
+  return data;
+}
+
+function buildInfo() {
+  return {
+    version: currentBuild?.version || CONFIG.app.clientVersion || "unknown",
+    buildId: currentBuild?.buildId || "unknown",
+    commitHash: currentBuild?.commitHash || "unknown",
+  };
+}
+
+export async function recordSuccessfulLogin({ loginMethod } = {}) {
+  const sessionId = getSessionId({ renew: true });
+  return activityRequest("/session", {
+    sessionId,
+    eventType: "login",
+    loginMethod: loginMethod || "unknown",
+    build: buildInfo(),
+  }, { keepalive: true });
+}
+
+async function registerResumedSession() {
+  return activityRequest("/session", {
+    sessionId: getSessionId(),
+    eventType: "resume",
+    build: buildInfo(),
+  });
+}
+
+async function sendHeartbeat({ force = false } = {}) {
+  if (typeof document !== "undefined" && document.hidden) return;
+  const now = Date.now();
+  if (!force && now - lastHeartbeatAt < MIN_HEARTBEAT_GAP_MS) return;
+  lastHeartbeatAt = now;
+  return activityRequest("/heartbeat", { sessionId: getSessionId() });
+}
+
+export function startUserActivityLifecycle() {
+  stopUserActivityLifecycle();
+  registerResumedSession()
+    .then(() => sendHeartbeat({ force: true }))
+    .catch((error) => console.warn("[activity] session registration skipped:", error.code || error.message));
+
+  heartbeatTimer = window.setInterval(() => {
+    sendHeartbeat().catch((error) => {
+      console.warn("[activity] heartbeat skipped:", error.code || error.message);
+    });
+  }, HEARTBEAT_INTERVAL_MS);
+
+  visibilityHandler = () => {
+    if (!document.hidden) {
+      sendHeartbeat().catch((error) => {
+        console.warn("[activity] visible heartbeat skipped:", error.code || error.message);
+      });
+    }
+  };
+  document.addEventListener("visibilitychange", visibilityHandler);
+  return stopUserActivityLifecycle;
+}
+
+export function stopUserActivityLifecycle() {
+  if (heartbeatTimer) window.clearInterval(heartbeatTimer);
+  heartbeatTimer = null;
+  if (visibilityHandler) document.removeEventListener("visibilitychange", visibilityHandler);
+  visibilityHandler = null;
+}
+
+export async function endUserActivitySession() {
+  stopUserActivityLifecycle();
+  const sessionId = sessionStorage.getItem(SESSION_KEY);
+  if (!sessionId) return null;
+  try {
+    return await activityRequest("/logout", { sessionId }, { keepalive: true });
+  } finally {
+    sessionStorage.removeItem(SESSION_KEY);
+  }
+}

@@ -14,6 +14,7 @@ import StatusServer from "./StatusServer";
 import { saveToken } from "@/utils";
 import { useTranslation } from "react-i18next";
 import clsx from "clsx";
+import { recordSuccessfulLogin } from "@/services/UserActivityService";
 
 const Login = () => {
   const initAuth = useAuthStore((s) => s.initAuth);
@@ -85,6 +86,10 @@ const Login = () => {
         const { idToken, localId, refreshToken } = res.data;
 
         saveToken({ idToken, localId, refreshToken }, rememberMe);
+
+        recordSuccessfulLogin({ loginMethod }).catch((error) => {
+          console.warn("[activity] login event was not recorded:", error.code || error.message);
+        });
 
         await ensureDBOwner(localId);
 

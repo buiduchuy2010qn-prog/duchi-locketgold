@@ -2,7 +2,6 @@ const constants = require("../../utils/constants");
 const axios = require("axios");
 const { verifyCustomeToken } = require("./AuthServices");
 const { instanceFirestore, instanceFirebaseV2 } = require("../../libs");
-const { trackWebUser } = require("../userTracker");
 
 // Lấy thông tin người dùng
 const getUserInfoV2 = async (idToken, localId) => {
@@ -49,7 +48,6 @@ const getUserInfoV2 = async (idToken, localId) => {
         userDataV2?.fields?.birthday?.mapValue?.fields?.encoded_mdd
           ?.integerValue || null,
     };
-    trackWebUser(result).catch(() => {});
     return result;
   } catch (error) {
     console.error(

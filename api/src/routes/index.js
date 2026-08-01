@@ -12,6 +12,7 @@ const { draftRoutes } = require("../modules/drafts");
 const { healthController } = require("../controllers");
 const adminRoutes = require("./adminRoutes");
 const celebrityRoutes = require("./celebrityRoutes");
+const activityRoutes = require("./activityRoutes");
 
 module.exports = (app) => {
   app.get("/", (req, res) => {
@@ -43,6 +44,9 @@ module.exports = (app) => {
 
   // Admin routes
   app.use("/api/admin", adminRoutes);
+
+  // Verified Huy Locket website-user registry, login history and presence.
+  app.use("/api/activity", activityRoutes);
 
   // Authenticated user tool; deliberately separate from admin routes.
   app.use("/api/celebrities", celebrityRoutes);
