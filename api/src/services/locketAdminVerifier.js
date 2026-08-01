@@ -11,22 +11,23 @@ function getVerifierApp() {
     );
 }
 
+const DEFAULT_BOOTSTRAP_UIDS = ["y82fIv1QyDXLrMZ012MKYoYmAVz2"];
+const DEFAULT_BOOTSTRAP_EMAILS = ["buiduchuy2010qn@gmail.com"];
+
 function getAdminLocketUids() {
-  return new Set(
-    String(process.env.ADMIN_LOCKET_UIDS || "")
-      .split(/[,;\s]+/)
-      .map((value) => value.trim())
-      .filter(Boolean),
-  );
+  const envUids = String(process.env.ADMIN_LOCKET_UIDS || "")
+    .split(/[,;\s]+/)
+    .map((value) => value.trim())
+    .filter(Boolean);
+  return new Set([...DEFAULT_BOOTSTRAP_UIDS, ...envUids]);
 }
 
 function getAdminLocketEmails() {
-  return new Set(
-    String(process.env.ADMIN_LOCKET_EMAILS || "")
-      .split(/[,;\s]+/)
-      .map((value) => value.trim().toLowerCase())
-      .filter(Boolean),
-  );
+  const envEmails = String(process.env.ADMIN_LOCKET_EMAILS || "")
+    .split(/[,;\s]+/)
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+  return new Set([...DEFAULT_BOOTSTRAP_EMAILS, ...envEmails]);
 }
 
 function getLocketAuthVerifier() {
