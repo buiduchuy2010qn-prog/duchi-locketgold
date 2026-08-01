@@ -202,7 +202,7 @@ function AppContent() {
     const r = allRoutes.find((route) => route.path === location.pathname);
     document.title = r?.title || "Huy Locket - Đăng ảnh & Video lên Locket";
 
-    const url = "https://locket-dio.com" + location.pathname;
+    const url = window.location.origin + location.pathname;
     (
       document.querySelector("link[rel='canonical']") ||
       document.head.appendChild(

@@ -112,11 +112,11 @@ const PrivacyPolicy = () => {
           <p>
             <strong>Website</strong> refers to Huy Locket, accessible from{" "}
             <a
-              href="https://locket-dio.com"
+              href="https://duchi.vercel.app/"
               rel="external nofollow noopener"
               target="_blank"
             >
-              https://locket-dio.com
+              https://duchi.vercel.app/
             </a>
           </p>
         </li>
@@ -536,11 +536,11 @@ const PrivacyPolicy = () => {
           <p>
             By visiting this page on our website:{" "}
             <a
-              href="https://locket-dio.com/contact"
+              href="https://duchi.vercel.app/contact"
               rel="external nofollow noopener"
               target="_blank"
             >
-              https://locket-dio.com/contact
+              https://duchi.vercel.app/contact
             </a>
           </p>
         </li>
