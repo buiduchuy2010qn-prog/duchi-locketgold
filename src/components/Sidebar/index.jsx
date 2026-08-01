@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from "react";
+import React, { useEffect, useRef, useCallback, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   X,
@@ -37,6 +37,11 @@ import { useAuthStore } from "@/stores";
 import { useTranslation } from "react-i18next";
 import { isAdminUser } from "@/utils/googleDrive";
 import { getMyLocalId } from "@/utils/auth/getMyLocalId";
+import {
+  hasAdminSession,
+  subscribeAdminSession,
+  verifyAdminSession,
+} from "@/services/AdminAuthService";
 
 const Sidebar = () => {
   const user = useAuthStore((state) => state.user);
@@ -53,9 +58,32 @@ const Sidebar = () => {
     sessionStorage.getItem("email") ||
     "";
   // Chỉ admin thật (email/localId whitelist) — user thường KHÔNG thấy menu Drive
-  const isAdmin =
+  const isDriveAdmin =
     Boolean(user) &&
     isAdminUser(localId, { email, localId, uid: user?.uid || localId });
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const checkAdmin = async () => {
+      if (!hasAdminSession()) {
+        if (active) setIsAdmin(false);
+        return;
+      }
+      try {
+        const verified = await verifyAdminSession();
+        if (active) setIsAdmin(verified);
+      } catch {
+        if (active) setIsAdmin(false);
+      }
+    };
+    checkAdmin();
+    const unsubscribe = subscribeAdminSession(checkAdmin);
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, []);
 
   const drawerRef = useRef(null);
 
@@ -160,7 +188,7 @@ const Sidebar = () => {
 
   // Menu chia theo nhóm — Google Drive CHỈ admin, ẩn hoàn toàn với user thường
   const userMenuSections = [
-    ...(isAdmin
+    ...(isDriveAdmin
       ? [
           {
             title: "⚡ Google Drive",
@@ -169,12 +197,6 @@ const Sidebar = () => {
                 to: "/admin/google-drive",
                 icon: HardDrive,
                 text: "Quản lý Drive (Admin)",
-                badge: "Admin",
-              },
-              {
-                to: "/admin/users",
-                icon: UserRound,
-                text: "Quản lý Người dùng",
                 badge: "Admin",
               },
             ],
@@ -288,7 +310,20 @@ const Sidebar = () => {
     },
   ];
 
-  const menuSections = user ? userMenuSections : guestMenuSections;
+  const menuSections = [
+    ...(isAdmin
+      ? [{
+          title: "Quản trị Huy Locket",
+          items: [{
+            to: "/admin/users",
+            icon: UserRound,
+            text: "Quản lý quản trị viên",
+            badge: "Admin",
+          }],
+        }]
+      : []),
+    ...(user ? userMenuSections : guestMenuSections),
+  ];
 
   const prefersReducedMotion = typeof window !== "undefined"
     ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
