@@ -89,15 +89,17 @@ export const getListCelebrity = async () => {
   }
 };
 
-export const getListCelebrityV2 = async () => {
+export const getListCelebrityV2 = async (config = {}) => {
   try {
-    const res = await instanceMain.get("api/idols");
+    const res = await instanceMain.get("api/celebrities", config);
     if (!res.data?.success || !Array.isArray(res.data?.data)) {
-      throw new Error("INVALID_IDOL_RESPONSE");
+      const error = new Error("INVALID_CELEBRITY_RESPONSE");
+      error.code = "INVALID_CELEBRITY_RESPONSE";
+      throw error;
     }
     return res.data.data;
   } catch (error) {
-    console.error("[idols] list request failed", {
+    console.error("[celebrity] list request failed", {
       status: error?.response?.status || null,
       code: error?.response?.data?.code || error?.code || null,
     });

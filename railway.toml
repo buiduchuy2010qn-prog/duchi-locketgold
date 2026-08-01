@@ -13,6 +13,7 @@
 #   Dockerfile: Dockerfile
 #   Variables:
 #     CORS_ORIGINS=https://huy-locket-production.up.railway.app
+#     DATABASE_URL=<Neon pooled connection string — Celebrity/Admin data, KHÔNG commit>
 #     LOCKETDIO_SIGNATURE_SECRET=<chuỗi dài cố định — đừng Generate mỗi lần>
 #     LOCKETDIO_JWT_SECRET=<cố định>
 #     COOKIE_SECRET=<cố định>

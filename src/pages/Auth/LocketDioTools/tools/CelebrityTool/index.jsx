@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { CONFIG } from "@/config";
 import {
   fetchUserById,
@@ -19,328 +25,283 @@ import { RefreshCcw } from "lucide-react";
 import { useFeatureVisible } from "@/hooks/useFeature";
 import { PiExport } from "react-icons/pi";
 import LockedPremiumFeature from "../../Layout/LockedPremiumFeature";
+import {
+  categorizeCelebrityUsers,
+  groupCelebrityRecords,
+  mapWithConcurrency,
+  mergeCelebrityWithUser,
+  normalizeCelebrityRecords,
+} from "./celebrityUtils";
 
-const mergeIdolWithUser = (idol, user) => ({
-  uid: idol.uid,
-  username: idol.username,
-  first_name: idol.displayName,
-  last_name: "",
-  profile_picture_url: idol.avatarUrl,
-  celebrity: true,
-  ...(user || {}),
-  idol_record_id: idol.id,
-  locket_url: idol.locketUrl,
-  country_code: idol.countryCode,
-});
+const DETAIL_CONCURRENCY = 6;
+
+function getLoadError(error) {
+  const status = error?.response?.status;
+  const code = error?.response?.data?.code || error?.code;
+  const serverMessage = error?.response?.data?.message;
+
+  if (status === 401) return "Phiên đăng nhập đã hết hạn.";
+  if (status === 429) return "Bạn làm mới quá nhanh. Vui lòng thử lại sau.";
+  if (code === "DATABASE_UNAVAILABLE") {
+    return "Cơ sở dữ liệu Celebrity chưa được cấu hình.";
+  }
+  if (code === "CELEBRITY_SCHEMA_MISSING") {
+    return "Dữ liệu Celebrity chưa được khởi tạo.";
+  }
+  return serverMessage || "Không thể tải danh sách Celebrity.";
+}
 
 export default function CelebrateTool() {
   const isCelebrityFeature = useFeatureVisible("celebrity_tool");
+  const [catalog, setCatalog] = useState(null);
   const [userDetails, setUserDetails] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loadState, setLoadState] = useState("idle");
   const [loadError, setLoadError] = useState("");
-
   const [activeTab, setActiveTab] = useState("all");
   const [processingUid, setProcessingUid] = useState(null);
+  const [countryCode, setCountryCode] = useState(
+    () => localStorage.getItem("celebrate_country") || "ALL",
+  );
 
-  const [celebrateList, setCelebrateList] = useState({});
-  const [userMap, setUserMap] = useState({});
-  // 🔥 load country từ localStorage
-  const [countryCode, setCountryCode] = useState(() => {
-    return localStorage.getItem("celebrate_country") || "ALL";
-  });
+  const mountedRef = useRef(true);
+  const catalogRequestRef = useRef(null);
+  const catalogSequenceRef = useRef(0);
+  const detailSequenceRef = useRef(0);
+  const userCacheRef = useRef(new Map());
+  const refreshToastRef = useRef(null);
+  const sendingRef = useRef(new Set());
 
-  // 🔥 lưu lại khi đổi country
   useEffect(() => {
     localStorage.setItem("celebrate_country", countryCode);
   }, [countryCode]);
 
-  const fetchCelebrates = useCallback(async () => {
-    setLoading(true);
+  const loadCatalog = useCallback(() => {
+    if (catalogRequestRef.current) {
+      return catalogRequestRef.current.promise;
+    }
+
+    const sequence = ++catalogSequenceRef.current;
+    const controller = new AbortController();
+    setLoadState("loading");
     setLoadError("");
 
-    try {
-      const result = await getListCelebrityV2();
-      const grouped = (result || []).reduce((groups, idol) => {
-        const country = idol.countryCode || "OTHER";
-        if (!groups[country]) groups[country] = [];
-        groups[country].push(idol);
-        return groups;
-      }, {});
+    const promise = getListCelebrityV2({ signal: controller.signal })
+      .then((response) => {
+        const records = normalizeCelebrityRecords(response);
+        if (!mountedRef.current || sequence !== catalogSequenceRef.current) {
+          return records;
+        }
 
-      setCelebrateList(grouped);
-    } catch (err) {
-      setCelebrateList({});
-      setUserDetails([]);
-      setLoadError(
-        err?.response?.data?.message || "Không thể tải danh sách idol thật.",
-      );
-      SonnerError("Không thể tải danh sách Celebrate.");
-    } finally {
-      setLoading(false);
-    }
+        userCacheRef.current.clear();
+        setCatalog(records);
+        setCountryCode((current) =>
+          current === "ALL" ||
+          records.some((record) => record.countryCode === current)
+            ? current
+            : "ALL",
+        );
+        return records;
+      })
+      .catch((error) => {
+        if (
+          mountedRef.current &&
+          sequence === catalogSequenceRef.current &&
+          error?.name !== "CanceledError"
+        ) {
+          setCatalog(null);
+          setUserDetails([]);
+          setLoadState("error");
+          setLoadError(getLoadError(error));
+        }
+        throw error;
+      })
+      .finally(() => {
+        if (catalogRequestRef.current?.sequence === sequence) {
+          catalogRequestRef.current = null;
+        }
+      });
+
+    catalogRequestRef.current = { controller, promise, sequence };
+    return promise;
   }, []);
-
-  const fetchDetails = useCallback(async (currentList, missingUsers, cache) => {
-    if (!missingUsers?.length) return;
-
-    setLoading(true);
-
-    try {
-      const detailResults = await Promise.allSettled(
-        missingUsers.map(async (item) => {
-          try {
-            const user = await fetchUserById(item?.uid);
-            return mergeIdolWithUser(item, user);
-          } catch {
-            return mergeIdolWithUser(item, null);
-          }
-        }),
-      );
-      const validUsers = detailResults
-        .filter((result) => result.status === "fulfilled" && result.value)
-        .map((result) => result.value);
-
-      // 🔥 merge vào cache
-      setUserMap((prev) => {
-        const newMap = { ...prev };
-
-        validUsers.forEach((user) => {
-          newMap[user.uid] = user;
-        });
-
-        return newMap;
-      });
-
-      setUserDetails(
-        currentList
-          .map((item) => {
-            return validUsers.find((u) => u.uid === item.uid) || cache[item.uid];
-          })
-          .filter(Boolean),
-      );
-    } catch {
-      SonnerError(
-        "Phiên đăng nhập hết hạn",
-        "Vui lòng xoá tab và truy cập lại.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const handleRefresh = async () => {
-    const refreshPromise = (async () => {
-      const result = await getListCelebrityV2();
-      const grouped = (result || []).reduce((groups, idol) => {
-        const country = idol.countryCode || "OTHER";
-        if (!groups[country]) groups[country] = [];
-        groups[country].push(idol);
-        return groups;
-      }, {});
-
-      setCelebrateList(grouped);
-      setLoadError("");
-
-      // chỉ lấy country hiện tại
-      let currentList = [];
-
-      if (countryCode === "ALL") {
-        currentList = Object.values(grouped).flat();
-      } else {
-        currentList = grouped[countryCode] || [];
-      }
-
-      const detailResults = await Promise.allSettled(
-        currentList.map(async (item) => {
-          try {
-            const user = await fetchUserById(item?.uid);
-            return mergeIdolWithUser(item, user);
-          } catch {
-            return mergeIdolWithUser(item, null);
-          }
-        }),
-      );
-      const validUsers = detailResults
-        .filter((detail) => detail.status === "fulfilled" && detail.value)
-        .map((detail) => detail.value);
-
-      // update cache map
-      setUserMap((prev) => {
-        const newMap = { ...prev };
-
-        validUsers.forEach((user) => {
-          newMap[user.uid] = user;
-        });
-
-        return newMap;
-      });
-
-      // update UI
-      setUserDetails(validUsers);
-
-      return {
-        total: validUsers.length,
-        country: countryCode,
-      };
-    })();
-
-    setLoading(true);
-
-    try {
-      SonnerPromise(refreshPromise, {
-        loading: "Đang làm mới dữ liệu...",
-        success: (data) =>
-          `Đã làm mới ${data?.total || 0} tài khoản (${data?.country})`,
-        error: (error) => {
-          const status = error?.status || error?.response?.status;
-
-          switch (status) {
-            case 401:
-              return "Phiên đăng nhập đã hết hạn!";
-            case 429:
-              return "Bạn thao tác quá nhanh. Vui lòng thử lại sau!";
-            case 500:
-              return "Lỗi hệ thống. Vui lòng thử lại!";
-            default:
-              return error?.message || "Không thể làm mới dữ liệu.";
-          }
-        },
-      });
-
-      await refreshPromise;
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
+    mountedRef.current = true;
     if (isCelebrityFeature) {
-      fetchCelebrates();
+      loadCatalog().catch(() => {});
     }
-  }, [fetchCelebrates, isCelebrityFeature]);
+
+    return () => {
+      mountedRef.current = false;
+      catalogSequenceRef.current += 1;
+      detailSequenceRef.current += 1;
+      catalogRequestRef.current?.controller.abort();
+      catalogRequestRef.current = null;
+    };
+  }, [isCelebrityFeature, loadCatalog]);
+
+  const celebrateList = useMemo(
+    () => groupCelebrityRecords(catalog || []),
+    [catalog],
+  );
+
+  const currentCatalog = useMemo(() => {
+    if (!catalog) return [];
+    return countryCode === "ALL"
+      ? catalog
+      : celebrateList[countryCode] || [];
+  }, [catalog, celebrateList, countryCode]);
 
   useEffect(() => {
-    if (!isCelebrityFeature) return;
+    if (!catalog) return;
 
-    let currentList = [];
-
-    if (countryCode === "ALL") {
-      currentList = Object.values(celebrateList).flat();
-    } else {
-      currentList = celebrateList[countryCode] || [];
-    }
-
-    const missingUsers = currentList.filter((item) => !userMap[item.uid]);
-
-    // 🔥 nếu đã có đủ thì chỉ set local
-    if (missingUsers.length === 0) {
-      setUserDetails(
-        currentList.map((item) => userMap[item.uid]).filter(Boolean),
-      );
-
+    if (currentCatalog.length === 0) {
+      detailSequenceRef.current += 1;
+      setUserDetails([]);
+      setLoadState("empty");
       return;
     }
 
-    // 🔥 chỉ fetch những uid chưa có
-    fetchDetails(currentList, missingUsers, userMap);
-  }, [celebrateList, countryCode, fetchDetails, isCelebrityFeature, userMap]);
+    const sequence = ++detailSequenceRef.current;
+    setLoadState("loading");
+    setLoadError("");
+
+    mapWithConcurrency(
+      currentCatalog,
+      DETAIL_CONCURRENCY,
+      async (record) => {
+        const cached = userCacheRef.current.get(record.uid);
+        if (cached) return cached;
+
+        const liveUser = await fetchUserById(record.uid);
+        if (!liveUser) {
+          const error = new Error("CELEBRITY_DETAILS_UNAVAILABLE");
+          error.code = "CELEBRITY_DETAILS_UNAVAILABLE";
+          throw error;
+        }
+        return mergeCelebrityWithUser(record, liveUser);
+      },
+    )
+      .then((details) => {
+        if (!mountedRef.current || sequence !== detailSequenceRef.current) {
+          return;
+        }
+        details.forEach((user) => userCacheRef.current.set(user.uid, user));
+        setUserDetails(details);
+        setLoadState("success");
+      })
+      .catch(() => {
+        if (!mountedRef.current || sequence !== detailSequenceRef.current) {
+          return;
+        }
+        setUserDetails([]);
+        setLoadState("error");
+        setLoadError(
+          "Không thể tải trạng thái Celebrity từ Locket. Vui lòng thử lại.",
+        );
+      });
+  }, [catalog, currentCatalog]);
+
+  const handleRefresh = () => {
+    if (refreshToastRef.current) return;
+
+    const refreshPromise = loadCatalog().then((records) => ({
+      total: records.length,
+      country: countryCode,
+    }));
+    refreshToastRef.current = refreshPromise;
+
+    SonnerPromise(refreshPromise, {
+      loading: "Đang làm mới dữ liệu...",
+      success: (data) =>
+        `Đã tải ${data?.total || 0} Celebrity (${data?.country})`,
+      error: (error) => getLoadError(error),
+    });
+
+    const clearRefresh = () => {
+      if (refreshToastRef.current === refreshPromise) {
+        refreshToastRef.current = null;
+      }
+    };
+    refreshPromise.then(clearRefresh, clearRefresh);
+  };
 
   const handleAddUid = async (uid) => {
-    if (!uid || !uid.trim()) {
-      return SonnerInfo("Nhập UID trước đã!");
+    if (!uid || !String(uid).trim()) {
+      return SonnerInfo("UID Celebrity không hợp lệ.");
     }
+    if (sendingRef.current.size > 0) return;
 
-    if (processingUid === uid) return;
-
+    sendingRef.current.add(uid);
     setProcessingUid(uid);
 
     try {
-      const res = await SendRequestToCelebrity(uid);
-
-      if (res?.success) {
-        SonnerSuccess(
-          "Đã gửi yêu cầu thành công!",
-          "Đang cập nhật trạng thái...",
+      const response = await SendRequestToCelebrity(uid);
+      if (!response?.success) {
+        return SonnerWarning(
+          response?.message || "Không thể gửi yêu cầu kết bạn.",
         );
-
-        const updatedUser = await fetchUserById(uid);
-
-        if (updatedUser) {
-          setUserDetails((prev) =>
-            prev.map((u) => (u.uid === uid ? { ...u, ...updatedUser } : u)),
-          );
-        }
-      } else {
-        SonnerWarning("UID không hợp lệ hoặc đã tồn tại!");
       }
-    } catch {
-      SonnerError("❌ Thêm UID thất bại.");
+
+      SonnerSuccess(
+        "Đã gửi yêu cầu thành công!",
+        "Đang cập nhật trạng thái...",
+      );
+      const updatedUser = await fetchUserById(uid);
+      const record = catalog?.find((item) => item.uid === uid);
+      if (updatedUser && record) {
+        const merged = mergeCelebrityWithUser(record, updatedUser);
+        userCacheRef.current.set(uid, merged);
+        setUserDetails((previous) =>
+          previous.map((user) => (user.uid === uid ? merged : user)),
+        );
+      }
+    } catch (error) {
+      SonnerError(
+        "Gửi kết bạn thất bại.",
+        error?.response?.data?.message || "Vui lòng thử lại sau.",
+      );
     } finally {
+      sendingRef.current.delete(uid);
       setProcessingUid(null);
     }
   };
 
   const exportPDF = async () => {
-    const res = await fetch(`${CONFIG.api.exportApi}/generate-pdf`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        data: userDetails,
-      }),
-    });
+    if (loadState !== "success" || userDetails.length === 0) {
+      return SonnerInfo("Chỉ có thể xuất dữ liệu Celebrity đã tải thành công.");
+    }
 
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
+    try {
+      const response = await fetch(`${CONFIG.api.exportApi}/generate-pdf`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data: userDetails }),
+      });
+      if (!response.ok) throw new Error(`EXPORT_${response.status}`);
 
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "danh_sach.pdf";
-    link.click();
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "danh_sach_celebrity.pdf";
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      SonnerError("Không thể xuất PDF Celebrity.");
+    }
   };
 
-  const categorized = {
-    all: userDetails,
-    friends: userDetails.filter((u) => u?.friendship_status === "friends"),
-    waitlist: userDetails.filter(
-      (u) => u?.friendship_status === "follower-waitlist",
-    ),
-    waitaccept: userDetails.filter(
-      (u) => u?.friendship_status === "outgoing-follow-request",
-    ),
-    hasSlot: userDetails.filter(
-      (u) => u?.celebrity_data?.friend_count < u?.celebrity_data?.max_friends,
-    ),
-    noSlot: userDetails.filter(
-      (u) => u?.celebrity_data?.friend_count >= u?.celebrity_data?.max_friends,
-    ),
-  };
-
+  const categorized = useMemo(
+    () => categorizeCelebrityUsers(userDetails),
+    [userDetails],
+  );
   const tabs = [
-    {
-      key: "all",
-      label: "Tất cả",
-      count: categorized.all.length,
-    },
-    {
-      key: "friends",
-      label: "Bạn bè",
-      count: categorized.friends.length,
-    },
-    {
-      key: "waitlist",
-      label: "Xếp hàng",
-      count: categorized.waitlist.length,
-    },
-    {
-      key: "hasSlot",
-      label: "Còn slot",
-      count: categorized.hasSlot.length,
-    },
-    {
-      key: "noSlot",
-      label: "Hết slot",
-      count: categorized.noSlot.length,
-    },
+    { key: "all", label: "Tất cả", count: categorized.all.length },
+    { key: "friends", label: "Bạn bè", count: categorized.friends.length },
+    { key: "waitlist", label: "Xếp hàng", count: categorized.waitlist.length },
+    { key: "hasSlot", label: "Còn slot", count: categorized.hasSlot.length },
+    { key: "noSlot", label: "Hết slot", count: categorized.noSlot.length },
     {
       key: "waitaccept",
       label: "Chờ chấp nhận",
@@ -348,10 +309,12 @@ export default function CelebrateTool() {
     },
   ];
 
-  // Nếu không có quyền truy cập
   if (!isCelebrityFeature) {
     return <LockedPremiumFeature />;
   }
+
+  const isLoading = loadState === "loading" || loadState === "idle";
+  const canExport = loadState === "success" && userDetails.length > 0;
 
   return (
     <div>
@@ -360,104 +323,111 @@ export default function CelebrateTool() {
           Celebrity Tool
           <span className="badge badge-sm badge-accent ml-2">New</span>
         </h2>
-        {/* Nút làm mới */}
         <div className="flex gap-2 flex-row">
           <button
             onClick={handleRefresh}
             className="flex items-center gap-1 text-sm px-2 py-1 rounded-md border hover:bg-base-200"
-            disabled={loading}
+            disabled={isLoading}
           >
             <RefreshCcw className="w-4 h-4" /> Làm mới
           </button>
           <button
             onClick={exportPDF}
             className="flex items-center gap-1 text-sm px-2 py-1 rounded-md border hover:bg-base-200"
+            disabled={!canExport}
           >
             <PiExport className="w-4 h-4" /> Xuất PDF
           </button>
         </div>
       </div>
       <p className="mb-3 text-sm opacity-80">
-        Công cụ này giúp bạn xem được thông tin celebrity hoặc tình trạng slot
-        của họ. Click vào username để copy link kết bạn. Bấm thêm để gửi kết bạn
-        tới họ nhé!
+        Công cụ này giúp bạn xem thông tin Celebrity và tình trạng slot của họ.
+        Click vào username để copy link kết bạn. Bấm thêm để gửi kết bạn tới họ.
       </p>
       <div className="mb-3 text-sm opacity-80 leading-relaxed space-y-1">
         <p>1. Chỉ cần làm mới khi cần thiết.</p>
-        <p>2. Không spam yêu cầu quá nhiều để tránh ảnh hưởng tới tài khoản.</p>
-      </div>
-      <h3 className="font-semibold text-sm uppercase opacity-70">
-        Danh mục quốc gia
-      </h3>
-
-      <div className="flex gap-2 mb-3 flex-wrap">
-        <FilterButton
-          label="ALL"
-          count={Object.values(celebrateList).flat().length}
-          active={countryCode === "ALL"}
-          activeClass="bg-green-500 text-white"
-          onClick={() => setCountryCode("ALL")}
-        />
-
-        {Object.keys(celebrateList).map((code) => (
-          <FilterButton
-            key={code}
-            label={code}
-            count={celebrateList[code]?.length || 0}
-            active={countryCode === code}
-            activeClass="bg-green-500 text-white"
-            onClick={() => setCountryCode(code)}
-          />
-        ))}
+        <p>2. Không spam yêu cầu để tránh ảnh hưởng tới tài khoản.</p>
       </div>
 
-      <h3 className="font-semibold text-sm uppercase opacity-70">
-        Bộ lọc nhanh
-      </h3>
+      {catalog?.length > 0 && (
+        <>
+          <h3 className="font-semibold text-sm uppercase opacity-70">
+            Danh mục quốc gia
+          </h3>
+          <div className="flex gap-2 mb-3 flex-wrap">
+            <FilterButton
+              label="ALL"
+              count={catalog.length}
+              active={countryCode === "ALL"}
+              activeClass="bg-green-500 text-white"
+              onClick={() => setCountryCode("ALL")}
+            />
+            {Object.keys(celebrateList).map((code) => (
+              <FilterButton
+                key={code}
+                label={code}
+                count={celebrateList[code].length}
+                active={countryCode === code}
+                activeClass="bg-green-500 text-white"
+                onClick={() => setCountryCode(code)}
+              />
+            ))}
+          </div>
 
-      <div className="flex gap-2 mb-3 flex-wrap">
-        {tabs.map((tab) => (
-          <FilterButton
-            key={tab.key}
-            label={tab.label}
-            count={tab.count}
-            active={activeTab === tab.key}
-            activeClass="bg-blue-500 text-white"
-            onClick={() => setActiveTab(tab.key)}
-          />
-        ))}
-      </div>
-      {/* Danh sách user details */}
+          <h3 className="font-semibold text-sm uppercase opacity-70">
+            Bộ lọc nhanh
+          </h3>
+          <div className="flex gap-2 mb-3 flex-wrap">
+            {tabs.map((tab) => (
+              <FilterButton
+                key={tab.key}
+                label={tab.label}
+                count={tab.count}
+                active={activeTab === tab.key}
+                activeClass="bg-blue-500 text-white"
+                onClick={() => setActiveTab(tab.key)}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
       <div className="border rounded-sm h-96 overflow-y-auto">
-        {loading ? (
+        {isLoading ? (
           <>
             {Array.from({ length: 5 }).map((_, index) => (
               <SkeletonItem key={index} />
             ))}
           </>
-        ) : loadError ? (
+        ) : loadState === "error" ? (
           <div className="h-full flex flex-col items-center justify-center p-3 text-center">
             <p className="text-sm text-error">{loadError}</p>
             <button
               type="button"
               className="btn btn-sm btn-outline mt-2"
-              onClick={fetchCelebrates}
+              onClick={() => loadCatalog().catch(() => {})}
             >
               Thử lại
             </button>
           </div>
+        ) : loadState === "empty" ? (
+          <p className="text-sm opacity-70 p-3">
+            Chưa có dữ liệu Celebrity đã xác minh.
+          </p>
         ) : categorized[activeTab]?.length > 0 ? (
           categorized[activeTab].map((user) => (
             <CelebrateItem
-              key={user?.uid}
+              key={user.uid}
               user={user}
-              slotdata={user?.celebrity_data}
+              slotdata={user.celebrity_data}
               onAdd={handleAddUid}
               loadingUid={processingUid}
             />
           ))
         ) : (
-          <p className="text-sm opacity-70 p-3">📭 Không có dữ liệu.</p>
+          <p className="text-sm opacity-70 p-3">
+            Không có Celebrity phù hợp bộ lọc này.
+          </p>
         )}
       </div>
     </div>

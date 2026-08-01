@@ -91,34 +91,26 @@ const friendRequestLimiter = rateLimit({
   },
 });
 
-const idolReadLimiter = rateLimit({
+const celebrityReadLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 60,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-const idolAdminLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 40,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
     res.status(429).json({
       success: false,
       code: "RATE_LIMITED",
-      message: "Bạn thao tác quản trị quá nhanh. Vui lòng thử lại sau.",
+      message: "Bạn làm mới danh sách Celebrity quá nhanh.",
     });
   },
 });
 
 module.exports = {
   apiLimiter,
+  celebrityReadLimiter,
   friendRequestLimiter,
   friendSearchLimiter,
   getLimiter,
-  idolAdminLimiter,
-  idolReadLimiter,
   refreshLimiter,
   loginV2Limiter,
   rejectLimiter,

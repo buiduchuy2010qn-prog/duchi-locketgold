@@ -1,5 +1,5 @@
 import React from "react";
-import { ExternalLink, Plus, UserRoundCheck } from "lucide-react";
+import { Plus, UserRoundCheck } from "lucide-react";
 import { SonnerSuccess } from "@/components/uikit/SonnerToast";
 
 export default function CelebrateItem({ user, slotdata, onAdd, loadingUid }) {
@@ -69,17 +69,6 @@ export default function CelebrateItem({ user, slotdata, onAdd, loadingUid }) {
             >
               @{user.username || "Không có username"}
             </p>
-            {user.locket_url && (
-              <a
-                href={user.locket_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 text-sm text-blue-500 underline hover:text-blue-600 mt-1"
-              >
-                <ExternalLink className="w-4 h-4" aria-hidden="true" />
-                Mở hồ sơ Locket
-              </a>
-            )}
             {/* <p
               className="flex flex-row items-center text-sm text-blue-500 underline cursor-pointer hover:text-blue-600 mt-1"
               onClick={handleCopyLink}
