@@ -384,8 +384,8 @@ router.post("/users/:uid/role", requireActivityDatabase, requireActiveAdminSessi
     if (!allowedRoles.includes(newRole)) {
       return res.status(400).json({ success: false, error: "Vai trò không hợp lệ" });
     }
-    if (req.params.uid === req.adminUid && newRole !== "super_admin") {
-      return res.status(403).json({ success: false, error: "Không được tự hạ vai trò Super Admin của chính mình" });
+    if (await isProtectedAdmin(req.params.uid) || req.params.uid === req.adminUid) {
+      return res.status(403).json({ success: false, error: "Tài khoản Super Admin tối thượng hoặc tài khoản của chính bạn được cố định, không thể tự thay đổi vai trò" });
     }
     const reason = String(req.body?.reason || "").trim();
     if (!reason && newRole !== "user") {

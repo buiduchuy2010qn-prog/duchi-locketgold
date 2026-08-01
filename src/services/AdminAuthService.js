@@ -9,7 +9,7 @@ function getLocketToken() {
   return localStorage.getItem("idToken") || sessionStorage.getItem("idToken") || "";
 }
 
-function getShortAdminSessionToken() {
+export function getShortAdminSessionToken() {
   try {
     return sessionStorage.getItem("admin_short_session") || "";
   } catch {
@@ -24,6 +24,18 @@ export function setShortAdminSessionToken(token) {
   } catch {
     /* ignore */
   }
+}
+
+export function clearShortAdminSessionToken() {
+  try {
+    sessionStorage.removeItem("admin_short_session");
+  } catch {
+    /* ignore */
+  }
+}
+
+export function hasShortAdminSession() {
+  return Boolean(getShortAdminSessionToken());
 }
 
 async function parseResponse(response) {

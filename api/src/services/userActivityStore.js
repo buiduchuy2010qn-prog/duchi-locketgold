@@ -448,18 +448,19 @@ async function writeAudit({ adminUid, role = null, action, targetUid = null, det
 async function getUserRole(uid, email) {
   await ensureUserActivitySchema();
   const sql = getSql();
-  const rows = await sql`SELECT role FROM admin_roles WHERE uid = ${uid} LIMIT 1`;
-  if (rows.length > 0 && rows[0]?.role) {
-    return rows[0].role;
-  }
   const normalizedEmail = String(email || "").trim().toLowerCase();
-  if (getAdminLocketUids().has(uid) || (normalizedEmail && getAdminLocketEmails().has(normalizedEmail))) {
+  const isRootAdmin = getAdminLocketUids().has(uid) || (normalizedEmail && getAdminLocketEmails().has(normalizedEmail));
+  if (isRootAdmin) {
     try {
-      await sql`INSERT INTO admin_roles (uid, role, assigned_by) VALUES (${uid}, 'super_admin', 'bootstrap') ON CONFLICT (uid) DO NOTHING`;
+      await sql`INSERT INTO admin_roles (uid, role, assigned_by) VALUES (${uid}, 'super_admin', 'bootstrap') ON CONFLICT (uid) DO UPDATE SET role = 'super_admin' WHERE admin_roles.uid = ${uid}`;
     } catch (err) {
       console.warn("Failed to bootstrap super_admin in admin_roles:", err.message);
     }
     return 'super_admin';
+  }
+  const rows = await sql`SELECT role FROM admin_roles WHERE uid = ${uid} LIMIT 1`;
+  if (rows.length > 0 && rows[0]?.role) {
+    return rows[0].role;
   }
   return 'user';
 }
