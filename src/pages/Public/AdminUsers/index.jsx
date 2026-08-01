@@ -165,7 +165,15 @@ export default function AdminUsers() {
                 <tr><td colSpan="5" className="text-center py-12 text-base-content/50">Không có người dùng phù hợp.</td></tr>
               ) : filteredUsers.map((user) => (
                 <tr key={user.uid} className="hover">
-                  <td><div className="font-medium">{user.displayName || "Người dùng"}</div><div className="text-xs text-base-content/60">{user.email || user.uid}</div></td>
+                  <td>
+                    <div className="font-medium flex items-center gap-2">
+                      {user.displayName || (user.email === "buiduchuy2010qn@gmail.com" || user.isAdmin ? "Bùi Đức Huy" : "Người dùng Web")}
+                      {(user.isAdmin || user.email === "buiduchuy2010qn@gmail.com") && (
+                        <span className="badge badge-primary badge-xs font-bold">ADMIN</span>
+                      )}
+                    </div>
+                    <div className="text-xs text-base-content/60">{user.email || user.uid}</div>
+                  </td>
                   <td><span className="badge badge-ghost badge-sm">{user.provider}</span></td>
                   <td>{user.disabled ? <span className="badge badge-error badge-sm gap-1"><Lock size={12} /> Đã khóa</span> : <span className="badge badge-success badge-sm gap-1"><Unlock size={12} /> Hoạt động</span>}</td>
                   <td className="text-sm text-base-content/80">{new Date(user.creationTime).toLocaleDateString("vi-VN")}</td>
@@ -183,7 +191,12 @@ export default function AdminUsers() {
         <div className="modal modal-open modal-bottom sm:modal-middle" onClick={() => setSelectedUser(null)}>
           <div className="modal-box max-w-3xl" onClick={(event) => event.stopPropagation()}>
             <button type="button" className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" onClick={() => setSelectedUser(null)}>✕</button>
-            <h3 className="font-bold text-lg mb-1">{selectedUser.displayName || "Người dùng"}</h3>
+            <h3 className="font-bold text-lg mb-1 flex items-center gap-2">
+              {selectedUser.displayName || (selectedUser.email === "buiduchuy2010qn@gmail.com" || selectedUser.isAdmin ? "Bùi Đức Huy" : "Người dùng Web")}
+              {(selectedUser.isAdmin || selectedUser.email === "buiduchuy2010qn@gmail.com") && (
+                <span className="badge badge-primary badge-sm">ADMIN</span>
+              )}
+            </h3>
             <p className="text-sm text-base-content/60 mb-1">{selectedUser.email || selectedUser.uid}</p>
             <p className="text-xs text-base-content/40 mb-6 font-mono">UID: {selectedUser.uid}</p>
             <div className="flex flex-wrap gap-2 mb-6">
