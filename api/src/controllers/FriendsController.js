@@ -459,21 +459,11 @@ const getUserController = async (req, res, next) => {
       //   idToken,
       //   link
       // );
-    }
-    if (result?.status === 404) {
+    if (result?.status === 404 || !result || !result?.data || Object.keys(result?.data || {}).length === 0) {
       return res.status(404).json({
         success: false,
         code: "USER_NOT_FOUND",
-        message: "Người dùng không tồn tại.",
-        data: null,
-      });
-    }
-
-    if (!result?.data) {
-      return res.status(502).json({
-        success: false,
-        code: "UPSTREAM_INVALID_RESPONSE",
-        message: "Không nhận được dữ liệu hợp lệ từ Locket.",
+        message: "Người dùng không tồn tại hoặc không tìm thấy.",
         data: null,
       });
     }
@@ -486,14 +476,27 @@ const getUserController = async (req, res, next) => {
   } catch (error) {
     logError("getUserController", "❌ Lỗi khi tìm người dùng", error.message);
     const upstreamStatus = Number(error?.response?.status);
-    if (upstreamStatus === 404) {
+    const upstreamData = error?.response?.data;
+    const errMsg = String(
+      upstreamData?.message || upstreamData?.error?.message || upstreamData?.error || error.message || ""
+    ).toLowerCase();
+
+    if (
+      upstreamStatus === 404 ||
+      upstreamStatus === 400 ||
+      errMsg.includes("not found") ||
+      errMsg.includes("exist") ||
+      errMsg.includes("no user") ||
+      errMsg.includes("không tồn tại")
+    ) {
       return res.status(404).json({
         success: false,
         code: "USER_NOT_FOUND",
-        message: "Người dùng không tồn tại.",
+        message: "Người dùng không tồn tại hoặc không tìm thấy.",
         data: null,
       });
     }
+
     if (upstreamStatus === 429) {
       return res.status(429).json({
         success: false,
@@ -511,12 +514,10 @@ const getUserController = async (req, res, next) => {
       });
     }
 
-    return res.status(upstreamStatus ? 502 : 500).json({
+    return res.status(404).json({
       success: false,
-      code: upstreamStatus ? "UPSTREAM_ERROR" : "INTERNAL_ERROR",
-      message: upstreamStatus
-        ? "Không thể kết nối dịch vụ Locket."
-        : "Lỗi máy chủ.",
+      code: "USER_NOT_FOUND",
+      message: "Người dùng không tồn tại hoặc không thể tìm thấy vào lúc này.",
       data: null,
     });
   }

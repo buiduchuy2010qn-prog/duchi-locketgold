@@ -136,20 +136,9 @@ const FindFriend = ({ refreshFriendsData }) => {
         return null;
       }
 
-      if (!result?.success || !result?.data) {
-        const responseMessage = String(result?.message || "").toLowerCase();
-        const isNotFound =
-          result?.code === "USER_NOT_FOUND" ||
-          result?.data?.status === 404 ||
-          responseMessage === "user doesn't exist" ||
-          responseMessage === "user not found";
-        if (isNotFound) {
-          setSearchState("empty");
-          return null;
-        }
-        const responseError = new Error("Unexpected search response");
-        responseError.status = 502;
-        throw responseError;
+      if (!result?.success || !result?.data || Object.keys(result?.data || {}).length === 0) {
+        setSearchState("empty");
+        return null;
       }
 
       const user = result.data;
