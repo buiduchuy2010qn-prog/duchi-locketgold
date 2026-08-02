@@ -863,40 +863,59 @@ export default function AdminUsers() {
   // CỔNG BẢO MẬT: YÊU CẦU XÁC MINH MẬT KHẨU KHI BƯỚC VÀO TRANG ADMIN
   if (!isGateUnlocked) {
     return (
-      <div className="min-h-[85vh] flex flex-col items-center justify-center p-4 pt-24 animate-fade-in">
-        <div className="max-w-md w-full bg-gradient-to-b from-base-100 via-base-100 to-base-200/80 border-2 border-primary/40 rounded-3xl p-8 shadow-2xl relative overflow-hidden backdrop-blur-xl">
-          <div className="absolute top-0 right-0 transform translate-x-8 -translate-y-8 w-32 h-32 bg-primary/10 rounded-full blur-xl -z-0" />
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 py-24 animate-fade-in bg-slate-950 relative overflow-hidden">
+        {/* Ambient Cyber-Mesh Glows */}
+        <div className="absolute top-1/3 left-1/4 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[140px] pointer-events-none -translate-x-1/2 -translate-y-1/2" />
+        <div className="absolute bottom-1/3 right-1/4 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[140px] pointer-events-none translate-x-1/2 translate-y-1/2" />
+        
+        <div className="max-w-md w-full bg-gradient-to-b from-slate-900/90 via-slate-950/95 to-slate-950 border-2 border-cyan-500/40 hover:border-cyan-400/60 rounded-[2.5rem] p-8 sm:p-10 shadow-[0_0_80px_-15px_rgba(6,182,212,0.3)] relative z-10 backdrop-blur-2xl transition-all duration-500">
+          <div className="absolute top-0 right-0 transform translate-x-10 -translate-y-10 w-40 h-40 bg-cyan-500/15 rounded-full blur-2xl -z-0 pointer-events-none" />
+          
           <div className="relative z-10 flex flex-col items-center text-center">
-            <div className="w-20 h-20 rounded-full bg-primary/15 border-2 border-primary/30 flex items-center justify-center text-primary mb-5 shadow-inner">
-              <Lock className="w-10 h-10 animate-bounce" />
+            <div className="w-24 h-24 rounded-3xl bg-gradient-to-tr from-cyan-500/20 via-indigo-500/20 to-purple-500/20 border-2 border-cyan-400/40 flex items-center justify-center text-cyan-300 mb-6 shadow-[0_0_30px_-5px_rgba(6,182,212,0.5)] group">
+              <Lock className="w-12 h-12 animate-pulse text-cyan-400 drop-shadow-[0_0_10px_rgba(34,211,238,0.8)]" />
             </div>
 
-            <h1 className="text-2xl font-black tracking-tight text-primary mb-2 flex items-center justify-center gap-2">
-              🛡️ Cổng Bảo Mật Quản Trị
-            </h1>
-            <p className="text-xs text-base-content/70 mb-2 leading-relaxed font-medium">
-              Chào Quản trị viên <strong className="text-base-content font-bold">{currentEmail || "Huy Locket"}</strong> ({roleBadge(currentRole)}).
-            </p>
-            {!hasPin ? (
-              <p className="text-[11px] text-info bg-info/10 p-3.5 rounded-2xl border border-info/30 mb-6 leading-relaxed text-left">
-                ✨ <strong>Thiết Lập Mã PIN Lần Đầu:</strong> Bạn chưa có Mã PIN số bảo mật riêng cho khu vực Quản Trị. Vui lòng nhập dãy số (4 - 8 chữ số) để làm Mã PIN mở khóa nhanh và an toàn. Về sau bạn có thể tự động thay đổi trong hệ thống!
-              </p>
-            ) : (
-              <p className="text-[11px] text-base-content/60 leading-relaxed mb-6 bg-base-200/80 p-3.5 rounded-2xl border border-base-300 text-left">
-                🛡️ Để bảo vệ quyền lực tối thượng và tài nguyên người dùng, bạn cần xác minh bằng <strong>Mã PIN số bảo mật Quản trị</strong> riêng biệt. Phiên làm việc sẽ mở khóa an toàn trong <strong>30 phút</strong>.
-              </p>
-            )}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-[11px] font-black tracking-widest uppercase mb-3 shadow-inner">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+              <span>SECURITY GATE · AIR-LOCK v3.0</span>
+            </div>
 
-            {gateError && (
-              <div className="alert alert-error text-xs py-2.5 mb-5 rounded-xl text-left shadow-sm">
-                <AlertTriangle size={16} className="shrink-0" />
-                <span>{gateError}</span>
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-cyan-200 mb-2 flex items-center justify-center gap-2">
+              Cổng Bảo Mật Quản Trị
+            </h1>
+            <p className="text-xs text-slate-400 mb-3 leading-relaxed font-semibold">
+              Chào Quản trị viên <strong className="text-white font-black">{currentEmail || "Huy Locket"}</strong> ({roleBadge(currentRole)}).
+            </p>
+
+            {!hasPin ? (
+              <div className="text-xs text-cyan-200 bg-cyan-500/10 p-4 rounded-2xl border border-cyan-500/30 mb-6 leading-relaxed text-left shadow-inner flex items-start gap-3">
+                <span className="text-xl shrink-0">✨</span>
+                <div>
+                  <strong className="text-white font-extrabold uppercase block mb-0.5">Thiết Lập Mã PIN Lần Đầu:</strong> 
+                  Bạn chưa có Mã PIN số bảo mật riêng cho khu vực Quản Trị. Vui lòng nhập dãy số (4 - 8 chữ số) để làm Mã PIN mở khóa nhanh và an toàn. Về sau bạn có thể tự động thay đổi trong hệ thống!
+                </div>
+              </div>
+            ) : (
+              <div className="text-xs text-slate-300 leading-relaxed mb-6 bg-slate-900/90 p-4 rounded-2xl border border-white/10 text-left shadow-inner flex items-start gap-3">
+                <span className="text-xl shrink-0">🛡️</span>
+                <div>
+                  <strong className="text-white font-extrabold uppercase block mb-0.5">Xác Minh Danh Tính:</strong>
+                  Để bảo vệ quyền lực tối thượng và tài nguyên người dùng, bạn cần xác minh bằng <strong className="text-cyan-300">Mã PIN số bảo mật Quản trị</strong> riêng biệt. Phiên làm việc sẽ mở khóa an toàn trong <strong className="text-emerald-400">30 phút</strong>.
+                </div>
               </div>
             )}
 
-            <form onSubmit={handleGateSubmit} className="w-full space-y-4">
+            {gateError && (
+              <div className="alert bg-rose-500/20 border border-rose-500 text-rose-200 text-xs py-3 px-4 mb-6 rounded-2xl text-left shadow-lg flex items-center gap-2.5 animate-bounce">
+                <AlertTriangle size={18} className="shrink-0 text-rose-400" />
+                <span className="font-bold">{gateError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleGateSubmit} className="w-full space-y-5">
               <div className="form-control w-full text-left">
-                <label className="label text-[11px] font-extrabold tracking-wider text-base-content/70 uppercase">
+                <label className="label text-[11px] font-black tracking-wider text-cyan-400 uppercase pb-2">
                   {hasPin ? "MÃ PIN SỐ BẢO MẬT QUẢN TRỊ" : "THIẾT LẬP MÃ PIN SỐ QUẢN TRỊ (4 - 8 SỐ)"}
                 </label>
                 <div className="relative">
@@ -906,35 +925,37 @@ export default function AdminUsers() {
                     pattern="[0-9]*"
                     maxLength={8}
                     required
-                    placeholder={hasPin ? "Nhập mã PIN số của bạn..." : "Tạo mã PIN (ví dụ: 201068)..."}
-                    className="input input-bordered w-full rounded-2xl pr-10 shadow-inner text-sm h-12 border-primary/30 focus:border-primary font-bold tracking-widest text-center text-lg"
+                    placeholder={hasPin ? "••••••••" : "Tạo mã PIN (ví dụ: 201068)..."}
+                    className="input input-bordered w-full rounded-2xl pr-12 shadow-inner text-lg h-14 bg-slate-950 text-cyan-300 border-white/20 focus:border-cyan-400 font-mono font-extrabold tracking-[0.4em] text-center shadow-[inset_0_2px_10px_rgba(0,0,0,0.6)]"
                     value={gatePassword}
                     onChange={(e) => setGatePassword(e.target.value.replace(/[^0-9]/g, ""))}
                     disabled={gateLoading}
                     autoFocus
                   />
-                  <Key className="absolute right-3.5 top-1/2 -translate-y-1/2 text-base-content/40 w-5 h-5 pointer-events-none" />
+                  <Key className="absolute right-4 top-1/2 -translate-y-1/2 text-cyan-400/60 w-5 h-5 pointer-events-none animate-pulse" />
                 </div>
-                <VirtualNumPad value={gatePassword} onChange={(val) => setGatePassword(val)} disabled={gateLoading} maxLength={8} />
+                <div className="mt-4">
+                  <VirtualNumPad value={gatePassword} onChange={(val) => setGatePassword(val)} disabled={gateLoading} maxLength={8} />
+                </div>
               </div>
 
               <button
                 type="submit"
-                className={`btn btn-primary w-full rounded-2xl font-bold h-12 shadow-lg text-sm gap-2 ${gateLoading ? "loading" : ""}`}
+                className={`btn bg-gradient-to-r from-cyan-500 via-indigo-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white w-full rounded-2xl font-black h-13 shadow-[0_0_25px_-5px_rgba(6,182,212,0.5)] text-sm gap-2 border-0 transition-all active:scale-95 ${gateLoading ? "loading" : ""}`}
                 disabled={gateLoading || !gatePassword.trim()}
               >
-                {!gateLoading && <CheckCircle size={18} />}
-                {gateLoading ? "Đang xác minh..." : (hasPin ? "Mở Khóa Trung Tâm Quản Trị" : "Xác Nhận & Tạo Mã PIN Bảo Mật")}
+                {!gateLoading && <CheckCircle size={18} className="text-cyan-200" />}
+                {gateLoading ? "Đang giải mã thẻ xác minh..." : (hasPin ? "🚀 Mở Khóa Trung Tâm Quản Trị" : "✨ Xác Nhận & Tạo Mã PIN Bảo Mật")}
               </button>
             </form>
 
             <button
               type="button"
               onClick={() => navigate("/locket", { replace: true })}
-              className="btn btn-ghost btn-xs text-base-content/60 gap-1 mt-6 rounded-lg hover:text-base-content"
+              className="btn btn-ghost btn-xs text-slate-400 gap-1.5 mt-6 rounded-xl hover:text-white hover:bg-white/5"
               disabled={gateLoading}
             >
-              <ArrowLeft size={14} /> Quay lại màn hình chính
+              <ArrowLeft size={14} /> Quay lại màn hình chính Locket
             </button>
           </div>
         </div>
@@ -943,94 +964,152 @@ export default function AdminUsers() {
   }
 
   return (
-    <div className="container mx-auto p-4 md:p-6 max-w-7xl animate-fade-in pt-20">
-      <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black flex items-center gap-2 text-primary tracking-tight">
-            <Shield className="text-primary" size={28} /> Hệ thống Quản trị Huy Locket
-          </h1>
-          <p className="text-sm text-base-content/70 mt-1 flex items-center gap-2">
-            Vai trò của bạn: {roleBadge(currentRole)} · {totalUsers} người dùng được ghi nhận qua server
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              setChangePinOld("");
-              setChangePinNew("");
-              setChangePinError(null);
-              setChangePinModalOpen(true);
-            }}
-            className="btn btn-sm btn-outline btn-primary gap-1.5 shadow-sm font-bold rounded-xl bg-primary/10 hover:bg-primary text-primary hover:text-primary-content"
-            title="Tự động thay đổi mã PIN Bảo Mật số cho Quản trị viên"
-          >
-            <Key size={15} /> Đổi Mã PIN Quản Trị
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              clearShortAdminSessionToken();
-              setIsGateUnlocked(false);
-              SonnerInfo("Đã khóa trang Quản Trị. Vui lòng nhập mã PIN bảo mật khi truy cập lại.");
-            }}
-            className="btn btn-sm btn-outline btn-error gap-1.5 shadow-sm font-semibold rounded-xl"
-            title="Khóa ngay phiên làm việc admin hiện tại"
-          >
-            <Lock size={15} /> Khóa màn hình Admin
-          </button>
+    <div className="min-h-screen bg-slate-950 text-slate-100 p-3 sm:p-6 pt-24 max-w-7xl mx-auto animate-fade-in pb-20 selection:bg-cyan-500 selection:text-black">
+      {/* SUPREME COMMAND CENTER HERO HEADER */}
+      <div className="bg-gradient-to-r from-slate-900 via-slate-950 to-indigo-950/90 text-white rounded-[2.5rem] p-6 sm:p-8 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.7)] border border-white/10 mb-8 relative overflow-hidden backdrop-blur-2xl">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none -mt-20 -mr-20" />
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none -mb-20 -ml-20" />
+
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-xs font-black uppercase tracking-wider shadow-inner">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-400" />
+              </span>
+              <span>SUPREME INFRASTRUCTURE & USER COMMAND CENTER</span>
+            </div>
+            <h1 className="text-2xl sm:text-4xl font-black flex items-center gap-3 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-cyan-200">
+              <span className="p-2 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 text-white shadow-lg text-2xl sm:text-3xl shrink-0 flex items-center justify-center">
+                🛡️
+              </span>
+              <span>Trạm Quản Trị Hệ Thống Huy Locket</span>
+            </h1>
+            <p className="text-sm text-slate-300 font-medium flex flex-wrap items-center gap-2 pt-1">
+              <span>Quyền lực của bạn:</span> {roleBadge(currentRole)} 
+              <span className="text-slate-600 font-bold">•</span>
+              <span className="inline-flex items-center gap-1 font-mono text-emerald-400 font-black bg-emerald-500/10 px-2.5 py-0.5 rounded-lg border border-emerald-500/20">
+                👥 {totalUsers} tài khoản được rà soát Live
+              </span>
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                setChangePinOld("");
+                setChangePinNew("");
+                setChangePinError(null);
+                setChangePinModalOpen(true);
+              }}
+              className="btn btn-sm sm:btn-md bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-cyan-500/40 hover:border-cyan-400 font-bold rounded-2xl h-11 px-4 shadow-[0_0_15px_rgba(6,182,212,0.2)] transition-all flex items-center gap-2 cursor-pointer active:scale-95"
+              title="Tự động thay đổi mã PIN Bảo Mật số cho Quản trị viên"
+            >
+              <Key size={16} className="text-cyan-400" /> 
+              <span>Đổi Mã PIN Quản Trị</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                clearShortAdminSessionToken();
+                setIsGateUnlocked(false);
+                SonnerInfo("Đã khóa trang Quản Trị. Vui lòng nhập mã PIN bảo mật khi truy cập lại.");
+              }}
+              className="btn btn-sm sm:btn-md bg-gradient-to-r from-rose-600 via-red-600 to-amber-700 hover:from-rose-500 hover:to-amber-600 text-white font-extrabold border-0 rounded-2xl h-11 px-5 shadow-[0_0_20px_rgba(244,63,94,0.4)] transition-all flex items-center gap-2 cursor-pointer active:scale-95"
+              title="Khóa ngay phiên làm việc admin hiện tại"
+            >
+              <Lock size={16} /> 
+              <span>Khóa Trạm Admin</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* TABS HEADER */}
-      <div className="tabs tabs-boxed mb-6 bg-base-200/80 p-1.5 rounded-2xl w-fit shadow-inner border border-base-300">
+      {/* TABS HEADER - SLEEK QUANTUM SWITCH DOCK */}
+      <div className="flex flex-wrap items-center gap-2 mb-8 bg-slate-950/95 p-2 sm:p-2.5 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 backdrop-blur-2xl w-fit">
         <button
           type="button"
           onClick={() => setActiveTab("users")}
-          className={`tab gap-2 font-bold transition-all ${activeTab === "users" ? "tab-active bg-primary text-primary-content shadow-md rounded-xl" : ""}`}
+          className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl font-black text-sm transition-all duration-300 cursor-pointer ${
+            activeTab === "users" 
+              ? "bg-gradient-to-r from-cyan-600 via-indigo-600 to-blue-600 text-white shadow-[0_0_25px_-5px_rgba(56,189,248,0.5)] scale-[1.02] border border-cyan-400/40" 
+              : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"
+          }`}
         >
-          <Users size={16} /> Người dùng & Phân quyền ({totalUsers})
+          <Users size={18} className={activeTab === "users" ? "text-cyan-300 animate-pulse" : "text-slate-500"} /> 
+          <span>Người dùng & Phân quyền ({totalUsers})</span>
         </button>
+
         {(currentRole === "super_admin" || currentRole === "admin") && (
           <button
             type="button"
             onClick={() => setActiveTab("audit")}
-            className={`tab gap-2 font-bold transition-all ${activeTab === "audit" ? "tab-active bg-primary text-primary-content shadow-md rounded-xl" : ""}`}
+            className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl font-black text-sm transition-all duration-300 cursor-pointer ${
+              activeTab === "audit" 
+                ? "bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white shadow-[0_0_25px_-5px_rgba(168,85,247,0.5)] scale-[1.02] border border-purple-400/40" 
+                : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"
+            }`}
           >
-            <FileText size={16} /> Nhật ký Quản trị (Audit Log)
+            <FileText size={18} className={activeTab === "audit" ? "text-purple-300 animate-pulse" : "text-slate-500"} /> 
+            <span>Nhật ký Quản trị (Audit Log)</span>
           </button>
         )}
+
         {currentRole !== "support" && (
           <button
             type="button"
             onClick={() => setActiveTab("reports")}
-            className={`tab gap-2 font-bold transition-all ${activeTab === "reports" ? "tab-active bg-primary text-primary-content shadow-md rounded-xl" : ""}`}
+            className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl font-black text-sm transition-all duration-300 cursor-pointer ${
+              activeTab === "reports" 
+                ? "bg-gradient-to-r from-rose-600 via-amber-600 to-orange-600 text-white shadow-[0_0_25px_-5px_rgba(244,63,94,0.5)] scale-[1.02] border border-rose-400/40" 
+                : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"
+            }`}
           >
-            <Shield size={16} /> Quản lý Nội dung vi phạm
+            <Shield size={18} className={activeTab === "reports" ? "text-amber-300 animate-pulse" : "text-slate-500"} /> 
+            <span>Quản lý Nội dung vi phạm</span>
           </button>
         )}
+
         <button
           type="button"
           onClick={() => { setActiveTab("advanced"); fetchAdvancedData(); }}
-          className={`tab gap-2 font-bold transition-all ${activeTab === "advanced" ? "tab-active bg-gradient-to-r from-amber-500 to-red-600 text-white shadow-md rounded-xl" : ""}`}
+          className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl font-black text-sm transition-all duration-300 cursor-pointer ${
+            activeTab === "advanced" 
+              ? "bg-gradient-to-r from-amber-500 via-orange-600 to-red-600 text-white shadow-[0_0_25px_-5px_rgba(245,158,11,0.6)] scale-[1.02] border border-amber-300/60" 
+              : "bg-gradient-to-r from-amber-500/15 to-red-500/15 text-amber-300 hover:text-white hover:border-amber-400/50 border border-amber-500/20"
+          }`}
         >
-          <Zap size={16} className="text-yellow-300 animate-pulse" /> 🚀 Quyền Lực Tối Thượng
+          <Zap size={18} className="text-yellow-300 animate-bounce fill-yellow-300" /> 
+          <span>🚀 Quyền Lực Tối Thượng</span>
         </button>
       </div>
 
-
       {/* TAB 1: USERS AND RBAC */}
       {activeTab === "users" && (
-        <>
-          <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="alert alert-info text-xs sm:text-sm py-2 max-w-3xl shadow-sm rounded-2xl bg-info/10 border border-info/20 text-info-content font-medium">
-              <Info size={16} className="shrink-0 text-info" />
-              <span>Vị trí hiển thị kết hợp giữa <strong>Vị trí IP máy chủ</strong> và <strong>Tọa độ GPS thực tế</strong> của thiết bị (hệ thống tự động xin quyền truy cập vị trí khi người dùng vào web, nếu được cho phép sẽ ghi lại tọa độ chính xác). Lịch sử bắt đầu ghi từ khi bộ giám sát kích hoạt.</span>
+        <div className="space-y-10 animate-fade-in">
+          {/* RADAR SURVEILLANCE BAR */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900/80 p-4 sm:p-5 rounded-3xl border border-white/10 shadow-xl backdrop-blur-xl">
+            <div className="flex items-start gap-3.5 max-w-3xl text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
+              <div className="w-10 h-10 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0 shadow-inner mt-0.5">
+                <Info size={20} className="animate-pulse" />
+              </div>
+              <div>
+                <strong className="text-cyan-300 font-extrabold uppercase tracking-wide text-xs block mb-0.5">Radar Trinh Sát Vị Trí (GPS & IP):</strong>
+                Vị trí hiển thị kết hợp giữa <strong className="text-white">Vị trí IP máy chủ</strong> và <strong className="text-emerald-400">Tọa độ GPS thực tế</strong> của thiết bị (hệ thống tự động xin quyền truy cập vị trí khi người dùng vào web, nếu được cho phép sẽ ghi lại tọa độ chính xác từng mét).
+              </div>
             </div>
-            <div className="flex items-center gap-2.5 w-full sm:w-auto">
-              <div className="relative flex-1 sm:w-72">
-                <input type="text" placeholder="Tìm email, tên, username, uid..." className="input input-bordered input-sm w-full pl-9 rounded-full shadow-inner h-10 text-sm" value={search} onChange={(e) => setSearch(e.target.value)} />
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50" />
+
+            <div className="flex items-center gap-3 w-full md:w-auto shrink-0">
+              <div className="relative flex-1 md:w-72">
+                <input 
+                  type="text" 
+                  placeholder="Tìm kiếm email, tên, UID..." 
+                  className="input w-full pl-10 rounded-2xl h-11 text-sm bg-slate-950 text-white placeholder:text-slate-500 border border-white/15 focus:border-cyan-400 font-medium shadow-inner" 
+                  value={search} 
+                  onChange={(e) => setSearch(e.target.value)} 
+                />
+                <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               </div>
               <button
                 type="button"
@@ -1039,20 +1118,30 @@ export default function AdminUsers() {
                   SonnerSuccess("🔄 Đã tải lại dữ liệu!", "Bảng quản trị đã cập nhật tọa độ GPS và thông tin IP mới nhất.");
                 }}
                 disabled={loading}
-                className="btn btn-sm btn-outline btn-primary rounded-full px-4 h-10 font-bold shadow-sm hover:shadow-md transition-all flex items-center gap-1.5 shrink-0"
+                className="btn bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 hover:from-emerald-400 hover:to-cyan-500 text-slate-950 font-black rounded-2xl px-5 h-11 border-0 shadow-[0_0_20px_-5px_rgba(16,185,129,0.5)] transition-all flex items-center gap-2 shrink-0 active:scale-95 text-xs sm:text-sm cursor-pointer"
                 title="Làm mới toàn bộ danh sách và tọa độ thực tế mà không cần reload trang"
               >
-                {loading ? <span className="loading loading-spinner loading-xs" /> : <span>🔄 Làm mới</span>}
+                {loading ? <span className="loading loading-spinner loading-xs" /> : <><span>🔄 Làm mới</span></>}
               </button>
             </div>
           </div>
 
           {/* SECTION A: BAN QUẢN TRỊ HUY LOCKET */}
-          <div className="mb-10">
-            <h2 className="text-lg font-black flex items-center gap-2 mb-4 text-primary tracking-wide">
-              👑 Ban Quản trị Huy Locket <span className="badge badge-primary badge-sm font-black text-xs px-2 py-2.5 shadow-sm">{adminTeam.length}</span>
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div>
+            <div className="flex items-center justify-between mb-5 pb-3 border-b border-white/10">
+              <h2 className="text-xl sm:text-2xl font-black flex items-center gap-3 tracking-tight text-white">
+                <span className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 flex items-center justify-center text-xl shadow-inner">
+                  👑
+                </span>
+                <span>Ban Quản trị Huy Locket</span>
+                <span className="badge bg-gradient-to-r from-amber-500 to-purple-600 text-white font-black text-xs px-3 py-3 rounded-xl shadow-md border-0">
+                  {adminTeam.length} Admin
+                </span>
+              </h2>
+              <span className="text-xs font-bold text-slate-400 hidden sm:block">QUYỀN ĐIỀU HÀNH BẢO MẬT</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {adminTeam.map((admin) => {
                 const latestLogin = admin.latestLoginData || admin;
                 const locationElement = renderUserLocation(admin, latestLogin);
@@ -1062,37 +1151,57 @@ export default function AdminUsers() {
                 return (
                   <div
                     key={admin.uid}
-                    className="bg-gradient-to-br from-primary/15 via-base-100 to-base-200/60 border-2 border-primary/40 rounded-3xl p-5 shadow-lg flex flex-col justify-between hover:shadow-xl hover:border-primary transition-all duration-300 relative overflow-hidden backdrop-blur-sm"
+                    className="bg-gradient-to-b from-slate-900/95 via-slate-950 to-indigo-950/90 border-2 border-indigo-500/40 hover:border-cyan-400/80 rounded-[2.2rem] p-6 shadow-[0_15px_40px_-15px_rgba(99,102,241,0.25)] hover:shadow-[0_20px_50px_-10px_rgba(6,182,212,0.35)] transition-all duration-300 relative overflow-hidden flex flex-col justify-between group"
                   >
+                    <div className="absolute top-0 right-0 -mr-16 -mt-16 w-36 h-36 bg-gradient-to-bl from-cyan-500/15 via-indigo-500/10 to-transparent rounded-full blur-2xl pointer-events-none group-hover:scale-150 transition-transform duration-500" />
+
                     <div>
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3.5">
-                          <div className="avatar placeholder">
-                            <div className="bg-gradient-to-tr from-primary to-secondary text-primary-content rounded-2xl w-14 h-14 flex items-center justify-center font-bold text-2xl shadow-md">
+                      <div className="flex items-start justify-between gap-3 relative z-10">
+                        <div className="flex items-center gap-4">
+                          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 via-indigo-600 to-cyan-500 p-0.5 shadow-[0_0_20px_rgba(245,158,11,0.3)] shrink-0">
+                            <div className="w-full h-full bg-slate-950 rounded-[0.9rem] flex items-center justify-center font-black text-2xl">
                               {isSuperAdmin ? "👑" : "🛡️"}
                             </div>
                           </div>
-                          <div>
-                            <div className="font-extrabold text-base text-base-content flex items-center gap-1.5 flex-wrap">
-                              {userName(admin)}
-                              {roleBadge(admin.role)}
+                          <div className="overflow-hidden">
+                            <div className="font-black text-base sm:text-lg text-white flex items-center gap-2 flex-wrap truncate">
+                              <span>{userName(admin)}</span>
+                              <div className="scale-90 origin-left">{roleBadge(admin.role)}</div>
                             </div>
-                            <div className="text-xs font-mono text-base-content/70 mt-1 break-all">{admin.email || admin.username || admin.uid}</div>
+                            <div className="text-xs font-mono font-semibold text-slate-400 mt-1 truncate" title={admin.email || admin.username || admin.uid}>
+                              {admin.email || admin.username || admin.uid}
+                            </div>
                           </div>
                         </div>
-                        <button type="button" className="btn btn-ghost btn-sm btn-circle text-primary hover:bg-primary/10" onClick={() => openUser(admin)} title="Xem chi tiết & lịch sử">
-                          <Info size={20} />
+                        <button 
+                          type="button" 
+                          className="btn btn-sm bg-white/5 hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-300 border border-white/10 hover:border-cyan-500/30 rounded-xl px-2.5 h-9 shrink-0 transition-colors" 
+                          onClick={() => openUser(admin)} 
+                          title="Xem chi tiết & lịch sử đăng nhập thực"
+                        >
+                          <Info size={18} />
                         </button>
                       </div>
 
-                      <div className="mt-5 pt-3.5 border-t border-base-200/80 text-xs space-y-2 text-base-content/80">
-                        <div className="flex items-center justify-between">
-                          <span className="text-base-content/60">Trạng thái:</span>
-                          {isOnline(admin) ? <span className="text-success font-bold flex items-center gap-1.5"><Activity size={14} className="animate-pulse" /> Đang hoạt động ({admin.activeSessions} phiên)</span> : <span className="font-medium">{relativeActivity(admin.lastSeenAt)}</span>}
+                      <div className="mt-6 pt-4 border-t border-white/10 space-y-3 relative z-10 text-xs font-semibold text-slate-300">
+                        <div className="flex items-center justify-between bg-slate-950/80 px-3.5 py-2.5 rounded-xl border border-white/5">
+                          <span className="text-slate-400">Trạng thái kết nối:</span>
+                          {isOnline(admin) ? (
+                            <span className="text-emerald-400 font-black flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                              <span>Đang hoạt động ({admin.activeSessions} phiên)</span>
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 font-bold">{relativeActivity(admin.lastSeenAt)}</span>
+                          )}
                         </div>
-                        <div className="flex flex-col gap-1.5 py-1">
+
+                        <div className="bg-slate-950/90 p-3.5 rounded-2xl border border-white/10 shadow-inner space-y-2">
                           <div className="flex items-center justify-between gap-2">
-                            <span className="text-base-content/60 font-medium">Vị trí (GPS & IP):</span>
+                            <span className="text-cyan-300 font-black text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+                              <span>📍</span>
+                              <span>Vị trí (GPS & IP):</span>
+                            </span>
                             {isSelf && !admin.gps_coordinates && !latestLogin?.gps_coordinates && (
                               <button
                                 type="button"
@@ -1109,41 +1218,45 @@ export default function AdminUsers() {
                                     SonnerWarning("Lỗi định vị", "Vui lòng bật quyền vị trí trên trình duyệt Chrome.");
                                   }
                                 }}
-                                className="btn btn-xs btn-outline btn-success font-extrabold px-2.5 h-6 text-[11px] rounded-md animate-pulse shadow-sm shrink-0"
+                                className="btn btn-xs bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black px-3 h-7 text-[11px] rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.5)] border-0 animate-pulse shrink-0 cursor-pointer"
                                 title="Bấm để lấy tọa độ GPS chính xác từ thiết bị, thay thế cho vị trí IP của cổng trạm nhà mạng"
                               >
                                 📍 Lấy GPS thật
                               </button>
                             )}
                           </div>
-                          <div className="font-semibold bg-base-200/60 py-2 px-2.5 rounded-xl border border-base-300/50 flex items-center justify-between w-full shadow-inner">
+                          <div className="font-bold text-white bg-white/[0.04] py-2 px-3 rounded-xl border border-white/5 flex items-center justify-between w-full shadow-inner text-xs leading-relaxed">
                             {locationElement}
                           </div>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-base-content/60">Nguồn / thiết bị:</span>
-                          <span className="font-mono text-[11px] font-medium text-base-content/70">{sourceLabel(admin.webSource)} · {latestLogin?.browser || "—"}</span>
+
+                        <div className="flex items-center justify-between bg-slate-950/80 px-3.5 py-2.5 rounded-xl border border-white/5 font-mono text-[11px]">
+                          <span className="text-slate-400 font-sans">Nguồn / Thiết bị:</span>
+                          <span className="text-indigo-300 font-black truncate max-w-[180px]">
+                            {sourceLabel(admin.webSource)} · {latestLogin?.browser || "—"}
+                          </span>
                         </div>
                       </div>
                     </div>
 
                     {/* Quick Administrative buttons or Immutable Shield inside Admin card */}
-                    <div className="mt-5 pt-3 flex items-center justify-end gap-2 border-t border-base-200/80">
+                    <div className="mt-6 pt-4 flex items-center justify-end gap-2 border-t border-white/10 relative z-10">
                       {isSuperAdmin ? (
-                        <span className="badge badge-primary font-black text-[11px] gap-1.5 py-3 px-3 shadow-sm select-none rounded-xl w-full justify-center">
-                          🔒 QUYỀN TỐI THƯỢNG CỐ ĐỊNH (IMMUTABLE)
-                        </span>
+                        <div className="w-full bg-gradient-to-r from-amber-500/15 via-indigo-500/20 to-purple-500/15 border border-amber-500/40 text-amber-300 font-black text-[11px] py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 shadow-inner uppercase tracking-wider">
+                          <Lock size={14} className="text-amber-400 shrink-0" />
+                          <span>Quyền Tối Thượng Cố Định (Immutable)</span>
+                        </div>
                       ) : isSelf ? (
-                        <span className="badge badge-secondary font-bold text-[11px] gap-1.5 py-3 px-3 shadow-sm select-none rounded-xl w-full justify-center">
-                          👤 TÀI KHOẢN CHÍNH BẠN (PROTECTED)
-                        </span>
+                        <div className="w-full bg-purple-500/15 border border-purple-500/40 text-purple-300 font-extrabold text-[11px] py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 shadow-inner uppercase tracking-wider">
+                          <span>👤 Tài khoản chính bạn (Protected)</span>
+                        </div>
                       ) : (
-                        <>
+                        <div className="flex items-center gap-2 w-full justify-end">
                           {currentRole === "super_admin" && (
                             <button
                               type="button"
                               onClick={() => setActionModal({ type: "role", user: admin, newRole: admin.role || "user", reason: "" })}
-                              className="btn btn-xs btn-outline btn-secondary rounded-lg font-bold px-3 py-1 h-7"
+                              className="btn btn-xs bg-purple-500/20 hover:bg-purple-600 text-purple-300 hover:text-white border border-purple-500/40 font-black rounded-xl px-3.5 h-8 transition-all"
                             >
                               Đổi vai trò
                             </button>
@@ -1152,12 +1265,12 @@ export default function AdminUsers() {
                             <button
                               type="button"
                               onClick={() => setActionModal({ type: "revoke", user: admin, reason: "" })}
-                              className="btn btn-xs btn-outline btn-error rounded-lg font-bold px-3 py-1 h-7"
+                              className="btn btn-xs bg-rose-500/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/40 font-black rounded-xl px-3.5 h-8 transition-all"
                             >
                               Thu hồi phiên
                             </button>
                           )}
-                        </>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -1167,12 +1280,23 @@ export default function AdminUsers() {
           </div>
 
           {/* SECTION B: NGƯỜI DÙNG LOCKET WEB */}
-          <div>
-            <div className="flex items-center justify-between mb-3.5 flex-wrap gap-2">
-              <h2 className="text-lg font-black flex items-center gap-2 tracking-tight">
-                👥 Người dùng Locket Web <span className="badge badge-neutral badge-sm font-bold text-xs px-2.5 py-2.5">{normalUsers.length}</span>
-              </h2>
-              <div className="flex items-center gap-2">
+          <div className="space-y-6">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10 flex-wrap gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-xl font-bold shadow-inner">
+                  👥
+                </div>
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-black flex items-center gap-2 tracking-tight text-white">
+                    <span>Người dùng Locket Web</span>
+                    <span className="badge bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-black text-xs px-3 py-3 rounded-xl shadow-sm">
+                      {normalUsers.length} Tài Khoản
+                    </span>
+                  </h2>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5">
                 <button
                   type="button"
                   onClick={() => {
@@ -1180,7 +1304,7 @@ export default function AdminUsers() {
                     SonnerSuccess("🔄 Đã tải lại!", "Danh sách người dùng và tọa độ đã được cập nhật.");
                   }}
                   disabled={loading}
-                  className="btn btn-sm btn-ghost bg-base-200/80 hover:bg-base-300 border-0 rounded-full font-bold px-3.5 text-xs shadow-sm flex items-center gap-1.5 cursor-pointer"
+                  className="btn btn-sm bg-slate-900 hover:bg-slate-800 text-slate-300 border border-white/10 rounded-xl font-bold px-4 h-10 text-xs shadow-sm flex items-center gap-1.5 cursor-pointer"
                   title="Tải lại ngay danh sách người dùng Locket Web"
                 >
                   {loading ? <span className="loading loading-spinner loading-xs" /> : <span>🔄 Làm mới</span>}
@@ -1189,49 +1313,51 @@ export default function AdminUsers() {
                   type="button"
                   onClick={handlePurgeBots}
                   disabled={purgingBots}
-                  className="btn btn-sm bg-gradient-to-r from-red-600 to-amber-500 text-white hover:from-red-700 hover:to-amber-600 border-0 rounded-full font-extrabold px-4 shadow-md hover:shadow-red-500/30 transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="btn btn-sm bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-black border-0 rounded-xl px-5 h-10 shadow-[0_0_20px_-5px_rgba(244,63,94,0.6)] transition-all flex items-center gap-2 cursor-pointer active:scale-95 text-xs sm:text-sm"
                 >
-                {purgingBots ? (
-                  <>
-                    <span className="loading loading-spinner loading-xs" />
-                    <span>Đang càn quét...</span>
-                  </>
-                ) : (
-                  <>
-                    <Zap size={15} className="animate-pulse text-yellow-300" />
-                    <span>⚡ Càn Quét Bot Rác</span>
-                  </>
-                )}
+                  {purgingBots ? (
+                    <>
+                      <span className="loading loading-spinner loading-xs text-white" />
+                      <span>Đang càn quét...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Zap size={16} className="animate-bounce text-yellow-300 fill-yellow-300" />
+                      <span>⚡ Càn Quét Bot Rác</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
-            <div className="bg-base-100 rounded-3xl shadow-sm border border-base-200 overflow-hidden">
+
+            {/* CYBER OBSERVABILITY TABLE */}
+            <div className="bg-slate-950/95 rounded-[2.2rem] shadow-2xl border border-slate-800/80 overflow-hidden backdrop-blur-2xl">
               <div className="overflow-x-auto">
-                <table className="table w-full">
+                <table className="table w-full text-sm font-medium">
                   <thead>
-                    <tr className="bg-base-200/70 text-base-content font-bold text-xs">
-                      <th>Người dùng & Vai trò</th>
+                    <tr className="bg-slate-900/90 text-cyan-300 font-extrabold text-xs uppercase tracking-wider border-b border-white/10">
+                      <th className="py-4 pl-6">Người dùng & Vai trò</th>
                       <th>Đăng nhập gần nhất</th>
                       <th>IP / Vị trí (GPS & IP)</th>
                       <th>Trình duyệt / Thiết bị</th>
-                      <th>Tài khoản</th>
+                      <th>Trạng thái web</th>
                       <th>Hoạt động gần nhất</th>
                       <th>Nguồn web</th>
-                      <th className="text-right">Thao tác</th>
+                      <th className="text-right pr-6">Thao tác</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-white/5 text-slate-200">
                     {loading && users.length === 0 ? (
-                      <tr><td colSpan="8" className="text-center py-16"><span className="loading loading-spinner loading-lg text-primary" /></td></tr>
+                      <tr><td colSpan="8" className="text-center py-20"><span className="loading loading-bars loading-lg text-cyan-400" /></td></tr>
                     ) : error ? (
-                      <tr><td colSpan="8" className="text-center py-12"><AlertTriangle size={32} className="mx-auto text-error mb-2" /><p className="text-error">{error.message}</p><button type="button" onClick={() => fetchUsers()} className="btn btn-sm btn-outline mt-4"><RefreshCw size={14} /> Thử lại</button></td></tr>
+                      <tr><td colSpan="8" className="text-center py-16"><AlertTriangle size={36} className="mx-auto text-rose-400 mb-2 animate-bounce" /><p className="text-rose-300 font-bold">{error.message}</p><button type="button" onClick={() => fetchUsers()} className="btn btn-sm btn-outline mt-4 rounded-xl font-bold"><RefreshCw size={14} /> Thử lại ngay</button></td></tr>
                     ) : normalUsers.length === 0 ? (
                       <tr>
-                        <td colSpan="8" className="text-center py-16 text-base-content/60">
-                          <div className="max-w-md mx-auto space-y-2.5 py-4">
-                            <div className="text-4xl">📭</div>
-                            <p className="text-base font-extrabold text-base-content">Chưa có người dùng Locket Web nào</p>
-                            <p className="text-xs text-base-content/60 leading-relaxed">Hệ thống Giám sát đang kích hoạt. Mới nhất khi người dùng đăng nhập, hồ sơ thật và lịch sử sẽ xuất hiện tại đây.</p>
+                        <td colSpan="8" className="text-center py-20 text-slate-500">
+                          <div className="max-w-md mx-auto space-y-3 py-6">
+                            <div className="text-5xl">📭</div>
+                            <p className="text-lg font-black text-white">Chưa ghi nhận người dùng Locket Web nào</p>
+                            <p className="text-xs text-slate-400 leading-relaxed font-semibold">Hệ thống Giám sát Real-time đang rình gác. Ngay khi có người dùng đăng nhập, hồ sơ thật và lịch sử tọa độ sẽ xuất hiện tức thời tại đây.</p>
                           </div>
                         </td>
                       </tr>
@@ -1242,62 +1368,97 @@ export default function AdminUsers() {
                       const isSelf = user.uid === currentUserUid;
 
                       return (
-                        <tr key={user.uid} className="hover">
-                          <td>
-                            <div className="font-bold text-sm flex items-center gap-2 text-base-content">
-                              {userName(user)}
-                              {roleBadge(user.role)}
+                        <tr key={user.uid} className="hover:bg-white/[0.04] transition-colors group">
+                          <td className="py-4 pl-6">
+                            <div className="font-black text-sm flex items-center gap-2 text-white">
+                              <span>{userName(user)}</span>
+                              <div className="scale-90 origin-left">{roleBadge(user.role)}</div>
                             </div>
-                            <div className="text-xs text-base-content/60 font-mono mt-0.5 flex items-center gap-1.5 flex-wrap">
+                            <div className="text-xs text-slate-400 font-mono mt-1 flex items-center gap-2 flex-wrap">
                               <span>{user.email || user.uid}</span>
-                              <span className="badge badge-sm bg-base-200 text-primary font-black font-mono border border-primary/20 shadow-xs" title={`Raw UID: ${user.uid}`}>{getFixedNumericUid(user.uid)}</span>
+                              <span className="px-2 py-0.5 rounded-md bg-white/5 text-cyan-300 font-bold text-[10px] font-mono border border-white/10 shadow-sm" title={`Raw UID: ${user.uid}`}>
+                                {getFixedNumericUid(user.uid)}
+                              </span>
                             </div>
                           </td>
                           <td className="min-w-36">
                             {latestLogin ? (
-                              <>
-                                <div className="text-xs font-semibold">{formatDateTime(latestLogin.created_at)}</div>
-                                <span className="badge badge-ghost badge-xs font-mono mt-1">{loginMethodLabel(latestLogin.login_method || user.loginMethod || user.provider)}</span>
-                              </>
-                            ) : <span className="text-xs text-base-content/50">Chưa ghi nhận</span>}
-                          </td>
-                          <td className="min-w-44">
-                            <div className="font-mono font-bold text-xs text-primary">{latestLogin?.ip_address || UNKNOWN}</div>
-                            <div className="mt-1.5 text-xs">{locationElement}</div>
+                              <div className="space-y-1">
+                                <div className="text-xs font-bold text-slate-200">{formatDateTime(latestLogin.created_at)}</div>
+                                <span className="inline-block px-2 py-0.5 rounded-md bg-purple-500/15 text-purple-300 text-[11px] font-mono font-bold border border-purple-500/20">
+                                  {loginMethodLabel(latestLogin.login_method || user.loginMethod || user.provider)}
+                                </span>
+                              </div>
+                            ) : <span className="text-xs text-slate-500 italic">Chưa ghi nhận</span>}
                           </td>
                           <td className="min-w-48">
-                            <div className="inline-flex items-center gap-1 text-xs font-semibold"><Monitor size={12} className="text-accent shrink-0" /> {latestLogin?.browser || UNKNOWN} {latestLogin?.browser_version !== UNKNOWN ? latestLogin?.browser_version : ""}</div>
-                            <div className="text-[11px] text-base-content/60 mt-0.5">{latestLogin ? `${latestLogin.os || UNKNOWN} · ${latestLogin.device || UNKNOWN}` : UNKNOWN}</div>
-                            <div className="text-[10px] text-base-content/50 font-mono mt-0.5">Build: {latestLogin?.commit_hash || latestLogin?.build_id || "—"}</div>
+                            <div className="font-mono font-extrabold text-xs text-cyan-300 flex items-center gap-1.5">
+                              <span>🌐</span>
+                              <span>{latestLogin?.ip_address || UNKNOWN}</span>
+                            </div>
+                            <div className="mt-1.5 text-xs text-slate-300 font-medium">{locationElement}</div>
                           </td>
-                          <td>{user.disabled ? <span className="badge badge-error font-bold badge-xs gap-1 py-2.5 px-2"><Lock size={12} /> Đã khóa</span> : <span className="badge badge-success font-bold badge-xs gap-1 py-2.5 px-2"><Unlock size={12} /> Hoạt động</span>}</td>
+                          <td className="min-w-48">
+                            <div className="inline-flex items-center gap-1.5 text-xs font-bold text-white">
+                              <Monitor size={14} className="text-emerald-400 shrink-0" /> 
+                              <span>{latestLogin?.browser || UNKNOWN} {latestLogin?.browser_version !== UNKNOWN ? latestLogin?.browser_version : ""}</span>
+                            </div>
+                            <div className="text-[11px] text-slate-400 mt-0.5 font-semibold">{latestLogin ? `${latestLogin.os || UNKNOWN} · ${latestLogin.device || UNKNOWN}` : UNKNOWN}</div>
+                            <div className="text-[10px] text-slate-500 font-mono mt-0.5">Build: {latestLogin?.commit_hash || latestLogin?.build_id || "—"}</div>
+                          </td>
                           <td>
-                            {isOnline(user)
-                              ? <span className="badge badge-success font-bold badge-xs gap-1.5 py-2.5 px-2 text-success-content"><Activity size={12} className="animate-pulse" /> Đang hoạt động · {user.activeSessions} phiên</span>
-                              : <span className="text-xs font-medium text-base-content/70">{user.lastLogoutAt && new Date(user.lastLogoutAt) >= new Date(user.lastSeenAt || 0) ? "Đã đăng xuất" : relativeActivity(user.lastSeenAt)}</span>}
+                            {user.disabled ? (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-500/40 text-xs font-black shadow-sm">
+                                <Lock size={13} /> Đã khóa
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-black shadow-sm">
+                                <Unlock size={13} /> Hoạt động
+                              </span>
+                            )}
                           </td>
-                          <td><span className="badge badge-outline badge-xs font-mono font-bold py-2 px-2">{sourceLabel(latestLogin?.web_source || user.webSource)}</span></td>
-                          <td className="text-right">
-                            <div className="flex items-center justify-end gap-1.5">
+                          <td>
+                            {isOnline(user) ? (
+                              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-black shadow-sm animate-pulse">
+                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                                <span>Online ({user.activeSessions} phiên)</span>
+                              </span>
+                            ) : (
+                              <span className="text-xs font-bold text-slate-400">
+                                {user.lastLogoutAt && new Date(user.lastLogoutAt) >= new Date(user.lastSeenAt || 0) ? "⚪ Đã đăng xuất" : relativeActivity(user.lastSeenAt)}
+                              </span>
+                            )}
+                          </td>
+                          <td>
+                            <span className="px-2.5 py-1 rounded-xl bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 text-xs font-bold font-mono shadow-sm">
+                              {sourceLabel(latestLogin?.web_source || user.webSource)}
+                            </span>
+                          </td>
+                          <td className="text-right pr-6">
+                            <div className="flex items-center justify-end gap-2">
                               {isSuperAdmin ? (
-                                <span className="badge badge-primary font-black text-[10px] py-2 px-2 select-none">🔒 Cố định</span>
+                                <span className="px-2.5 py-1 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-black uppercase select-none">
+                                  🔒 Cố định
+                                </span>
                               ) : isSelf ? (
-                                <span className="badge badge-secondary font-bold text-[10px] py-2 px-2 select-none">👤 Chính bạn</span>
+                                <span className="px-2.5 py-1 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/40 text-[11px] font-bold select-none">
+                                  👤 Chính bạn
+                                </span>
                               ) : (
                                 <>
                                   {currentRole !== "support" && currentRole !== "moderator" && (
                                     <>
                                       <button
                                         type="button"
-                                        className={`btn btn-xs rounded-lg font-bold h-7 px-2.5 ${user.disabled ? "btn-outline btn-success" : "btn-outline btn-warning"}`}
+                                        className={`btn btn-xs rounded-xl font-extrabold h-8 px-3 transition-all ${user.disabled ? "bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 border border-emerald-500/40" : "bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border border-amber-500/40"}`}
                                         onClick={() => setActionModal({ type: user.disabled ? "unlock" : "lock", user, reason: "" })}
                                         title={user.disabled ? "Mở khóa web" : "Khóa truy cập web"}
                                       >
-                                        {user.disabled ? <Unlock size={13} /> : <Lock size={13} />}
+                                        {user.disabled ? <Unlock size={14} /> : <Lock size={14} />}
                                       </button>
                                       <button
                                         type="button"
-                                        className="btn btn-xs btn-outline btn-error rounded-lg font-bold h-7 px-2.5"
+                                        className="btn btn-xs bg-rose-500/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/40 rounded-xl font-extrabold h-8 px-3 transition-all"
                                         onClick={() => setActionModal({ type: "revoke", user, reason: "" })}
                                         title="Thu hồi toàn bộ phiên làm việc web"
                                       >
@@ -1308,7 +1469,7 @@ export default function AdminUsers() {
                                   {currentRole === "super_admin" && (
                                     <button
                                       type="button"
-                                      className="btn btn-xs btn-outline btn-secondary rounded-lg font-bold h-7 px-2.5"
+                                      className="btn btn-xs bg-indigo-500/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/40 rounded-xl font-black h-8 px-3 transition-all"
                                       onClick={() => setActionModal({ type: "role", user, newRole: user.role || "user", reason: "" })}
                                       title="Gán quyền RBAC"
                                     >
@@ -1317,8 +1478,13 @@ export default function AdminUsers() {
                                   )}
                                 </>
                               )}
-                              <button type="button" className="btn btn-sm btn-ghost btn-circle text-primary hover:bg-primary/10" onClick={() => openUser(user)} title="Xem trọn bộ lịch sử đăng nhập">
-                                <Info size={19} />
+                              <button 
+                                type="button" 
+                                className="btn btn-sm bg-white/5 hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-300 border border-white/10 hover:border-cyan-500/30 rounded-xl px-2.5 h-8 transition-colors" 
+                                onClick={() => openUser(user)} 
+                                title="Xem trọn bộ lịch sử đăng nhập thực"
+                              >
+                                <Info size={18} />
                               </button>
                             </div>
                           </td>
@@ -1331,158 +1497,187 @@ export default function AdminUsers() {
             </div>
 
             {!loading && !error && (
-              <p className="mt-3 text-xs text-base-content/60 text-center font-medium">
-                Đang hiển thị {users.length}/{totalUsers} người dùng Locket Web
+              <p className="mt-4 text-xs text-slate-400 text-center font-bold font-mono">
+                ⚡ Đang hiển thị <strong className="text-cyan-300">{users.length}/{totalUsers}</strong> người dùng Locket Web
               </p>
             )}
 
             {!loading && !error && pageToken && !search.trim() && (
-              <div className="mt-5 flex justify-center">
-                <button type="button" className="btn btn-outline btn-sm rounded-full px-8 font-bold shadow-sm" onClick={() => fetchUsers(pageToken)}>Tải thêm danh sách</button>
+              <div className="mt-6 flex justify-center">
+                <button type="button" className="btn bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-cyan-500/40 hover:border-cyan-400 rounded-2xl px-8 h-12 font-black shadow-lg" onClick={() => fetchUsers(pageToken)}>
+                  🔄 Tải thêm danh sách
+                </button>
               </div>
             )}
           </div>
-        </>
+        </div>
       )}
 
       {/* TAB 2: AUDIT LOGS */}
       {activeTab === "audit" && (
-        <div className="bg-base-100 rounded-3xl shadow-sm border border-base-200 p-5 sm:p-7 animate-fade-in">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-base-200">
+        <div className="bg-slate-950 text-white rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] border border-slate-800/80 p-6 sm:p-9 animate-fade-in relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-[450px] h-[450px] bg-purple-500/10 rounded-full blur-[120px] pointer-events-none -mt-32 -mr-32" />
+          
+          <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-white/10">
             <div>
-              <h2 className="text-lg font-black flex items-center gap-2 text-base-content tracking-tight">
-                📜 Nhật ký Quản trị Huy Locket (Append-only Audit Log)
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-black mb-2 shadow-inner">
+                <span>📜 IMMUTABLE SECURITY TRACKER</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-purple-200 flex items-center gap-2.5">
+                Nhật Ký Quản Trị Huy Locket (Audit Log)
               </h2>
-              <p className="text-xs text-base-content/70 mt-1">
-                Lưu vết toàn bộ thao tác nhạy cảm của các quản trị viên. Dữ liệu vĩnh viễn không thể tẩy xóa bởi admin thường.
+              <p className="text-sm text-slate-400 font-medium mt-1">
+                Lưu vết toàn bộ thao tác nhạy cảm của các quản trị viên theo chuẩn Append-Only. Dữ liệu vĩnh viễn không thể tẩy xóa bởi admin thường.
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+
+            <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto shrink-0">
               <input
                 type="text"
-                placeholder="Lọc thao tác (LOCK, REVOKE...)"
-                className="input input-bordered input-sm text-xs rounded-xl h-9"
+                placeholder="Lọc lệnh (LOCK, REVOKE...)"
+                className="input input-bordered text-xs rounded-2xl h-11 bg-slate-900 text-white border-white/15 focus:border-purple-400 font-bold px-4"
                 value={auditFilterAction}
                 onChange={(e) => setAuditFilterAction(e.target.value)}
               />
               <input
                 type="text"
                 placeholder="Lọc theo UID admin..."
-                className="input input-bordered input-sm text-xs rounded-xl h-9"
+                className="input input-bordered text-xs rounded-2xl h-11 bg-slate-900 text-white border-white/15 focus:border-purple-400 font-bold px-4"
                 value={auditFilterAdmin}
                 onChange={(e) => setAuditFilterAdmin(e.target.value)}
               />
-              <button type="button" onClick={fetchAuditLogs} className="btn btn-sm btn-ghost btn-circle text-primary" title="Tải lại log">
+              <button type="button" onClick={fetchAuditLogs} className="btn bg-slate-900 hover:bg-slate-800 text-purple-300 border border-purple-500/40 rounded-2xl h-11 px-4 font-extrabold flex items-center gap-2" title="Tải lại log">
                 <RefreshCw size={17} className={auditLoading ? "animate-spin" : ""} />
+                <span>Làm Mới</span>
               </button>
             </div>
           </div>
 
-          {auditLoading ? (
-            <div className="py-16 text-center"><span className="loading loading-spinner loading-lg text-primary" /></div>
-          ) : auditError ? (
-            <div className="alert alert-error text-sm rounded-2xl"><AlertTriangle size={16} /> <span>{auditError}</span></div>
-          ) : auditLogs.length === 0 ? (
-            <div className="text-center py-16 text-base-content/60">
-              <p className="font-bold text-base">Chưa có bản ghi Audit Log nào phù hợp</p>
-              <p className="text-xs mt-1 text-base-content/50">Các thao tác khóa tài khoản, thu hồi phiên hay đổi quyền sẽ xuất hiện tự động tại đây.</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="table table-sm w-full">
-                <thead>
-                  <tr className="bg-base-200/70 text-xs font-bold text-base-content">
-                    <th>Thời gian server</th>
-                    <th>Quản trị viên</th>
-                    <th>Hành động</th>
-                    <th>UID đối tượng</th>
-                    <th>Lý do & Chi tiết</th>
-                    <th>IP / Nguồn</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {auditLogs.map((log) => (
-                    <tr key={log.id} className="hover">
-                      <td className="whitespace-nowrap font-mono text-xs font-medium">{formatDateTime(log.created_at)}</td>
-                      <td>
-                        <div className="font-mono text-xs font-black text-primary" title={`Raw Admin UID: ${log.admin_uid}`}>{getFixedNumericUid(log.admin_uid)}</div>
-                        <div className="mt-1">{roleBadge(log.role)}</div>
-                      </td>
-                      <td><span className="badge badge-outline font-black text-xs py-2 px-2.5 shadow-xs">{log.action}</span></td>
-                      <td className="font-mono text-xs font-bold text-base-content/90" title={`Raw Target UID: ${log.target_uid || "—"}`}>{log.target_uid && log.target_uid !== "—" ? getFixedNumericUid(log.target_uid) : "—"}</td>
-                      <td className="text-xs font-medium max-w-md break-words">{log.details || "—"}</td>
-                      <td className="text-xs">
-                        <div className="font-mono font-semibold">{log.ip_address || UNKNOWN}</div>
-                        <div className="text-[10px] font-bold text-base-content/60 mt-0.5">{sourceLabel(log.web_source)}</div>
-                      </td>
+          <div className="relative z-10">
+            {auditLoading ? (
+              <div className="py-20 text-center flex flex-col items-center justify-center gap-4">
+                <span className="loading loading-bars loading-lg text-purple-400" />
+                <p className="text-sm font-black text-slate-400 uppercase tracking-widest">Đang truy xuất Sổ Lưu Vết từ hạ tầng Neon Postgres...</p>
+              </div>
+            ) : auditError ? (
+              <div className="alert bg-rose-500/20 border border-rose-500 text-rose-200 text-sm rounded-2xl p-4 font-bold"><AlertTriangle size={20} /> <span>{auditError}</span></div>
+            ) : auditLogs.length === 0 ? (
+              <div className="text-center py-20 text-slate-500">
+                <div className="text-5xl mb-4">📭</div>
+                <p className="font-black text-lg text-white">Chưa có bản ghi Audit Log nào phù hợp</p>
+                <p className="text-xs mt-1 text-slate-400 font-semibold">Các thao tác khóa tài khoản, thu hồi phiên hay đổi quyền RBAC sẽ xuất hiện tự động tại đây.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto border border-white/10 rounded-2xl bg-slate-900/60 shadow-inner max-h-[600px] overflow-y-auto">
+                <table className="table table-sm w-full text-sm font-medium">
+                  <thead className="bg-slate-900 font-extrabold text-purple-300 text-xs uppercase tracking-wider sticky top-0 z-10 border-b border-white/10">
+                    <tr>
+                      <th className="py-3.5 pl-5">Thời gian server</th>
+                      <th>Quản trị viên</th>
+                      <th>Hành động</th>
+                      <th>UID đối tượng</th>
+                      <th>Lý do & Chi tiết</th>
+                      <th className="pr-5">IP / Nguồn thao tác</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  </thead>
+                  <tbody className="divide-y divide-white/5 text-slate-200">
+                    {auditLogs.map((log) => (
+                      <tr key={log.id} className="hover:bg-white/[0.04] transition-colors">
+                        <td className="whitespace-nowrap font-mono text-xs font-bold text-slate-300 pl-5 py-3.5">{formatDateTime(log.created_at)}</td>
+                        <td>
+                          <div className="font-mono text-xs font-black text-cyan-300" title={`Raw Admin UID: ${log.admin_uid}`}>{getFixedNumericUid(log.admin_uid)}</div>
+                          <div className="mt-1 scale-90 origin-left">{roleBadge(log.role)}</div>
+                        </td>
+                        <td>
+                          <span className="px-3 py-1 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/40 font-mono font-black text-xs shadow-sm">
+                            {log.action}
+                          </span>
+                        </td>
+                        <td className="font-mono text-xs font-bold text-amber-300" title={`Raw Target UID: ${log.target_uid || "—"}`}>
+                          {log.target_uid && log.target_uid !== "—" ? getFixedNumericUid(log.target_uid) : "—"}
+                        </td>
+                        <td className="text-xs font-semibold text-slate-300 max-w-md break-words">{log.details || "—"}</td>
+                        <td className="text-xs pr-5">
+                          <div className="font-mono font-extrabold text-white">{log.ip_address || UNKNOWN}</div>
+                          <div className="text-[11px] font-bold text-slate-400 mt-0.5">{sourceLabel(log.web_source)}</div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
       {/* TAB 3: REPORTED CONTENT */}
       {activeTab === "reports" && (
-        <div className="bg-base-100 rounded-3xl shadow-sm border border-base-200 p-5 sm:p-7 animate-fade-in">
-          <div className="flex items-center justify-between mb-6 pb-4 border-b border-base-200">
+        <div className="bg-slate-950 text-white rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] border border-slate-800/80 p-6 sm:p-9 animate-fade-in relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-[450px] h-[450px] bg-amber-500/10 rounded-full blur-[120px] pointer-events-none -mt-32 -mr-32" />
+
+          <div className="relative z-10 flex items-center justify-between mb-8 pb-6 border-b border-white/10 flex-wrap gap-4">
             <div>
-              <h2 className="text-lg font-black flex items-center gap-2 tracking-tight">
-                🛡️ Quản lý Nội dung bị báo cáo
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-black mb-2 shadow-inner">
+                <span>🛡️ CONTENT MODERATION SHIELD</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-amber-100 to-rose-200 flex items-center gap-2.5">
+                Quản Lý Nội Dung Bị Báo Cáo
               </h2>
-              <p className="text-xs text-base-content/70 mt-1">
-                Dành cho Admin và Moderator xử lý vi phạm tiêu chuẩn cộng đồng.
+              <p className="text-sm text-slate-400 font-medium mt-1">
+                Trạm xử lý vi phạm tiêu chuẩn cộng đồng dành riêng cho Quản trị viên và Moderator của Huy Locket.
               </p>
             </div>
-            <button type="button" onClick={fetchReports} className="btn btn-sm btn-ghost btn-circle text-primary" title="Tải lại">
+            <button type="button" onClick={fetchReports} className="btn bg-slate-900 hover:bg-slate-800 text-amber-300 border border-amber-500/40 rounded-2xl h-11 px-5 font-black flex items-center gap-2" title="Tải lại">
               <RefreshCw size={17} className={reportsLoading ? "animate-spin" : ""} />
+              <span>Tải Lại Báo Cáo</span>
             </button>
           </div>
 
-          {reportsLoading ? (
-            <div className="py-16 text-center"><span className="loading loading-spinner loading-lg text-primary" /></div>
-          ) : reportsError ? (
-            <div className="alert alert-error text-sm rounded-2xl"><AlertTriangle size={16} /> <span>{reportsError}</span></div>
-          ) : reports.length === 0 ? (
-            <div className="text-center py-16 text-base-content/60">
-              <div className="text-5xl mb-3">🎉</div>
-              <p className="font-extrabold text-base text-base-content">Không có nội dung vi phạm nào</p>
-              <p className="text-xs text-base-content/60 mt-1">Môi trường Locket đang an toàn và sạch sẽ.</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="table table-sm w-full">
-                <thead>
-                  <tr className="bg-base-200/70 text-xs font-bold text-base-content">
-                    <th>ID Bài / Nội dung</th>
-                    <th>Người báo cáo</th>
-                    <th>Tác giả</th>
-                    <th>Lý do vi phạm</th>
-                    <th>Trạng thái</th>
-                    <th className="text-right">Xử lý vi phạm</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reports.map((report) => (
-                    <tr key={report.id} className="hover">
-                      <td className="font-mono text-xs font-bold text-primary">{report.content_id}</td>
-                      <td className="font-mono text-xs">{report.reporter_uid || "Ẩn danh"}</td>
-                      <td className="font-mono text-xs">{report.author_uid || "—"}</td>
-                      <td className="text-xs font-bold text-error">{report.reason || "Vi phạm tiêu chuẩn"}</td>
-                      <td><span className="badge badge-warning font-bold badge-xs py-2 px-2">Đang chờ</span></td>
-                      <td className="text-right space-x-1.5">
-                        <button type="button" onClick={() => handleResolveReport(report.id, "hidden")} className="btn btn-xs btn-outline btn-warning font-bold rounded-lg h-7 px-3">Ẩn bài</button>
-                        <button type="button" onClick={() => handleResolveReport(report.id, "deleted")} className="btn btn-xs btn-outline btn-error font-bold rounded-lg h-7 px-3">Xóa mềm</button>
-                        <button type="button" onClick={() => handleResolveReport(report.id, "dismissed")} className="btn btn-xs btn-ghost font-medium rounded-lg h-7 px-3">Bỏ qua</button>
-                      </td>
+          <div className="relative z-10">
+            {reportsLoading ? (
+              <div className="py-20 text-center flex flex-col items-center justify-center gap-4"><span className="loading loading-spinner loading-lg text-amber-400" /></div>
+            ) : reportsError ? (
+              <div className="alert bg-rose-500/20 border border-rose-500 text-rose-200 text-sm rounded-2xl p-4 font-bold"><AlertTriangle size={20} /> <span>{reportsError}</span></div>
+            ) : reports.length === 0 ? (
+              <div className="text-center py-20 text-slate-500 bg-slate-900/40 rounded-3xl border border-white/5">
+                <div className="text-6xl mb-4 animate-bounce">🎉</div>
+                <p className="font-black text-xl text-white">Không Có Nội Dung Vi Phạm Nào!</p>
+                <p className="text-sm text-slate-400 mt-1 font-semibold">Môi trường giao tiếp trên Locket đang cực kỳ an toàn và sạch sẽ.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto border border-white/10 rounded-2xl bg-slate-900/60 shadow-inner">
+                <table className="table w-full text-sm font-medium">
+                  <thead className="bg-slate-900 font-extrabold text-amber-300 text-xs uppercase tracking-wider border-b border-white/10">
+                    <tr>
+                      <th className="py-3.5 pl-5">ID Bài / Nội dung</th>
+                      <th>Người báo cáo</th>
+                      <th>Tác giả</th>
+                      <th>Lý do vi phạm</th>
+                      <th>Trạng thái</th>
+                      <th className="text-right pr-5">Xử lý vi phạm</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  </thead>
+                  <tbody className="divide-y divide-white/5 text-slate-200">
+                    {reports.map((report) => (
+                      <tr key={report.id} className="hover:bg-white/[0.04] transition-colors">
+                        <td className="font-mono text-xs font-black text-cyan-300 pl-5 py-3.5">{report.content_id}</td>
+                        <td className="font-mono text-xs font-bold text-slate-300">{report.reporter_uid || "Ẩn danh"}</td>
+                        <td className="font-mono text-xs font-bold text-slate-300">{report.author_uid || "—"}</td>
+                        <td className="text-xs font-black text-rose-400">{report.reason || "Vi phạm tiêu chuẩn"}</td>
+                        <td><span className="px-2.5 py-1 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-black shadow-sm">Đang chờ xử lý</span></td>
+                        <td className="text-right space-x-2 pr-5">
+                          <button type="button" onClick={() => handleResolveReport(report.id, "hidden")} className="btn btn-xs bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border border-amber-500/40 font-extrabold rounded-xl h-8 px-3 transition-all">Ẩn bài</button>
+                          <button type="button" onClick={() => handleResolveReport(report.id, "deleted")} className="btn btn-xs bg-rose-500/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/40 font-extrabold rounded-xl h-8 px-3 transition-all">Xóa mềm</button>
+                          <button type="button" onClick={() => handleResolveReport(report.id, "dismissed")} className="btn btn-xs bg-white/5 hover:bg-white/10 text-slate-300 font-bold rounded-xl h-8 px-3 transition-all">Bỏ qua</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
