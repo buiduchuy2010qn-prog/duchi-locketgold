@@ -863,59 +863,59 @@ export default function AdminUsers() {
   // CỔNG BẢO MẬT: YÊU CẦU XÁC MINH MẬT KHẨU KHI BƯỚC VÀO TRANG ADMIN
   if (!isGateUnlocked) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 py-24 animate-fade-in bg-slate-950 relative overflow-hidden">
-        {/* Ambient Cyber-Mesh Glows */}
-        <div className="absolute top-1/3 left-1/4 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[140px] pointer-events-none -translate-x-1/2 -translate-y-1/2" />
-        <div className="absolute bottom-1/3 right-1/4 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[140px] pointer-events-none translate-x-1/2 translate-y-1/2" />
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 py-24 animate-fade-in bg-gradient-to-br from-slate-50 via-blue-50/60 to-indigo-50/80 relative overflow-hidden">
+        {/* Ambient Pastel Glows */}
+        <div className="absolute top-1/3 left-1/4 w-[500px] h-[500px] bg-blue-400/15 rounded-full blur-[140px] pointer-events-none -translate-x-1/2 -translate-y-1/2" />
+        <div className="absolute bottom-1/3 right-1/4 w-[500px] h-[500px] bg-indigo-400/15 rounded-full blur-[140px] pointer-events-none translate-x-1/2 translate-y-1/2" />
         
-        <div className="max-w-md w-full bg-gradient-to-b from-slate-900/90 via-slate-950/95 to-slate-950 border-2 border-cyan-500/40 hover:border-cyan-400/60 rounded-[2.5rem] p-8 sm:p-10 shadow-[0_0_80px_-15px_rgba(6,182,212,0.3)] relative z-10 backdrop-blur-2xl transition-all duration-500">
-          <div className="absolute top-0 right-0 transform translate-x-10 -translate-y-10 w-40 h-40 bg-cyan-500/15 rounded-full blur-2xl -z-0 pointer-events-none" />
+        <div className="max-w-md w-full bg-white/95 border border-slate-200/80 hover:border-indigo-300 rounded-[2.5rem] p-8 sm:p-10 shadow-[0_25px_70px_-15px_rgba(79,46,229,0.15)] relative z-10 backdrop-blur-2xl transition-all duration-500">
+          <div className="absolute top-0 right-0 transform translate-x-10 -translate-y-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-2xl -z-0 pointer-events-none" />
           
           <div className="relative z-10 flex flex-col items-center text-center">
-            <div className="w-24 h-24 rounded-3xl bg-gradient-to-tr from-cyan-500/20 via-indigo-500/20 to-purple-500/20 border-2 border-cyan-400/40 flex items-center justify-center text-cyan-300 mb-6 shadow-[0_0_30px_-5px_rgba(6,182,212,0.5)] group">
-              <Lock className="w-12 h-12 animate-pulse text-cyan-400 drop-shadow-[0_0_10px_rgba(34,211,238,0.8)]" />
+            <div className="w-24 h-24 rounded-3xl bg-gradient-to-tr from-blue-500/10 via-indigo-500/15 to-purple-500/10 border border-indigo-200/80 flex items-center justify-center text-indigo-600 mb-6 shadow-sm group">
+              <Lock className="w-12 h-12 text-indigo-600 drop-shadow-sm transition-transform group-hover:scale-110 duration-300" />
             </div>
 
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-[11px] font-black tracking-widest uppercase mb-3 shadow-inner">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-indigo-50 border border-indigo-200/80 text-indigo-700 text-[11px] font-black tracking-widest uppercase mb-3 shadow-inner">
+              <span className="w-2 h-2 rounded-full bg-indigo-500 animate-ping" />
               <span>SECURITY GATE · AIR-LOCK v3.0</span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-cyan-200 mb-2 flex items-center justify-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-950 via-slate-900 to-blue-950 mb-2 flex items-center justify-center gap-2">
               Cổng Bảo Mật Quản Trị
             </h1>
-            <p className="text-xs text-slate-400 mb-3 leading-relaxed font-semibold">
-              Chào Quản trị viên <strong className="text-white font-black">{currentEmail || "Huy Locket"}</strong> ({roleBadge(currentRole)}).
+            <p className="text-xs text-slate-500 mb-3 leading-relaxed font-semibold">
+              Chào Quản trị viên <strong className="text-slate-900 font-black">{currentEmail || "Huy Locket"}</strong> ({roleBadge(currentRole)}).
             </p>
 
             {!hasPin ? (
-              <div className="text-xs text-cyan-200 bg-cyan-500/10 p-4 rounded-2xl border border-cyan-500/30 mb-6 leading-relaxed text-left shadow-inner flex items-start gap-3">
+              <div className="text-xs text-indigo-900 bg-indigo-50/90 p-4 rounded-2xl border border-indigo-200 mb-6 leading-relaxed text-left shadow-inner flex items-start gap-3">
                 <span className="text-xl shrink-0">✨</span>
                 <div>
-                  <strong className="text-white font-extrabold uppercase block mb-0.5">Thiết Lập Mã PIN Lần Đầu:</strong> 
+                  <strong className="text-indigo-950 font-extrabold uppercase block mb-0.5">Thiết Lập Mã PIN Lần Đầu:</strong> 
                   Bạn chưa có Mã PIN số bảo mật riêng cho khu vực Quản Trị. Vui lòng nhập dãy số (4 - 8 chữ số) để làm Mã PIN mở khóa nhanh và an toàn. Về sau bạn có thể tự động thay đổi trong hệ thống!
                 </div>
               </div>
             ) : (
-              <div className="text-xs text-slate-300 leading-relaxed mb-6 bg-slate-900/90 p-4 rounded-2xl border border-white/10 text-left shadow-inner flex items-start gap-3">
+              <div className="text-xs text-slate-600 leading-relaxed mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-left shadow-inner flex items-start gap-3">
                 <span className="text-xl shrink-0">🛡️</span>
                 <div>
-                  <strong className="text-white font-extrabold uppercase block mb-0.5">Xác Minh Danh Tính:</strong>
-                  Để bảo vệ quyền lực tối thượng và tài nguyên người dùng, bạn cần xác minh bằng <strong className="text-cyan-300">Mã PIN số bảo mật Quản trị</strong> riêng biệt. Phiên làm việc sẽ mở khóa an toàn trong <strong className="text-emerald-400">30 phút</strong>.
+                  <strong className="text-slate-900 font-extrabold uppercase block mb-0.5">Xác Minh Danh Tính:</strong>
+                  Để bảo vệ quyền lực tối thượng và tài nguyên người dùng, bạn cần xác minh bằng <strong className="text-indigo-700">Mã PIN số bảo mật Quản trị</strong> riêng biệt. Phiên làm việc sẽ mở khóa an toàn trong <strong className="text-emerald-600 font-bold">30 phút</strong>.
                 </div>
               </div>
             )}
 
             {gateError && (
-              <div className="alert bg-rose-500/20 border border-rose-500 text-rose-200 text-xs py-3 px-4 mb-6 rounded-2xl text-left shadow-lg flex items-center gap-2.5 animate-bounce">
-                <AlertTriangle size={18} className="shrink-0 text-rose-400" />
+              <div className="alert bg-rose-50 border border-rose-200 text-rose-800 text-xs py-3 px-4 mb-6 rounded-2xl text-left shadow-md flex items-center gap-2.5 animate-bounce">
+                <AlertTriangle size={18} className="shrink-0 text-rose-600" />
                 <span className="font-bold">{gateError}</span>
               </div>
             )}
 
             <form onSubmit={handleGateSubmit} className="w-full space-y-5">
               <div className="form-control w-full text-left">
-                <label className="label text-[11px] font-black tracking-wider text-cyan-400 uppercase pb-2">
+                <label className="label text-[11px] font-black tracking-wider text-indigo-900 uppercase pb-2">
                   {hasPin ? "MÃ PIN SỐ BẢO MẬT QUẢN TRỊ" : "THIẾT LẬP MÃ PIN SỐ QUẢN TRỊ (4 - 8 SỐ)"}
                 </label>
                 <div className="relative">
@@ -926,13 +926,13 @@ export default function AdminUsers() {
                     maxLength={8}
                     required
                     placeholder={hasPin ? "••••••••" : "Tạo mã PIN (ví dụ: 201068)..."}
-                    className="input input-bordered w-full rounded-2xl pr-12 shadow-inner text-lg h-14 bg-slate-950 text-cyan-300 border-white/20 focus:border-cyan-400 font-mono font-extrabold tracking-[0.4em] text-center shadow-[inset_0_2px_10px_rgba(0,0,0,0.6)]"
+                    className="input input-bordered w-full rounded-2xl pr-12 text-lg h-14 bg-slate-50 text-indigo-950 border-slate-300 focus:border-indigo-600 focus:bg-white font-mono font-black tracking-[0.4em] text-center shadow-inner transition-all"
                     value={gatePassword}
                     onChange={(e) => setGatePassword(e.target.value.replace(/[^0-9]/g, ""))}
                     disabled={gateLoading}
                     autoFocus
                   />
-                  <Key className="absolute right-4 top-1/2 -translate-y-1/2 text-cyan-400/60 w-5 h-5 pointer-events-none animate-pulse" />
+                  <Key className="absolute right-4 top-1/2 -translate-y-1/2 text-indigo-500 w-5 h-5 pointer-events-none animate-pulse" />
                 </div>
                 <div className="mt-4">
                   <VirtualNumPad value={gatePassword} onChange={(val) => setGatePassword(val)} disabled={gateLoading} maxLength={8} />
@@ -941,10 +941,10 @@ export default function AdminUsers() {
 
               <button
                 type="submit"
-                className={`btn bg-gradient-to-r from-cyan-500 via-indigo-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white w-full rounded-2xl font-black h-13 shadow-[0_0_25px_-5px_rgba(6,182,212,0.5)] text-sm gap-2 border-0 transition-all active:scale-95 ${gateLoading ? "loading" : ""}`}
+                className={`btn bg-gradient-to-r from-indigo-600 via-blue-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white w-full rounded-2xl font-black h-13 shadow-[0_10px_25px_-5px_rgba(79,46,229,0.4)] text-sm gap-2 border-0 transition-all active:scale-95 ${gateLoading ? "loading" : ""}`}
                 disabled={gateLoading || !gatePassword.trim()}
               >
-                {!gateLoading && <CheckCircle size={18} className="text-cyan-200" />}
+                {!gateLoading && <CheckCircle size={18} className="text-indigo-200" />}
                 {gateLoading ? "Đang giải mã thẻ xác minh..." : (hasPin ? "🚀 Mở Khóa Trung Tâm Quản Trị" : "✨ Xác Nhận & Tạo Mã PIN Bảo Mật")}
               </button>
             </form>
@@ -952,7 +952,7 @@ export default function AdminUsers() {
             <button
               type="button"
               onClick={() => navigate("/locket", { replace: true })}
-              className="btn btn-ghost btn-xs text-slate-400 gap-1.5 mt-6 rounded-xl hover:text-white hover:bg-white/5"
+              className="btn btn-ghost btn-xs text-slate-500 gap-1.5 mt-6 rounded-xl hover:text-slate-900 hover:bg-slate-100"
               disabled={gateLoading}
             >
               <ArrowLeft size={14} /> Quay lại màn hình chính Locket
@@ -964,31 +964,31 @@ export default function AdminUsers() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-3 sm:p-6 pt-24 max-w-7xl mx-auto animate-fade-in pb-20 selection:bg-cyan-500 selection:text-black">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50/60 text-slate-800 p-3 sm:p-6 pt-24 max-w-7xl mx-auto animate-fade-in pb-20 selection:bg-indigo-600 selection:text-white">
       {/* SUPREME COMMAND CENTER HERO HEADER */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-950 to-indigo-950/90 text-white rounded-[2.5rem] p-6 sm:p-8 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.7)] border border-white/10 mb-8 relative overflow-hidden backdrop-blur-2xl">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none -mt-20 -mr-20" />
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none -mb-20 -ml-20" />
+      <div className="bg-gradient-to-r from-white via-slate-50 to-indigo-50/80 text-slate-800 rounded-[2.5rem] p-6 sm:p-8 shadow-[0_15px_50px_-10px_rgba(30,41,59,0.08)] border border-slate-200/80 mb-8 relative overflow-hidden backdrop-blur-2xl">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-400/10 rounded-full blur-[100px] pointer-events-none -mt-20 -mr-20" />
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-400/10 rounded-full blur-[100px] pointer-events-none -mb-20 -ml-20" />
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-xs font-black uppercase tracking-wider shadow-inner">
+            <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-800 text-xs font-black uppercase tracking-wider shadow-sm">
               <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-400" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-500 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-indigo-600" />
               </span>
               <span>SUPREME INFRASTRUCTURE & USER COMMAND CENTER</span>
             </div>
-            <h1 className="text-2xl sm:text-4xl font-black flex items-center gap-3 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-cyan-200">
-              <span className="p-2 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 text-white shadow-lg text-2xl sm:text-3xl shrink-0 flex items-center justify-center">
+            <h1 className="text-2xl sm:text-4xl font-black flex items-center gap-3 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-950 via-slate-900 to-blue-950">
+              <span className="p-2 rounded-2xl bg-gradient-to-tr from-indigo-600 to-blue-600 text-white shadow-md text-2xl sm:text-3xl shrink-0 flex items-center justify-center">
                 🛡️
               </span>
               <span>Trạm Quản Trị Hệ Thống Huy Locket</span>
             </h1>
-            <p className="text-sm text-slate-300 font-medium flex flex-wrap items-center gap-2 pt-1">
+            <p className="text-sm text-slate-600 font-medium flex flex-wrap items-center gap-2 pt-1">
               <span>Quyền lực của bạn:</span> {roleBadge(currentRole)} 
-              <span className="text-slate-600 font-bold">•</span>
-              <span className="inline-flex items-center gap-1 font-mono text-emerald-400 font-black bg-emerald-500/10 px-2.5 py-0.5 rounded-lg border border-emerald-500/20">
+              <span className="text-slate-400 font-bold">•</span>
+              <span className="inline-flex items-center gap-1 font-mono text-emerald-700 font-black bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200/80">
                 👥 {totalUsers} tài khoản được rà soát Live
               </span>
             </p>
@@ -1003,10 +1003,10 @@ export default function AdminUsers() {
                 setChangePinError(null);
                 setChangePinModalOpen(true);
               }}
-              className="btn btn-sm sm:btn-md bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-cyan-500/40 hover:border-cyan-400 font-bold rounded-2xl h-11 px-4 shadow-[0_0_15px_rgba(6,182,212,0.2)] transition-all flex items-center gap-2 cursor-pointer active:scale-95"
+              className="btn btn-sm sm:btn-md bg-white hover:bg-slate-50 text-indigo-700 border border-slate-200 hover:border-indigo-300 font-bold rounded-2xl h-11 px-4 shadow-sm transition-all flex items-center gap-2 cursor-pointer active:scale-95"
               title="Tự động thay đổi mã PIN Bảo Mật số cho Quản trị viên"
             >
-              <Key size={16} className="text-cyan-400" /> 
+              <Key size={16} className="text-indigo-600" /> 
               <span>Đổi Mã PIN Quản Trị</span>
             </button>
             <button
@@ -1016,7 +1016,7 @@ export default function AdminUsers() {
                 setIsGateUnlocked(false);
                 SonnerInfo("Đã khóa trang Quản Trị. Vui lòng nhập mã PIN bảo mật khi truy cập lại.");
               }}
-              className="btn btn-sm sm:btn-md bg-gradient-to-r from-rose-600 via-red-600 to-amber-700 hover:from-rose-500 hover:to-amber-600 text-white font-extrabold border-0 rounded-2xl h-11 px-5 shadow-[0_0_20px_rgba(244,63,94,0.4)] transition-all flex items-center gap-2 cursor-pointer active:scale-95"
+              className="btn btn-sm sm:btn-md bg-gradient-to-r from-rose-600 via-red-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-extrabold border-0 rounded-2xl h-11 px-5 shadow-[0_10px_20px_-5px_rgba(225,29,72,0.4)] transition-all flex items-center gap-2 cursor-pointer active:scale-95"
               title="Khóa ngay phiên làm việc admin hiện tại"
             >
               <Lock size={16} /> 
@@ -1027,17 +1027,17 @@ export default function AdminUsers() {
       </div>
 
       {/* TABS HEADER - SLEEK QUANTUM SWITCH DOCK */}
-      <div className="flex flex-wrap items-center gap-2 mb-8 bg-slate-950/95 p-2 sm:p-2.5 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 backdrop-blur-2xl w-fit">
+      <div className="flex flex-wrap items-center gap-2 mb-8 bg-white/90 p-2 sm:p-2.5 rounded-3xl shadow-[0_10px_35px_-5px_rgba(30,41,59,0.07)] border border-slate-200/80 backdrop-blur-xl w-fit">
         <button
           type="button"
           onClick={() => setActiveTab("users")}
           className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl font-black text-sm transition-all duration-300 cursor-pointer ${
             activeTab === "users" 
-              ? "bg-gradient-to-r from-cyan-600 via-indigo-600 to-blue-600 text-white shadow-[0_0_25px_-5px_rgba(56,189,248,0.5)] scale-[1.02] border border-cyan-400/40" 
-              : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"
+              ? "bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-700 text-white shadow-lg shadow-indigo-500/20 scale-[1.02] border-0" 
+              : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/80 border border-transparent"
           }`}
         >
-          <Users size={18} className={activeTab === "users" ? "text-cyan-300 animate-pulse" : "text-slate-500"} /> 
+          <Users size={18} className={activeTab === "users" ? "text-indigo-200 animate-pulse" : "text-slate-500"} /> 
           <span>Người dùng & Phân quyền ({totalUsers})</span>
         </button>
 
@@ -1047,11 +1047,11 @@ export default function AdminUsers() {
             onClick={() => setActiveTab("audit")}
             className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl font-black text-sm transition-all duration-300 cursor-pointer ${
               activeTab === "audit" 
-                ? "bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white shadow-[0_0_25px_-5px_rgba(168,85,247,0.5)] scale-[1.02] border border-purple-400/40" 
-                : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"
+                ? "bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 text-white shadow-lg shadow-purple-500/20 scale-[1.02] border-0" 
+                : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/80 border border-transparent"
             }`}
           >
-            <FileText size={18} className={activeTab === "audit" ? "text-purple-300 animate-pulse" : "text-slate-500"} /> 
+            <FileText size={18} className={activeTab === "audit" ? "text-purple-200 animate-pulse" : "text-slate-500"} /> 
             <span>Nhật ký Quản trị (Audit Log)</span>
           </button>
         )}
@@ -1062,11 +1062,11 @@ export default function AdminUsers() {
             onClick={() => setActiveTab("reports")}
             className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl font-black text-sm transition-all duration-300 cursor-pointer ${
               activeTab === "reports" 
-                ? "bg-gradient-to-r from-rose-600 via-amber-600 to-orange-600 text-white shadow-[0_0_25px_-5px_rgba(244,63,94,0.5)] scale-[1.02] border border-rose-400/40" 
-                : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"
+                ? "bg-gradient-to-r from-rose-600 via-amber-600 to-orange-600 text-white shadow-lg shadow-rose-500/20 scale-[1.02] border-0" 
+                : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/80 border border-transparent"
             }`}
           >
-            <Shield size={18} className={activeTab === "reports" ? "text-amber-300 animate-pulse" : "text-slate-500"} /> 
+            <Shield size={18} className={activeTab === "reports" ? "text-amber-200 animate-pulse" : "text-slate-500"} /> 
             <span>Quản lý Nội dung vi phạm</span>
           </button>
         )}
@@ -1076,11 +1076,11 @@ export default function AdminUsers() {
           onClick={() => { setActiveTab("advanced"); fetchAdvancedData(); }}
           className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl font-black text-sm transition-all duration-300 cursor-pointer ${
             activeTab === "advanced" 
-              ? "bg-gradient-to-r from-amber-500 via-orange-600 to-red-600 text-white shadow-[0_0_25px_-5px_rgba(245,158,11,0.6)] scale-[1.02] border border-amber-300/60" 
-              : "bg-gradient-to-r from-amber-500/15 to-red-500/15 text-amber-300 hover:text-white hover:border-amber-400/50 border border-amber-500/20"
+              ? "bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 text-white shadow-lg shadow-orange-500/20 scale-[1.02] border-0" 
+              : "bg-amber-50/80 text-amber-800 hover:bg-amber-100/90 border border-amber-200/80"
           }`}
         >
-          <Zap size={18} className="text-yellow-300 animate-bounce fill-yellow-300" /> 
+          <Zap size={18} className="text-amber-500 animate-bounce fill-amber-500" /> 
           <span>🚀 Quyền Lực Tối Thượng</span>
         </button>
       </div>
@@ -1089,14 +1089,14 @@ export default function AdminUsers() {
       {activeTab === "users" && (
         <div className="space-y-10 animate-fade-in">
           {/* RADAR SURVEILLANCE BAR */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900/80 p-4 sm:p-5 rounded-3xl border border-white/10 shadow-xl backdrop-blur-xl">
-            <div className="flex items-start gap-3.5 max-w-3xl text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
-              <div className="w-10 h-10 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0 shadow-inner mt-0.5">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/95 p-4 sm:p-5 rounded-3xl border border-slate-200/80 shadow-md backdrop-blur-xl">
+            <div className="flex items-start gap-3.5 max-w-3xl text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
+              <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600 shrink-0 shadow-sm mt-0.5">
                 <Info size={20} className="animate-pulse" />
               </div>
               <div>
-                <strong className="text-cyan-300 font-extrabold uppercase tracking-wide text-xs block mb-0.5">Radar Trinh Sát Vị Trí (GPS & IP):</strong>
-                Vị trí hiển thị kết hợp giữa <strong className="text-white">Vị trí IP máy chủ</strong> và <strong className="text-emerald-400">Tọa độ GPS thực tế</strong> của thiết bị (hệ thống tự động xin quyền truy cập vị trí khi người dùng vào web, nếu được cho phép sẽ ghi lại tọa độ chính xác từng mét).
+                <strong className="text-indigo-900 font-extrabold uppercase tracking-wide text-xs block mb-0.5">Radar Trinh Sát Vị Trí (GPS & IP):</strong>
+                Vị trí hiển thị kết hợp giữa <strong className="text-slate-900">Vị trí IP máy chủ</strong> và <strong className="text-emerald-700 font-bold">Tọa độ GPS thực tế</strong> của thiết bị (hệ thống tự động xin quyền truy cập vị trí khi người dùng vào web, nếu được cho phép sẽ ghi lại tọa độ chính xác từng mét).
               </div>
             </div>
 
@@ -1105,7 +1105,7 @@ export default function AdminUsers() {
                 <input 
                   type="text" 
                   placeholder="Tìm kiếm email, tên, UID..." 
-                  className="input w-full pl-10 rounded-2xl h-11 text-sm bg-slate-950 text-white placeholder:text-slate-500 border border-white/15 focus:border-cyan-400 font-medium shadow-inner" 
+                  className="input w-full pl-10 rounded-2xl h-11 text-sm bg-slate-50 text-slate-900 placeholder:text-slate-400 border border-slate-200 focus:border-indigo-600 focus:bg-white font-medium shadow-inner transition-colors" 
                   value={search} 
                   onChange={(e) => setSearch(e.target.value)} 
                 />
@@ -1118,7 +1118,7 @@ export default function AdminUsers() {
                   SonnerSuccess("🔄 Đã tải lại dữ liệu!", "Bảng quản trị đã cập nhật tọa độ GPS và thông tin IP mới nhất.");
                 }}
                 disabled={loading}
-                className="btn bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 hover:from-emerald-400 hover:to-cyan-500 text-slate-950 font-black rounded-2xl px-5 h-11 border-0 shadow-[0_0_20px_-5px_rgba(16,185,129,0.5)] transition-all flex items-center gap-2 shrink-0 active:scale-95 text-xs sm:text-sm cursor-pointer"
+                className="btn bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-black rounded-2xl px-5 h-11 border border-indigo-200 shadow-sm transition-all flex items-center gap-2 shrink-0 active:scale-95 text-xs sm:text-sm cursor-pointer"
                 title="Làm mới toàn bộ danh sách và tọa độ thực tế mà không cần reload trang"
               >
                 {loading ? <span className="loading loading-spinner loading-xs" /> : <><span>🔄 Làm mới</span></>}
@@ -1128,17 +1128,17 @@ export default function AdminUsers() {
 
           {/* SECTION A: BAN QUẢN TRỊ HUY LOCKET */}
           <div>
-            <div className="flex items-center justify-between mb-5 pb-3 border-b border-white/10">
-              <h2 className="text-xl sm:text-2xl font-black flex items-center gap-3 tracking-tight text-white">
-                <span className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 flex items-center justify-center text-xl shadow-inner">
+            <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-200/80">
+              <h2 className="text-xl sm:text-2xl font-black flex items-center gap-3 tracking-tight text-slate-900">
+                <span className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center text-xl shadow-sm">
                   👑
                 </span>
                 <span>Ban Quản trị Huy Locket</span>
-                <span className="badge bg-gradient-to-r from-amber-500 to-purple-600 text-white font-black text-xs px-3 py-3 rounded-xl shadow-md border-0">
+                <span className="badge bg-gradient-to-r from-amber-500 to-indigo-600 text-white font-black text-xs px-3 py-3 rounded-xl shadow-md border-0">
                   {adminTeam.length} Admin
                 </span>
               </h2>
-              <span className="text-xs font-bold text-slate-400 hidden sm:block">QUYỀN ĐIỀU HÀNH BẢO MẬT</span>
+              <span className="text-xs font-bold text-slate-500 hidden sm:block">QUYỀN ĐIỀU HÀNH BẢO MẬT</span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1151,31 +1151,31 @@ export default function AdminUsers() {
                 return (
                   <div
                     key={admin.uid}
-                    className="bg-gradient-to-b from-slate-900/95 via-slate-950 to-indigo-950/90 border-2 border-indigo-500/40 hover:border-cyan-400/80 rounded-[2.2rem] p-6 shadow-[0_15px_40px_-15px_rgba(99,102,241,0.25)] hover:shadow-[0_20px_50px_-10px_rgba(6,182,212,0.35)] transition-all duration-300 relative overflow-hidden flex flex-col justify-between group"
+                    className="bg-white/95 border-2 border-slate-200/80 hover:border-indigo-400 rounded-[2.2rem] p-6 shadow-[0_10px_35px_-10px_rgba(30,41,59,0.07)] hover:shadow-[0_20px_45px_-10px_rgba(79,46,229,0.15)] transition-all duration-300 relative overflow-hidden flex flex-col justify-between group"
                   >
-                    <div className="absolute top-0 right-0 -mr-16 -mt-16 w-36 h-36 bg-gradient-to-bl from-cyan-500/15 via-indigo-500/10 to-transparent rounded-full blur-2xl pointer-events-none group-hover:scale-150 transition-transform duration-500" />
+                    <div className="absolute top-0 right-0 -mr-16 -mt-16 w-36 h-36 bg-gradient-to-bl from-blue-500/10 via-indigo-500/10 to-transparent rounded-full blur-2xl pointer-events-none group-hover:scale-150 transition-transform duration-500" />
 
                     <div>
                       <div className="flex items-start justify-between gap-3 relative z-10">
                         <div className="flex items-center gap-4">
-                          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 via-indigo-600 to-cyan-500 p-0.5 shadow-[0_0_20px_rgba(245,158,11,0.3)] shrink-0">
-                            <div className="w-full h-full bg-slate-950 rounded-[0.9rem] flex items-center justify-center font-black text-2xl">
+                          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 via-indigo-600 to-blue-500 p-0.5 shadow-md shrink-0">
+                            <div className="w-full h-full bg-white rounded-[0.9rem] flex items-center justify-center font-black text-2xl">
                               {isSuperAdmin ? "👑" : "🛡️"}
                             </div>
                           </div>
                           <div className="overflow-hidden">
-                            <div className="font-black text-base sm:text-lg text-white flex items-center gap-2 flex-wrap truncate">
+                            <div className="font-black text-base sm:text-lg text-slate-900 flex items-center gap-2 flex-wrap truncate">
                               <span>{userName(admin)}</span>
                               <div className="scale-90 origin-left">{roleBadge(admin.role)}</div>
                             </div>
-                            <div className="text-xs font-mono font-semibold text-slate-400 mt-1 truncate" title={admin.email || admin.username || admin.uid}>
+                            <div className="text-xs font-mono font-semibold text-slate-500 mt-1 truncate" title={admin.email || admin.username || admin.uid}>
                               {admin.email || admin.username || admin.uid}
                             </div>
                           </div>
                         </div>
                         <button 
                           type="button" 
-                          className="btn btn-sm bg-white/5 hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-300 border border-white/10 hover:border-cyan-500/30 rounded-xl px-2.5 h-9 shrink-0 transition-colors" 
+                          className="btn btn-sm bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 border border-slate-200 hover:border-indigo-200 rounded-xl px-2.5 h-9 shrink-0 transition-colors" 
                           onClick={() => openUser(admin)} 
                           title="Xem chi tiết & lịch sử đăng nhập thực"
                         >
@@ -1183,22 +1183,22 @@ export default function AdminUsers() {
                         </button>
                       </div>
 
-                      <div className="mt-6 pt-4 border-t border-white/10 space-y-3 relative z-10 text-xs font-semibold text-slate-300">
-                        <div className="flex items-center justify-between bg-slate-950/80 px-3.5 py-2.5 rounded-xl border border-white/5">
-                          <span className="text-slate-400">Trạng thái kết nối:</span>
+                      <div className="mt-6 pt-4 border-t border-slate-100 space-y-3 relative z-10 text-xs font-semibold text-slate-600">
+                        <div className="flex items-center justify-between bg-slate-50 px-3.5 py-2.5 rounded-xl border border-slate-200/80">
+                          <span className="text-slate-500">Trạng thái kết nối:</span>
                           {isOnline(admin) ? (
-                            <span className="text-emerald-400 font-black flex items-center gap-2">
-                              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                            <span className="text-emerald-600 font-black flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
                               <span>Đang hoạt động ({admin.activeSessions} phiên)</span>
                             </span>
                           ) : (
-                            <span className="text-slate-400 font-bold">{relativeActivity(admin.lastSeenAt)}</span>
+                            <span className="text-slate-500 font-bold">{relativeActivity(admin.lastSeenAt)}</span>
                           )}
                         </div>
 
-                        <div className="bg-slate-950/90 p-3.5 rounded-2xl border border-white/10 shadow-inner space-y-2">
+                        <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 shadow-inner space-y-2">
                           <div className="flex items-center justify-between gap-2">
-                            <span className="text-cyan-300 font-black text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+                            <span className="text-indigo-900 font-black text-[11px] uppercase tracking-wider flex items-center gap-1.5">
                               <span>📍</span>
                               <span>Vị trí (GPS & IP):</span>
                             </span>
@@ -1218,21 +1218,21 @@ export default function AdminUsers() {
                                     SonnerWarning("Lỗi định vị", "Vui lòng bật quyền vị trí trên trình duyệt Chrome.");
                                   }
                                 }}
-                                className="btn btn-xs bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black px-3 h-7 text-[11px] rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.5)] border-0 animate-pulse shrink-0 cursor-pointer"
+                                className="btn btn-xs bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black px-3 h-7 text-[11px] rounded-xl shadow-sm border-0 shrink-0 cursor-pointer"
                                 title="Bấm để lấy tọa độ GPS chính xác từ thiết bị, thay thế cho vị trí IP của cổng trạm nhà mạng"
                               >
                                 📍 Lấy GPS thật
                               </button>
                             )}
                           </div>
-                          <div className="font-bold text-white bg-white/[0.04] py-2 px-3 rounded-xl border border-white/5 flex items-center justify-between w-full shadow-inner text-xs leading-relaxed">
+                          <div className="font-bold text-slate-800 bg-white py-2 px-3 rounded-xl border border-slate-200/80 flex items-center justify-between w-full shadow-sm text-xs leading-relaxed">
                             {locationElement}
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between bg-slate-950/80 px-3.5 py-2.5 rounded-xl border border-white/5 font-mono text-[11px]">
-                          <span className="text-slate-400 font-sans">Nguồn / Thiết bị:</span>
-                          <span className="text-indigo-300 font-black truncate max-w-[180px]">
+                        <div className="flex items-center justify-between bg-slate-50 px-3.5 py-2.5 rounded-xl border border-slate-200/80 font-mono text-[11px]">
+                          <span className="text-slate-500 font-sans">Nguồn / Thiết bị:</span>
+                          <span className="text-indigo-700 font-black truncate max-w-[180px]">
                             {sourceLabel(admin.webSource)} · {latestLogin?.browser || "—"}
                           </span>
                         </div>
@@ -1240,14 +1240,14 @@ export default function AdminUsers() {
                     </div>
 
                     {/* Quick Administrative buttons or Immutable Shield inside Admin card */}
-                    <div className="mt-6 pt-4 flex items-center justify-end gap-2 border-t border-white/10 relative z-10">
+                    <div className="mt-6 pt-4 flex items-center justify-end gap-2 border-t border-slate-100 relative z-10">
                       {isSuperAdmin ? (
-                        <div className="w-full bg-gradient-to-r from-amber-500/15 via-indigo-500/20 to-purple-500/15 border border-amber-500/40 text-amber-300 font-black text-[11px] py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 shadow-inner uppercase tracking-wider">
-                          <Lock size={14} className="text-amber-400 shrink-0" />
+                        <div className="w-full bg-gradient-to-r from-amber-50 via-indigo-50 to-purple-50 border border-amber-200/80 text-amber-800 font-black text-[11px] py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 shadow-inner uppercase tracking-wider">
+                          <Lock size={14} className="text-amber-600 shrink-0" />
                           <span>Quyền Tối Thượng Cố Định (Immutable)</span>
                         </div>
                       ) : isSelf ? (
-                        <div className="w-full bg-purple-500/15 border border-purple-500/40 text-purple-300 font-extrabold text-[11px] py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 shadow-inner uppercase tracking-wider">
+                        <div className="w-full bg-indigo-50 border border-indigo-200 text-indigo-800 font-extrabold text-[11px] py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 shadow-inner uppercase tracking-wider">
                           <span>👤 Tài khoản chính bạn (Protected)</span>
                         </div>
                       ) : (
@@ -1256,7 +1256,7 @@ export default function AdminUsers() {
                             <button
                               type="button"
                               onClick={() => setActionModal({ type: "role", user: admin, newRole: admin.role || "user", reason: "" })}
-                              className="btn btn-xs bg-purple-500/20 hover:bg-purple-600 text-purple-300 hover:text-white border border-purple-500/40 font-black rounded-xl px-3.5 h-8 transition-all"
+                              className="btn btn-xs bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 font-black rounded-xl px-3.5 h-8 transition-all"
                             >
                               Đổi vai trò
                             </button>
@@ -1265,7 +1265,7 @@ export default function AdminUsers() {
                             <button
                               type="button"
                               onClick={() => setActionModal({ type: "revoke", user: admin, reason: "" })}
-                              className="btn btn-xs bg-rose-500/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/40 font-black rounded-xl px-3.5 h-8 transition-all"
+                              className="btn btn-xs bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white border border-rose-200 font-black rounded-xl px-3.5 h-8 transition-all"
                             >
                               Thu hồi phiên
                             </button>
@@ -1281,15 +1281,15 @@ export default function AdminUsers() {
 
           {/* SECTION B: NGƯỜI DÙNG LOCKET WEB */}
           <div className="space-y-6">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10 flex-wrap gap-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200/80 flex-wrap gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-xl font-bold shadow-inner">
+                <div className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 text-xl font-bold shadow-sm">
                   👥
                 </div>
                 <div>
-                  <h2 className="text-xl sm:text-2xl font-black flex items-center gap-2 tracking-tight text-white">
+                  <h2 className="text-xl sm:text-2xl font-black flex items-center gap-2 tracking-tight text-slate-900">
                     <span>Người dùng Locket Web</span>
-                    <span className="badge bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-black text-xs px-3 py-3 rounded-xl shadow-sm">
+                    <span className="badge bg-indigo-50 text-indigo-700 border border-indigo-200 font-black text-xs px-3 py-3 rounded-xl shadow-sm">
                       {normalUsers.length} Tài Khoản
                     </span>
                   </h2>
@@ -1304,7 +1304,7 @@ export default function AdminUsers() {
                     SonnerSuccess("🔄 Đã tải lại!", "Danh sách người dùng và tọa độ đã được cập nhật.");
                   }}
                   disabled={loading}
-                  className="btn btn-sm bg-slate-900 hover:bg-slate-800 text-slate-300 border border-white/10 rounded-xl font-bold px-4 h-10 text-xs shadow-sm flex items-center gap-1.5 cursor-pointer"
+                  className="btn btn-sm bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl font-bold px-4 h-10 text-xs shadow-sm flex items-center gap-1.5 cursor-pointer"
                   title="Tải lại ngay danh sách người dùng Locket Web"
                 >
                   {loading ? <span className="loading loading-spinner loading-xs" /> : <span>🔄 Làm mới</span>}
@@ -1313,7 +1313,7 @@ export default function AdminUsers() {
                   type="button"
                   onClick={handlePurgeBots}
                   disabled={purgingBots}
-                  className="btn btn-sm bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-black border-0 rounded-xl px-5 h-10 shadow-[0_0_20px_-5px_rgba(244,63,94,0.6)] transition-all flex items-center gap-2 cursor-pointer active:scale-95 text-xs sm:text-sm"
+                  className="btn btn-sm bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-black border-0 rounded-xl px-5 h-10 shadow-[0_10px_20px_-5px_rgba(244,63,94,0.3)] transition-all flex items-center gap-2 cursor-pointer active:scale-95 text-xs sm:text-sm"
                 >
                   {purgingBots ? (
                     <>
@@ -1330,12 +1330,12 @@ export default function AdminUsers() {
               </div>
             </div>
 
-            {/* CYBER OBSERVABILITY TABLE */}
-            <div className="bg-slate-950/95 rounded-[2.2rem] shadow-2xl border border-slate-800/80 overflow-hidden backdrop-blur-2xl">
+            {/* CRYSTALLINE OBSERVABILITY TABLE */}
+            <div className="bg-white/95 rounded-[2.2rem] shadow-[0_15px_45px_-10px_rgba(30,41,59,0.08)] border border-slate-200/80 overflow-hidden backdrop-blur-2xl">
               <div className="overflow-x-auto">
                 <table className="table w-full text-sm font-medium">
                   <thead>
-                    <tr className="bg-slate-900/90 text-cyan-300 font-extrabold text-xs uppercase tracking-wider border-b border-white/10">
+                    <tr className="bg-slate-50/90 text-indigo-950 font-extrabold text-xs uppercase tracking-wider border-b border-slate-200/80">
                       <th className="py-4 pl-6">Người dùng & Vai trò</th>
                       <th>Đăng nhập gần nhất</th>
                       <th>IP / Vị trí (GPS & IP)</th>
@@ -1346,18 +1346,18 @@ export default function AdminUsers() {
                       <th className="text-right pr-6">Thao tác</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5 text-slate-200">
+                  <tbody className="divide-y divide-slate-100 text-slate-700">
                     {loading && users.length === 0 ? (
-                      <tr><td colSpan="8" className="text-center py-20"><span className="loading loading-bars loading-lg text-cyan-400" /></td></tr>
+                      <tr><td colSpan="8" className="text-center py-20"><span className="loading loading-bars loading-lg text-indigo-600" /></td></tr>
                     ) : error ? (
-                      <tr><td colSpan="8" className="text-center py-16"><AlertTriangle size={36} className="mx-auto text-rose-400 mb-2 animate-bounce" /><p className="text-rose-300 font-bold">{error.message}</p><button type="button" onClick={() => fetchUsers()} className="btn btn-sm btn-outline mt-4 rounded-xl font-bold"><RefreshCw size={14} /> Thử lại ngay</button></td></tr>
+                      <tr><td colSpan="8" className="text-center py-16"><AlertTriangle size={36} className="mx-auto text-rose-500 mb-2 animate-bounce" /><p className="text-rose-600 font-bold">{error.message}</p><button type="button" onClick={() => fetchUsers()} className="btn btn-sm btn-outline mt-4 rounded-xl font-bold"><RefreshCw size={14} /> Thử lại ngay</button></td></tr>
                     ) : normalUsers.length === 0 ? (
                       <tr>
                         <td colSpan="8" className="text-center py-20 text-slate-500">
                           <div className="max-w-md mx-auto space-y-3 py-6">
                             <div className="text-5xl">📭</div>
-                            <p className="text-lg font-black text-white">Chưa ghi nhận người dùng Locket Web nào</p>
-                            <p className="text-xs text-slate-400 leading-relaxed font-semibold">Hệ thống Giám sát Real-time đang rình gác. Ngay khi có người dùng đăng nhập, hồ sơ thật và lịch sử tọa độ sẽ xuất hiện tức thời tại đây.</p>
+                            <p className="text-lg font-black text-slate-800">Chưa ghi nhận người dùng Locket Web nào</p>
+                            <p className="text-xs text-slate-500 leading-relaxed font-semibold">Hệ thống Giám sát Real-time đang rình gác. Ngay khi có người dùng đăng nhập, hồ sơ thật và lịch sử tọa độ sẽ xuất hiện tức thời tại đây.</p>
                           </div>
                         </td>
                       </tr>
@@ -1368,15 +1368,15 @@ export default function AdminUsers() {
                       const isSelf = user.uid === currentUserUid;
 
                       return (
-                        <tr key={user.uid} className="hover:bg-white/[0.04] transition-colors group">
+                        <tr key={user.uid} className="hover:bg-indigo-50/40 transition-colors group">
                           <td className="py-4 pl-6">
-                            <div className="font-black text-sm flex items-center gap-2 text-white">
+                            <div className="font-black text-sm flex items-center gap-2 text-slate-900">
                               <span>{userName(user)}</span>
                               <div className="scale-90 origin-left">{roleBadge(user.role)}</div>
                             </div>
-                            <div className="text-xs text-slate-400 font-mono mt-1 flex items-center gap-2 flex-wrap">
+                            <div className="text-xs text-slate-500 font-mono mt-1 flex items-center gap-2 flex-wrap">
                               <span>{user.email || user.uid}</span>
-                              <span className="px-2 py-0.5 rounded-md bg-white/5 text-cyan-300 font-bold text-[10px] font-mono border border-white/10 shadow-sm" title={`Raw UID: ${user.uid}`}>
+                              <span className="px-2 py-0.5 rounded-md bg-slate-100 text-indigo-700 font-bold text-[10px] font-mono border border-slate-200 shadow-sm" title={`Raw UID: ${user.uid}`}>
                                 {getFixedNumericUid(user.uid)}
                               </span>
                             </div>
@@ -1384,64 +1384,64 @@ export default function AdminUsers() {
                           <td className="min-w-36">
                             {latestLogin ? (
                               <div className="space-y-1">
-                                <div className="text-xs font-bold text-slate-200">{formatDateTime(latestLogin.created_at)}</div>
-                                <span className="inline-block px-2 py-0.5 rounded-md bg-purple-500/15 text-purple-300 text-[11px] font-mono font-bold border border-purple-500/20">
+                                <div className="text-xs font-bold text-slate-700">{formatDateTime(latestLogin.created_at)}</div>
+                                <span className="inline-block px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 text-[11px] font-mono font-bold border border-purple-200/80">
                                   {loginMethodLabel(latestLogin.login_method || user.loginMethod || user.provider)}
                                 </span>
                               </div>
-                            ) : <span className="text-xs text-slate-500 italic">Chưa ghi nhận</span>}
+                            ) : <span className="text-xs text-slate-400 italic">Chưa ghi nhận</span>}
                           </td>
                           <td className="min-w-48">
-                            <div className="font-mono font-extrabold text-xs text-cyan-300 flex items-center gap-1.5">
+                            <div className="font-mono font-extrabold text-xs text-indigo-700 flex items-center gap-1.5">
                               <span>🌐</span>
                               <span>{latestLogin?.ip_address || UNKNOWN}</span>
                             </div>
-                            <div className="mt-1.5 text-xs text-slate-300 font-medium">{locationElement}</div>
+                            <div className="mt-1.5 text-xs text-slate-600 font-medium">{locationElement}</div>
                           </td>
                           <td className="min-w-48">
-                            <div className="inline-flex items-center gap-1.5 text-xs font-bold text-white">
-                              <Monitor size={14} className="text-emerald-400 shrink-0" /> 
+                            <div className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-900">
+                              <Monitor size={14} className="text-emerald-600 shrink-0" /> 
                               <span>{latestLogin?.browser || UNKNOWN} {latestLogin?.browser_version !== UNKNOWN ? latestLogin?.browser_version : ""}</span>
                             </div>
-                            <div className="text-[11px] text-slate-400 mt-0.5 font-semibold">{latestLogin ? `${latestLogin.os || UNKNOWN} · ${latestLogin.device || UNKNOWN}` : UNKNOWN}</div>
-                            <div className="text-[10px] text-slate-500 font-mono mt-0.5">Build: {latestLogin?.commit_hash || latestLogin?.build_id || "—"}</div>
+                            <div className="text-[11px] text-slate-500 mt-0.5 font-semibold">{latestLogin ? `${latestLogin.os || UNKNOWN} · ${latestLogin.device || UNKNOWN}` : UNKNOWN}</div>
+                            <div className="text-[10px] text-slate-400 font-mono mt-0.5">Build: {latestLogin?.commit_hash || latestLogin?.build_id || "—"}</div>
                           </td>
                           <td>
                             {user.disabled ? (
-                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-500/40 text-xs font-black shadow-sm">
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 text-xs font-black shadow-sm">
                                 <Lock size={13} /> Đã khóa
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-black shadow-sm">
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black shadow-sm">
                                 <Unlock size={13} /> Hoạt động
                               </span>
                             )}
                           </td>
                           <td>
                             {isOnline(user) ? (
-                              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-black shadow-sm animate-pulse">
-                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black shadow-sm">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
                                 <span>Online ({user.activeSessions} phiên)</span>
                               </span>
                             ) : (
-                              <span className="text-xs font-bold text-slate-400">
+                              <span className="text-xs font-bold text-slate-500">
                                 {user.lastLogoutAt && new Date(user.lastLogoutAt) >= new Date(user.lastSeenAt || 0) ? "⚪ Đã đăng xuất" : relativeActivity(user.lastSeenAt)}
                               </span>
                             )}
                           </td>
                           <td>
-                            <span className="px-2.5 py-1 rounded-xl bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 text-xs font-bold font-mono shadow-sm">
+                            <span className="px-2.5 py-1 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-bold font-mono shadow-sm">
                               {sourceLabel(latestLogin?.web_source || user.webSource)}
                             </span>
                           </td>
                           <td className="text-right pr-6">
                             <div className="flex items-center justify-end gap-2">
                               {isSuperAdmin ? (
-                                <span className="px-2.5 py-1 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-black uppercase select-none">
+                                <span className="px-2.5 py-1 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-[11px] font-black uppercase select-none">
                                   🔒 Cố định
                                 </span>
                               ) : isSelf ? (
-                                <span className="px-2.5 py-1 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/40 text-[11px] font-bold select-none">
+                                <span className="px-2.5 py-1 rounded-xl bg-purple-50 text-purple-700 border border-purple-200 text-[11px] font-bold select-none">
                                   👤 Chính bạn
                                 </span>
                               ) : (
@@ -1450,7 +1450,7 @@ export default function AdminUsers() {
                                     <>
                                       <button
                                         type="button"
-                                        className={`btn btn-xs rounded-xl font-extrabold h-8 px-3 transition-all ${user.disabled ? "bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 border border-emerald-500/40" : "bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border border-amber-500/40"}`}
+                                        className={`btn btn-xs rounded-xl font-extrabold h-8 px-3 transition-all ${user.disabled ? "bg-emerald-50 hover:bg-emerald-500 text-emerald-700 hover:text-white border border-emerald-200" : "bg-amber-50 hover:bg-amber-500 text-amber-800 hover:text-white border border-amber-200"}`}
                                         onClick={() => setActionModal({ type: user.disabled ? "unlock" : "lock", user, reason: "" })}
                                         title={user.disabled ? "Mở khóa web" : "Khóa truy cập web"}
                                       >
@@ -1458,7 +1458,7 @@ export default function AdminUsers() {
                                       </button>
                                       <button
                                         type="button"
-                                        className="btn btn-xs bg-rose-500/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/40 rounded-xl font-extrabold h-8 px-3 transition-all"
+                                        className="btn btn-xs bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white border border-rose-200 rounded-xl font-extrabold h-8 px-3 transition-all"
                                         onClick={() => setActionModal({ type: "revoke", user, reason: "" })}
                                         title="Thu hồi toàn bộ phiên làm việc web"
                                       >
@@ -1469,7 +1469,7 @@ export default function AdminUsers() {
                                   {currentRole === "super_admin" && (
                                     <button
                                       type="button"
-                                      className="btn btn-xs bg-indigo-500/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/40 rounded-xl font-black h-8 px-3 transition-all"
+                                      className="btn btn-xs bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 rounded-xl font-black h-8 px-3 transition-all"
                                       onClick={() => setActionModal({ type: "role", user, newRole: user.role || "user", reason: "" })}
                                       title="Gán quyền RBAC"
                                     >
@@ -1480,7 +1480,7 @@ export default function AdminUsers() {
                               )}
                               <button 
                                 type="button" 
-                                className="btn btn-sm bg-white/5 hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-300 border border-white/10 hover:border-cyan-500/30 rounded-xl px-2.5 h-8 transition-colors" 
+                                className="btn btn-sm bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 border border-slate-200 hover:border-indigo-200 rounded-xl px-2.5 h-8 transition-colors" 
                                 onClick={() => openUser(user)} 
                                 title="Xem trọn bộ lịch sử đăng nhập thực"
                               >
@@ -1497,14 +1497,14 @@ export default function AdminUsers() {
             </div>
 
             {!loading && !error && (
-              <p className="mt-4 text-xs text-slate-400 text-center font-bold font-mono">
-                ⚡ Đang hiển thị <strong className="text-cyan-300">{users.length}/{totalUsers}</strong> người dùng Locket Web
+              <p className="mt-4 text-xs text-slate-500 text-center font-bold font-mono">
+                ⚡ Đang hiển thị <strong className="text-indigo-700 font-black">{users.length}/{totalUsers}</strong> người dùng Locket Web
               </p>
             )}
 
             {!loading && !error && pageToken && !search.trim() && (
               <div className="mt-6 flex justify-center">
-                <button type="button" className="btn bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-cyan-500/40 hover:border-cyan-400 rounded-2xl px-8 h-12 font-black shadow-lg" onClick={() => fetchUsers(pageToken)}>
+                <button type="button" className="btn bg-white hover:bg-slate-50 text-indigo-700 border border-indigo-200 rounded-2xl px-8 h-12 font-black shadow-md transition-all active:scale-95 cursor-pointer" onClick={() => fetchUsers(pageToken)}>
                   🔄 Tải thêm danh sách
                 </button>
               </div>
@@ -1515,18 +1515,18 @@ export default function AdminUsers() {
 
       {/* TAB 2: AUDIT LOGS */}
       {activeTab === "audit" && (
-        <div className="bg-slate-950 text-white rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] border border-slate-800/80 p-6 sm:p-9 animate-fade-in relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-[450px] h-[450px] bg-purple-500/10 rounded-full blur-[120px] pointer-events-none -mt-32 -mr-32" />
+        <div className="bg-white/95 text-slate-800 rounded-[2.5rem] shadow-[0_15px_50px_-10px_rgba(30,41,59,0.08)] border border-slate-200/80 p-6 sm:p-9 animate-fade-in relative overflow-hidden backdrop-blur-2xl">
+          <div className="absolute top-0 right-0 w-[450px] h-[450px] bg-purple-400/10 rounded-full blur-[120px] pointer-events-none -mt-32 -mr-32" />
           
-          <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-white/10">
+          <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-slate-200/80">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-black mb-2 shadow-inner">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-50 border border-purple-200 text-purple-700 text-xs font-black mb-2 shadow-sm">
                 <span>📜 IMMUTABLE SECURITY TRACKER</span>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-purple-200 flex items-center gap-2.5">
+              <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-purple-950 via-slate-900 to-indigo-900 flex items-center gap-2.5">
                 Nhật Ký Quản Trị Huy Locket (Audit Log)
               </h2>
-              <p className="text-sm text-slate-400 font-medium mt-1">
+              <p className="text-sm text-slate-600 font-medium mt-1">
                 Lưu vết toàn bộ thao tác nhạy cảm của các quản trị viên theo chuẩn Append-Only. Dữ liệu vĩnh viễn không thể tẩy xóa bởi admin thường.
               </p>
             </div>
@@ -1535,19 +1535,19 @@ export default function AdminUsers() {
               <input
                 type="text"
                 placeholder="Lọc lệnh (LOCK, REVOKE...)"
-                className="input input-bordered text-xs rounded-2xl h-11 bg-slate-900 text-white border-white/15 focus:border-purple-400 font-bold px-4"
+                className="input input-bordered text-xs rounded-2xl h-11 bg-slate-50 text-slate-900 border-slate-200 focus:border-purple-600 focus:bg-white font-bold px-4 shadow-inner"
                 value={auditFilterAction}
                 onChange={(e) => setAuditFilterAction(e.target.value)}
               />
               <input
                 type="text"
                 placeholder="Lọc theo UID admin..."
-                className="input input-bordered text-xs rounded-2xl h-11 bg-slate-900 text-white border-white/15 focus:border-purple-400 font-bold px-4"
+                className="input input-bordered text-xs rounded-2xl h-11 bg-slate-50 text-slate-900 border-slate-200 focus:border-purple-600 focus:bg-white font-bold px-4 shadow-inner"
                 value={auditFilterAdmin}
                 onChange={(e) => setAuditFilterAdmin(e.target.value)}
               />
-              <button type="button" onClick={fetchAuditLogs} className="btn bg-slate-900 hover:bg-slate-800 text-purple-300 border border-purple-500/40 rounded-2xl h-11 px-4 font-extrabold flex items-center gap-2" title="Tải lại log">
-                <RefreshCw size={17} className={auditLoading ? "animate-spin" : ""} />
+              <button type="button" onClick={fetchAuditLogs} className="btn bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 rounded-2xl h-11 px-4 font-extrabold flex items-center gap-2 shadow-sm cursor-pointer active:scale-95" title="Tải lại log">
+                <RefreshCw size={17} className={auditLoading ? "animate-spin text-purple-600" : "text-purple-600"} />
                 <span>Làm Mới</span>
               </button>
             </div>
@@ -1556,21 +1556,21 @@ export default function AdminUsers() {
           <div className="relative z-10">
             {auditLoading ? (
               <div className="py-20 text-center flex flex-col items-center justify-center gap-4">
-                <span className="loading loading-bars loading-lg text-purple-400" />
-                <p className="text-sm font-black text-slate-400 uppercase tracking-widest">Đang truy xuất Sổ Lưu Vết từ hạ tầng Neon Postgres...</p>
+                <span className="loading loading-bars loading-lg text-purple-600" />
+                <p className="text-sm font-black text-slate-600 uppercase tracking-widest">Đang truy xuất Sổ Lưu Vết từ hạ tầng Neon Postgres...</p>
               </div>
             ) : auditError ? (
-              <div className="alert bg-rose-500/20 border border-rose-500 text-rose-200 text-sm rounded-2xl p-4 font-bold"><AlertTriangle size={20} /> <span>{auditError}</span></div>
+              <div className="alert bg-rose-50 border border-rose-200 text-rose-800 text-sm rounded-2xl p-4 font-bold shadow-sm"><AlertTriangle size={20} className="text-rose-600" /> <span>{auditError}</span></div>
             ) : auditLogs.length === 0 ? (
               <div className="text-center py-20 text-slate-500">
                 <div className="text-5xl mb-4">📭</div>
-                <p className="font-black text-lg text-white">Chưa có bản ghi Audit Log nào phù hợp</p>
-                <p className="text-xs mt-1 text-slate-400 font-semibold">Các thao tác khóa tài khoản, thu hồi phiên hay đổi quyền RBAC sẽ xuất hiện tự động tại đây.</p>
+                <p className="font-black text-lg text-slate-900">Chưa có bản ghi Audit Log nào phù hợp</p>
+                <p className="text-xs mt-1 text-slate-500 font-semibold">Các thao tác khóa tài khoản, thu hồi phiên hay đổi quyền RBAC sẽ xuất hiện tự động tại đây.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto border border-white/10 rounded-2xl bg-slate-900/60 shadow-inner max-h-[600px] overflow-y-auto">
+              <div className="overflow-x-auto border border-slate-200/80 rounded-2xl bg-white shadow-inner max-h-[600px] overflow-y-auto">
                 <table className="table table-sm w-full text-sm font-medium">
-                  <thead className="bg-slate-900 font-extrabold text-purple-300 text-xs uppercase tracking-wider sticky top-0 z-10 border-b border-white/10">
+                  <thead className="bg-slate-50/90 font-extrabold text-purple-950 text-xs uppercase tracking-wider sticky top-0 z-10 border-b border-slate-200/80">
                     <tr>
                       <th className="py-3.5 pl-5">Thời gian server</th>
                       <th>Quản trị viên</th>
@@ -1580,26 +1580,26 @@ export default function AdminUsers() {
                       <th className="pr-5">IP / Nguồn thao tác</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5 text-slate-200">
+                  <tbody className="divide-y divide-slate-100 text-slate-700">
                     {auditLogs.map((log) => (
-                      <tr key={log.id} className="hover:bg-white/[0.04] transition-colors">
-                        <td className="whitespace-nowrap font-mono text-xs font-bold text-slate-300 pl-5 py-3.5">{formatDateTime(log.created_at)}</td>
+                      <tr key={log.id} className="hover:bg-purple-50/40 transition-colors">
+                        <td className="whitespace-nowrap font-mono text-xs font-bold text-slate-700 pl-5 py-3.5">{formatDateTime(log.created_at)}</td>
                         <td>
-                          <div className="font-mono text-xs font-black text-cyan-300" title={`Raw Admin UID: ${log.admin_uid}`}>{getFixedNumericUid(log.admin_uid)}</div>
+                          <div className="font-mono text-xs font-black text-indigo-700" title={`Raw Admin UID: ${log.admin_uid}`}>{getFixedNumericUid(log.admin_uid)}</div>
                           <div className="mt-1 scale-90 origin-left">{roleBadge(log.role)}</div>
                         </td>
                         <td>
-                          <span className="px-3 py-1 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/40 font-mono font-black text-xs shadow-sm">
+                          <span className="px-3 py-1 rounded-xl bg-purple-50 text-purple-700 border border-purple-200 font-mono font-black text-xs shadow-sm">
                             {log.action}
                           </span>
                         </td>
-                        <td className="font-mono text-xs font-bold text-amber-300" title={`Raw Target UID: ${log.target_uid || "—"}`}>
+                        <td className="font-mono text-xs font-bold text-amber-700" title={`Raw Target UID: ${log.target_uid || "—"}`}>
                           {log.target_uid && log.target_uid !== "—" ? getFixedNumericUid(log.target_uid) : "—"}
                         </td>
-                        <td className="text-xs font-semibold text-slate-300 max-w-md break-words">{log.details || "—"}</td>
+                        <td className="text-xs font-semibold text-slate-700 max-w-md break-words">{log.details || "—"}</td>
                         <td className="text-xs pr-5">
-                          <div className="font-mono font-extrabold text-white">{log.ip_address || UNKNOWN}</div>
-                          <div className="text-[11px] font-bold text-slate-400 mt-0.5">{sourceLabel(log.web_source)}</div>
+                          <div className="font-mono font-extrabold text-slate-900">{log.ip_address || UNKNOWN}</div>
+                          <div className="text-[11px] font-bold text-slate-500 mt-0.5">{sourceLabel(log.web_source)}</div>
                         </td>
                       </tr>
                     ))}
@@ -1613,42 +1613,42 @@ export default function AdminUsers() {
 
       {/* TAB 3: REPORTED CONTENT */}
       {activeTab === "reports" && (
-        <div className="bg-slate-950 text-white rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] border border-slate-800/80 p-6 sm:p-9 animate-fade-in relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-[450px] h-[450px] bg-amber-500/10 rounded-full blur-[120px] pointer-events-none -mt-32 -mr-32" />
+        <div className="bg-white/95 text-slate-800 rounded-[2.5rem] shadow-[0_15px_50px_-10px_rgba(30,41,59,0.08)] border border-slate-200/80 p-6 sm:p-9 animate-fade-in relative overflow-hidden backdrop-blur-2xl">
+          <div className="absolute top-0 right-0 w-[450px] h-[450px] bg-amber-400/10 rounded-full blur-[120px] pointer-events-none -mt-32 -mr-32" />
 
-          <div className="relative z-10 flex items-center justify-between mb-8 pb-6 border-b border-white/10 flex-wrap gap-4">
+          <div className="relative z-10 flex items-center justify-between mb-8 pb-6 border-b border-slate-200/80 flex-wrap gap-4">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-black mb-2 shadow-inner">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs font-black mb-2 shadow-sm">
                 <span>🛡️ CONTENT MODERATION SHIELD</span>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-amber-100 to-rose-200 flex items-center gap-2.5">
+              <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-950 via-slate-900 to-rose-900 flex items-center gap-2.5">
                 Quản Lý Nội Dung Bị Báo Cáo
               </h2>
-              <p className="text-sm text-slate-400 font-medium mt-1">
+              <p className="text-sm text-slate-600 font-medium mt-1">
                 Trạm xử lý vi phạm tiêu chuẩn cộng đồng dành riêng cho Quản trị viên và Moderator của Huy Locket.
               </p>
             </div>
-            <button type="button" onClick={fetchReports} className="btn bg-slate-900 hover:bg-slate-800 text-amber-300 border border-amber-500/40 rounded-2xl h-11 px-5 font-black flex items-center gap-2" title="Tải lại">
-              <RefreshCw size={17} className={reportsLoading ? "animate-spin" : ""} />
+            <button type="button" onClick={fetchReports} className="btn bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-2xl h-11 px-5 font-black flex items-center gap-2 shadow-sm cursor-pointer active:scale-95" title="Tải lại">
+              <RefreshCw size={17} className={reportsLoading ? "animate-spin text-amber-600" : "text-amber-600"} />
               <span>Tải Lại Báo Cáo</span>
             </button>
           </div>
 
           <div className="relative z-10">
             {reportsLoading ? (
-              <div className="py-20 text-center flex flex-col items-center justify-center gap-4"><span className="loading loading-spinner loading-lg text-amber-400" /></div>
+              <div className="py-20 text-center flex flex-col items-center justify-center gap-4"><span className="loading loading-spinner loading-lg text-amber-600" /></div>
             ) : reportsError ? (
-              <div className="alert bg-rose-500/20 border border-rose-500 text-rose-200 text-sm rounded-2xl p-4 font-bold"><AlertTriangle size={20} /> <span>{reportsError}</span></div>
+              <div className="alert bg-rose-50 border border-rose-200 text-rose-800 text-sm rounded-2xl p-4 font-bold shadow-sm"><AlertTriangle size={20} className="text-rose-600" /> <span>{reportsError}</span></div>
             ) : reports.length === 0 ? (
-              <div className="text-center py-20 text-slate-500 bg-slate-900/40 rounded-3xl border border-white/5">
+              <div className="text-center py-20 text-slate-500 bg-slate-50/80 rounded-3xl border border-slate-200/80">
                 <div className="text-6xl mb-4 animate-bounce">🎉</div>
-                <p className="font-black text-xl text-white">Không Có Nội Dung Vi Phạm Nào!</p>
-                <p className="text-sm text-slate-400 mt-1 font-semibold">Môi trường giao tiếp trên Locket đang cực kỳ an toàn và sạch sẽ.</p>
+                <p className="font-black text-xl text-slate-900">Không Có Nội Dung Vi Phạm Nào!</p>
+                <p className="text-sm text-slate-500 mt-1 font-semibold">Môi trường giao tiếp trên Locket đang cực kỳ an toàn và sạch sẽ.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto border border-white/10 rounded-2xl bg-slate-900/60 shadow-inner">
+              <div className="overflow-x-auto border border-slate-200/80 rounded-2xl bg-white shadow-inner">
                 <table className="table w-full text-sm font-medium">
-                  <thead className="bg-slate-900 font-extrabold text-amber-300 text-xs uppercase tracking-wider border-b border-white/10">
+                  <thead className="bg-slate-50/90 font-extrabold text-amber-950 text-xs uppercase tracking-wider border-b border-slate-200/80">
                     <tr>
                       <th className="py-3.5 pl-5">ID Bài / Nội dung</th>
                       <th>Người báo cáo</th>
@@ -1658,18 +1658,18 @@ export default function AdminUsers() {
                       <th className="text-right pr-5">Xử lý vi phạm</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5 text-slate-200">
+                  <tbody className="divide-y divide-slate-100 text-slate-700">
                     {reports.map((report) => (
-                      <tr key={report.id} className="hover:bg-white/[0.04] transition-colors">
-                        <td className="font-mono text-xs font-black text-cyan-300 pl-5 py-3.5">{report.content_id}</td>
-                        <td className="font-mono text-xs font-bold text-slate-300">{report.reporter_uid || "Ẩn danh"}</td>
-                        <td className="font-mono text-xs font-bold text-slate-300">{report.author_uid || "—"}</td>
-                        <td className="text-xs font-black text-rose-400">{report.reason || "Vi phạm tiêu chuẩn"}</td>
-                        <td><span className="px-2.5 py-1 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-black shadow-sm">Đang chờ xử lý</span></td>
+                      <tr key={report.id} className="hover:bg-amber-50/30 transition-colors">
+                        <td className="font-mono text-xs font-black text-indigo-700 pl-5 py-3.5">{report.content_id}</td>
+                        <td className="font-mono text-xs font-bold text-slate-800">{report.reporter_uid || "Ẩn danh"}</td>
+                        <td className="font-mono text-xs font-bold text-slate-800">{report.author_uid || "—"}</td>
+                        <td className="text-xs font-black text-rose-600">{report.reason || "Vi phạm tiêu chuẩn"}</td>
+                        <td><span className="px-2.5 py-1 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-xs font-black shadow-sm">Đang chờ xử lý</span></td>
                         <td className="text-right space-x-2 pr-5">
-                          <button type="button" onClick={() => handleResolveReport(report.id, "hidden")} className="btn btn-xs bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border border-amber-500/40 font-extrabold rounded-xl h-8 px-3 transition-all">Ẩn bài</button>
-                          <button type="button" onClick={() => handleResolveReport(report.id, "deleted")} className="btn btn-xs bg-rose-500/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/40 font-extrabold rounded-xl h-8 px-3 transition-all">Xóa mềm</button>
-                          <button type="button" onClick={() => handleResolveReport(report.id, "dismissed")} className="btn btn-xs bg-white/5 hover:bg-white/10 text-slate-300 font-bold rounded-xl h-8 px-3 transition-all">Bỏ qua</button>
+                          <button type="button" onClick={() => handleResolveReport(report.id, "hidden")} className="btn btn-xs bg-amber-50 hover:bg-amber-500 text-amber-800 hover:text-white border border-amber-200 font-extrabold rounded-xl h-8 px-3 transition-all">Ẩn bài</button>
+                          <button type="button" onClick={() => handleResolveReport(report.id, "deleted")} className="btn btn-xs bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white border border-rose-200 font-extrabold rounded-xl h-8 px-3 transition-all">Xóa mềm</button>
+                          <button type="button" onClick={() => handleResolveReport(report.id, "dismissed")} className="btn btn-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl h-8 px-3 transition-all">Bỏ qua</button>
                         </td>
                       </tr>
                     ))}
@@ -1684,68 +1684,68 @@ export default function AdminUsers() {
       {/* TAB 4: ADVANCED SUPER ADMIN POWER SUITE */}
       {activeTab === "advanced" && (
         <div className="space-y-7 animate-fade-in">
-          {/* SUB-NAVIGATOR FOR SUPREME POWER SUITE - OBSIDIAN CYBER DOCK */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 bg-slate-950/95 p-3.5 sm:p-4 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.4)] border border-white/10 backdrop-blur-2xl">
+          {/* SUB-NAVIGATOR FOR SUPREME POWER SUITE - BRIGHT CRYSTALLINE DOCK */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 bg-white/90 p-3.5 sm:p-4 rounded-3xl shadow-[0_10px_35px_-5px_rgba(30,41,59,0.07)] border border-slate-200/80 backdrop-blur-xl">
             <button
               type="button"
               onClick={() => setAdvancedSubTab("telemetry")}
-              className={`flex items-center gap-3.5 p-4 rounded-2xl transition-all duration-300 cursor-pointer text-left shadow-lg border relative overflow-hidden ${
+              className={`flex items-center gap-3.5 p-4 rounded-2xl transition-all duration-300 cursor-pointer text-left shadow-sm border relative overflow-hidden ${
                 advancedSubTab === "telemetry"
-                  ? "bg-gradient-to-r from-cyan-600 via-indigo-600 to-purple-700 text-white border-cyan-400/60 shadow-[0_0_25px_-5px_rgba(56,189,248,0.4)] scale-[1.01]"
-                  : "bg-slate-900/80 text-slate-300 border-white/5 hover:border-cyan-500/40 hover:bg-slate-800/80 hover:text-white"
+                  ? "bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-700 text-white border-0 shadow-lg shadow-indigo-500/20 scale-[1.01]"
+                  : "bg-slate-50 text-slate-700 border-slate-200/80 hover:border-indigo-300 hover:bg-indigo-50/50 hover:text-indigo-950"
               }`}
             >
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 ${advancedSubTab === "telemetry" ? "bg-white/20 text-cyan-200 shadow-md scale-105" : "bg-cyan-500/15 text-cyan-400"}`}>
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 ${advancedSubTab === "telemetry" ? "bg-white/20 text-indigo-100 shadow-md scale-105" : "bg-indigo-100/80 text-indigo-700"}`}>
                 <Activity size={24} className={advancedSubTab === "telemetry" ? "animate-pulse" : ""} />
               </div>
               <div className="overflow-hidden">
-                <div className="text-[10px] font-extrabold uppercase tracking-widest text-cyan-300/80 mb-0.5 flex items-center gap-1">
-                  <span>HẠ TẦNG CLOUD</span>
-                  {advancedSubTab === "telemetry" && <span className="w-1.5 h-1.5 rounded-full bg-cyan-300 animate-ping" />}
+                <div className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-200 mb-0.5 flex items-center gap-1">
+                  <span className={advancedSubTab === "telemetry" ? "text-indigo-200" : "text-slate-400"}>HẠ TẦNG CLOUD</span>
+                  {advancedSubTab === "telemetry" && <span className="w-1.5 h-1.5 rounded-full bg-indigo-200 animate-ping" />}
                 </div>
-                <div className="text-sm font-black truncate text-white">Cảm Biến Telemetry</div>
+                <div className={`text-sm font-black truncate ${advancedSubTab === "telemetry" ? "text-white" : "text-slate-900"}`}>Cảm Biến Telemetry</div>
               </div>
             </button>
 
             <button
               type="button"
               onClick={() => setAdvancedSubTab("broadcast")}
-              className={`flex items-center gap-3.5 p-4 rounded-2xl transition-all duration-300 cursor-pointer text-left shadow-lg border relative overflow-hidden ${
+              className={`flex items-center gap-3.5 p-4 rounded-2xl transition-all duration-300 cursor-pointer text-left shadow-sm border relative overflow-hidden ${
                 advancedSubTab === "broadcast"
-                  ? "bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white border-blue-400/60 shadow-[0_0_25px_-5px_rgba(59,130,246,0.4)] scale-[1.01]"
-                  : "bg-slate-900/80 text-slate-300 border-white/5 hover:border-blue-500/40 hover:bg-slate-800/80 hover:text-white"
+                  ? "bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white border-0 shadow-lg shadow-blue-500/20 scale-[1.01]"
+                  : "bg-slate-50 text-slate-700 border-slate-200/80 hover:border-blue-300 hover:bg-blue-50/50 hover:text-blue-950"
               }`}
             >
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 ${advancedSubTab === "broadcast" ? "bg-white/20 text-yellow-200 shadow-md scale-105" : "bg-blue-500/15 text-blue-400"}`}>
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 ${advancedSubTab === "broadcast" ? "bg-white/20 text-yellow-200 shadow-md scale-105" : "bg-blue-100/80 text-blue-700"}`}>
                 <Volume2 size={24} className={advancedSubTab === "broadcast" ? "animate-bounce" : ""} />
               </div>
               <div className="overflow-hidden">
-                <div className="text-[10px] font-extrabold uppercase tracking-widest text-blue-300/80 mb-0.5 flex items-center gap-1">
-                  <span>TRUYỀN THÔNG BÁO</span>
-                  {advancedSubTab === "broadcast" && <span className="w-1.5 h-1.5 rounded-full bg-blue-300 animate-ping" />}
+                <div className="text-[10px] font-extrabold uppercase tracking-widest mb-0.5 flex items-center gap-1">
+                  <span className={advancedSubTab === "broadcast" ? "text-blue-200" : "text-slate-400"}>TRUYỀN THÔNG BÁO</span>
+                  {advancedSubTab === "broadcast" && <span className="w-1.5 h-1.5 rounded-full bg-blue-200 animate-ping" />}
                 </div>
-                <div className="text-sm font-black truncate text-white">Phát Loa Broadcast</div>
+                <div className={`text-sm font-black truncate ${advancedSubTab === "broadcast" ? "text-white" : "text-slate-900"}`}>Phát Loa Broadcast</div>
               </div>
             </button>
 
             <button
               type="button"
               onClick={() => setAdvancedSubTab("blacklist")}
-              className={`flex items-center gap-3.5 p-4 rounded-2xl transition-all duration-300 cursor-pointer text-left shadow-lg border relative overflow-hidden ${
+              className={`flex items-center gap-3.5 p-4 rounded-2xl transition-all duration-300 cursor-pointer text-left shadow-sm border relative overflow-hidden ${
                 advancedSubTab === "blacklist"
-                  ? "bg-gradient-to-r from-rose-600 via-red-600 to-amber-700 text-white border-rose-400/60 shadow-[0_0_25px_-5px_rgba(244,63,94,0.4)] scale-[1.01]"
-                  : "bg-slate-900/80 text-slate-300 border-white/5 hover:border-rose-500/40 hover:bg-slate-800/80 hover:text-white"
+                  ? "bg-gradient-to-r from-rose-600 via-red-600 to-amber-600 text-white border-0 shadow-lg shadow-rose-500/20 scale-[1.01]"
+                  : "bg-slate-50 text-slate-700 border-slate-200/80 hover:border-rose-300 hover:bg-rose-50/50 hover:text-rose-950"
               }`}
             >
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 ${advancedSubTab === "blacklist" ? "bg-white/20 text-yellow-200 shadow-md scale-105" : "bg-rose-500/15 text-rose-400"}`}>
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 ${advancedSubTab === "blacklist" ? "bg-white/20 text-yellow-200 shadow-md scale-105" : "bg-rose-100/80 text-rose-700"}`}>
                 <ShieldAlert size={24} className={advancedSubTab === "blacklist" ? "animate-pulse" : ""} />
               </div>
               <div className="overflow-hidden">
-                <div className="text-[10px] font-extrabold uppercase tracking-widest text-rose-300/80 mb-0.5 flex items-center gap-1">
-                  <span>TƯỜNG LỬA WAF</span>
-                  {advancedSubTab === "blacklist" && <span className="w-1.5 h-1.5 rounded-full bg-rose-300 animate-ping" />}
+                <div className="text-[10px] font-extrabold uppercase tracking-widest mb-0.5 flex items-center gap-1">
+                  <span className={advancedSubTab === "blacklist" ? "text-rose-200" : "text-slate-400"}>TƯỜNG LỬA WAF</span>
+                  {advancedSubTab === "blacklist" && <span className="w-1.5 h-1.5 rounded-full bg-rose-200 animate-ping" />}
                 </div>
-                <div className="text-sm font-black truncate text-white">Cấm Cửa IP Vĩnh Viễn</div>
+                <div className={`text-sm font-black truncate ${advancedSubTab === "blacklist" ? "text-white" : "text-slate-900"}`}>Cấm Cửa IP Vĩnh Viễn</div>
               </div>
             </button>
 
@@ -1755,42 +1755,42 @@ export default function AdminUsers() {
                 setAdvancedSubTab("heartbeat");
                 if (apiStatuses.length === 0) runApiHealthCheck();
               }}
-              className={`flex items-center gap-3.5 p-4 rounded-2xl transition-all duration-300 cursor-pointer text-left shadow-lg border relative overflow-hidden ${
+              className={`flex items-center gap-3.5 p-4 rounded-2xl transition-all duration-300 cursor-pointer text-left shadow-sm border relative overflow-hidden ${
                 advancedSubTab === "heartbeat"
-                  ? "bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 text-white border-emerald-400/60 shadow-[0_0_25px_-5px_rgba(16,185,129,0.4)] scale-[1.01]"
-                  : "bg-slate-900/80 text-slate-300 border-white/5 hover:border-emerald-500/40 hover:bg-slate-800/80 hover:text-white"
+                  ? "bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white border-0 shadow-lg shadow-emerald-500/20 scale-[1.01]"
+                  : "bg-slate-50 text-slate-700 border-slate-200/80 hover:border-emerald-300 hover:bg-emerald-50/50 hover:text-emerald-950"
               }`}
             >
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 ${advancedSubTab === "heartbeat" ? "bg-white/20 text-emerald-200 shadow-md scale-105" : "bg-emerald-500/15 text-emerald-400"}`}>
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 ${advancedSubTab === "heartbeat" ? "bg-white/20 text-emerald-200 shadow-md scale-105" : "bg-emerald-100/80 text-emerald-700"}`}>
                 <Zap size={24} className={advancedSubTab === "heartbeat" ? "animate-bounce" : ""} />
               </div>
               <div className="overflow-hidden">
-                <div className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-300/80 mb-0.5 flex items-center gap-1">
-                  <span>RADAR NHỊP SỐNG</span>
-                  {advancedSubTab === "heartbeat" && <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping" />}
+                <div className="text-[10px] font-extrabold uppercase tracking-widest mb-0.5 flex items-center gap-1">
+                  <span className={advancedSubTab === "heartbeat" ? "text-emerald-200" : "text-slate-400"}>RADAR NHỊP SỐNG</span>
+                  {advancedSubTab === "heartbeat" && <span className="w-1.5 h-1.5 rounded-full bg-emerald-200 animate-ping" />}
                 </div>
-                <div className="text-sm font-black truncate text-white">Giám Sát Sóng API</div>
+                <div className={`text-sm font-black truncate ${advancedSubTab === "heartbeat" ? "text-white" : "text-slate-900"}`}>Giám Sát Sóng API</div>
               </div>
             </button>
           </div>
 
           {/* Section 1: Dual-Cloud Health Dashboard: Vercel & Railway */}
           {advancedSubTab === "telemetry" && (
-            <div className="bg-slate-950 text-white rounded-3xl p-6 sm:p-9 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] border border-slate-800/80 relative overflow-hidden animate-fade-in">
-              {/* Decorative Ambient Mesh Lighting */}
-              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none -mt-32 -mr-32" />
-              <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[120px] pointer-events-none -mb-32 -ml-32" />
+            <div className="bg-white/95 text-slate-800 rounded-[2.5rem] p-6 sm:p-9 shadow-[0_15px_50px_-10px_rgba(30,41,59,0.08)] border border-slate-200/80 relative overflow-hidden animate-fade-in backdrop-blur-2xl">
+              {/* Decorative Ambient Pastel Lighting */}
+              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-400/10 rounded-full blur-[120px] pointer-events-none -mt-32 -mr-32" />
+              <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-indigo-400/10 rounded-full blur-[120px] pointer-events-none -mb-32 -ml-32" />
 
-              <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4 pb-6 border-b border-white/10">
+              <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4 pb-6 border-b border-slate-200/80">
                 <div>
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-xs font-black mb-2 shadow-inner">
-                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-black mb-2 shadow-sm">
+                    <span className="w-2 h-2 rounded-full bg-indigo-600 animate-ping" />
                     <span>DUAL-CLOUD SHIELD V3.0 · OBSERVABILITY ENGINE</span>
                   </div>
-                  <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-slate-300 flex items-center gap-2.5">
+                  <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-950 via-slate-900 to-blue-950 flex items-center gap-2.5">
                     Cảm Biến Giám Sát Hạ Tầng Vercel & Railway
                   </h2>
-                  <p className="text-sm text-slate-400 font-medium mt-1 max-w-3xl leading-relaxed">
+                  <p className="text-sm text-slate-600 font-medium mt-1 max-w-3xl leading-relaxed">
                     Hệ thống đo tải tài nguyên thực tế 100% không qua bộ đệm ảo: Phân chia chính xác giữa Giao diện Edge (Vercel CDN), Máy chủ Backend (Railway Node Engine) & Cơ sở dữ liệu (Neon PostgreSQL).
                   </p>
                 </div>
@@ -1798,16 +1798,16 @@ export default function AdminUsers() {
                   type="button"
                   onClick={() => fetchAdvancedData(true)}
                   disabled={refreshingTelemetry}
-                  className="btn btn-md bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-extrabold border-0 shadow-[0_0_25px_-5px_rgba(56,189,248,0.4)] transition-all duration-300 shrink-0 rounded-2xl px-6 h-12 active:scale-95 cursor-pointer"
+                  className="btn btn-md bg-gradient-to-r from-indigo-600 via-blue-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-extrabold border-0 shadow-[0_10px_25px_-5px_rgba(79,46,229,0.3)] transition-all duration-300 shrink-0 rounded-2xl px-6 h-12 active:scale-95 cursor-pointer text-sm"
                 >
                   {refreshingTelemetry ? (
                     <>
-                      <span className="loading loading-spinner loading-sm text-cyan-200" />
+                      <span className="loading loading-spinner loading-sm text-indigo-200" />
                       <span>Đang đo sóng Railway...</span>
                     </>
                   ) : (
                     <>
-                      <RefreshCw size={18} className="text-cyan-300" />
+                      <RefreshCw size={18} className="text-indigo-200" />
                       <span>🔄 Làm mới Cảm biến Real-Time</span>
                     </>
                   )}
@@ -1816,49 +1816,49 @@ export default function AdminUsers() {
 
               <div className="relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* 1. Vercel Frontend Edge Shield & Client Telemetry */}
-                <div className="bg-slate-900/70 backdrop-blur-xl border border-cyan-500/30 hover:border-cyan-400/60 transition-all duration-300 rounded-3xl p-6 shadow-[0_10px_30px_-10px_rgba(6,182,212,0.15)] flex flex-col justify-between group">
+                <div className="bg-white/95 border-2 border-slate-200/80 hover:border-indigo-300 transition-all duration-300 rounded-[2.2rem] p-6 shadow-[0_10px_30px_-10px_rgba(30,41,59,0.06)] hover:shadow-md flex flex-col justify-between group">
                   <div>
-                    <div className="flex items-center justify-between mb-5 pb-4 border-b border-cyan-500/20">
+                    <div className="flex items-center justify-between mb-5 pb-4 border-b border-slate-100">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-lg font-bold shadow-inner group-hover:scale-110 transition-transform">
+                        <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600 text-lg font-bold shadow-sm group-hover:scale-110 transition-transform">
                           🌐
                         </div>
                         <div>
-                          <div className="text-[10px] font-black uppercase tracking-wider text-cyan-400/80">FRONTEND LAYER</div>
-                          <span className="font-black text-sm text-white">TRẠM GIAO DIỆN VERCEL</span>
+                          <div className="text-[10px] font-black uppercase tracking-wider text-indigo-600">FRONTEND LAYER</div>
+                          <span className="font-black text-sm text-slate-900">TRẠM GIAO DIỆN VERCEL</span>
                         </div>
                       </div>
-                      <span className="badge bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-black text-[10px] animate-pulse px-3 py-2.5 rounded-xl shadow-sm">
+                      <span className="badge bg-indigo-50 text-indigo-700 border border-indigo-200 font-black text-[10px] px-3 py-2.5 rounded-xl shadow-sm">
                         EDGE ACTIVE
                       </span>
                     </div>
                     
                     <div className="space-y-3.5">
-                      <div className="bg-slate-950/80 p-4 rounded-2xl border border-white/5 hover:border-cyan-500/20 transition-all shadow-inner">
-                        <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
+                      <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 hover:border-indigo-200 transition-all shadow-inner">
+                        <span className="text-[11px] uppercase tracking-wider text-slate-500 font-black block mb-1.5">
                           Độ trễ phản hồi máy chủ (Real RTT Ping)
                         </span>
                         <div className="flex flex-col gap-2">
                           <div className={`font-black text-lg font-mono tracking-tight flex items-center gap-2 ${
                             !clientTelemetry?.pingVal || clientTelemetry.pingVal < 350
-                              ? "text-emerald-400"
+                              ? "text-emerald-700"
                               : clientTelemetry.pingVal < 800
-                                ? "text-amber-300"
-                                : "text-amber-400"
+                                ? "text-amber-700"
+                                : "text-rose-700"
                           }`}>
                             <span className={`inline-block w-2.5 h-2.5 rounded-full animate-ping ${
-                              !clientTelemetry?.pingVal || clientTelemetry.pingVal < 350 ? "bg-emerald-400" : "bg-amber-400"
+                              !clientTelemetry?.pingVal || clientTelemetry.pingVal < 350 ? "bg-emerald-500" : "bg-amber-500"
                             }`} />
                             <span>{clientTelemetry?.pingMs || "Đang đo..."}</span>
-                            <span className="text-xs text-slate-400 font-semibold font-sans px-2 py-0.5 rounded-md bg-white/5 border border-white/5">
+                            <span className="text-xs text-slate-600 font-semibold font-sans px-2 py-0.5 rounded-md bg-white border border-slate-200 shadow-sm">
                               {clientTelemetry?.connectionType || "Online"}
                             </span>
                           </div>
                           {clientTelemetry?.pingVal > 800 && (
-                            <div className="text-xs text-amber-200 font-semibold bg-amber-500/10 p-3 rounded-xl border border-amber-500/30 leading-relaxed shadow-sm flex items-start gap-2">
+                            <div className="text-xs text-amber-900 font-semibold bg-amber-50 p-3 rounded-xl border border-amber-200 leading-relaxed shadow-sm flex items-start gap-2">
                               <span className="text-base shrink-0">⚡</span>
                               <div>
-                                <strong className="text-amber-300 font-extrabold uppercase text-[11px] block">Vì sao ping cao?</strong>
+                                <strong className="text-amber-950 font-extrabold uppercase text-[11px] block">Vì sao ping cao?</strong>
                                 Máy chủ Railway đặt tại Mỹ (US-West) & CSDL Neon vừa khôi phục sau chế độ ngủ ngầm (Cold Start). Bấm làm mới lần nữa sẽ tụt xuống dưới 350ms!
                               </div>
                             </div>
@@ -1866,31 +1866,31 @@ export default function AdminUsers() {
                         </div>
                       </div>
 
-                      <div className="bg-slate-950/80 p-4 rounded-2xl border border-white/5 hover:border-cyan-500/20 transition-all shadow-inner">
-                        <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
+                      <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 hover:border-indigo-200 transition-all shadow-inner">
+                        <span className="text-[11px] uppercase tracking-wider text-slate-500 font-black block mb-1.5">
                           Tường lửa WAF & Giao thức Edge
                         </span>
-                        <div className="flex items-center gap-2 text-white font-black text-xs font-mono">
-                          <span className="badge badge-sm bg-emerald-500/20 text-emerald-300 border-emerald-500/30 font-bold px-2">DDoS Protected</span>
-                          <span className="text-cyan-300">{clientTelemetry?.protocol || "HTTPS (TLS 1.3)"}</span>
+                        <div className="flex items-center gap-2 text-slate-900 font-black text-xs font-mono">
+                          <span className="badge badge-sm bg-emerald-50 text-emerald-700 border-emerald-200 font-bold px-2.5 py-3 rounded-xl shadow-sm">DDoS Protected</span>
+                          <span className="text-indigo-700 font-bold">{clientTelemetry?.protocol || "HTTPS (TLS 1.3)"}</span>
                         </div>
                       </div>
 
-                      <div className="bg-slate-950/80 p-4 rounded-2xl border border-white/5 hover:border-cyan-500/20 transition-all shadow-inner">
-                        <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
+                      <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 hover:border-indigo-200 transition-all shadow-inner">
+                        <span className="text-[11px] uppercase tracking-wider text-slate-500 font-black block mb-1.5">
                           Tối ưu hóa tĩnh (Workbox PWA & Cache)
                         </span>
-                        <div className="text-amber-300 font-bold text-xs font-mono flex items-center justify-between">
+                        <div className="text-amber-800 font-bold text-xs font-mono flex items-center justify-between">
                           <span>⚡ {clientTelemetry?.cachedItemsCount || "0"} Assets trong máy</span>
-                          <span className="text-slate-400">Lưu trữ: {clientTelemetry?.localStorageBytes || "0"} KB</span>
+                          <span className="text-slate-600">Lưu trữ: {clientTelemetry?.localStorageBytes || "0"} KB</span>
                         </div>
                       </div>
 
-                      <div className="bg-slate-950/80 p-4 rounded-2xl border border-white/5 hover:border-cyan-500/20 transition-all shadow-inner">
-                        <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
+                      <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 hover:border-indigo-200 transition-all shadow-inner">
+                        <span className="text-[11px] uppercase tracking-wider text-slate-500 font-black block mb-1.5">
                           Thiết bị Admin & Trình duyệt thực
                         </span>
-                        <div className="text-cyan-300 font-bold text-xs font-mono truncate bg-cyan-500/10 px-3 py-2 rounded-xl border border-cyan-500/20">
+                        <div className="text-indigo-900 font-bold text-xs font-mono truncate bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-sm">
                           💻 {clientTelemetry?.cpuThreads || "8 Lõi"} · {clientTelemetry?.deviceRAM || "RAM"} · {clientTelemetry?.userAgentBrand || "Web"}
                         </div>
                       </div>
@@ -1899,164 +1899,164 @@ export default function AdminUsers() {
                 </div>
 
                 {/* 2. Railway Backend API Server */}
-                <div className="bg-slate-900/70 backdrop-blur-xl border border-purple-500/30 hover:border-purple-400/60 transition-all duration-300 rounded-3xl p-6 shadow-[0_10px_30px_-10px_rgba(168,85,247,0.15)] flex flex-col justify-between group">
+                <div className="bg-white/95 border-2 border-slate-200/80 hover:border-purple-300 transition-all duration-300 rounded-[2.2rem] p-6 shadow-[0_10px_30px_-10px_rgba(30,41,59,0.06)] hover:shadow-md flex flex-col justify-between group">
                   <div>
-                    <div className="flex items-center justify-between mb-5 pb-4 border-b border-purple-500/20">
+                    <div className="flex items-center justify-between mb-5 pb-4 border-b border-slate-100">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 text-lg font-bold shadow-inner group-hover:scale-110 transition-transform">
+                        <div className="w-10 h-10 rounded-2xl bg-purple-50 border border-purple-200 flex items-center justify-center text-purple-600 text-lg font-bold shadow-sm group-hover:scale-110 transition-transform">
                           ⚡
                         </div>
                         <div>
-                          <div className="text-[10px] font-black uppercase tracking-wider text-purple-400/80">BACKEND ENGINE</div>
-                          <span className="font-black text-sm text-white">TRẠM XỬ LÝ RAILWAY</span>
+                          <div className="text-[10px] font-black uppercase tracking-wider text-purple-600">BACKEND ENGINE</div>
+                          <span className="font-black text-sm text-slate-900">TRẠM XỬ LÝ RAILWAY</span>
                         </div>
                       </div>
-                      <span className="badge bg-purple-500/20 text-purple-300 border border-purple-500/40 font-black text-[10px] animate-pulse px-3 py-2.5 rounded-xl shadow-sm">
+                      <span className="badge bg-purple-50 text-purple-700 border border-purple-200 font-black text-[10px] px-3 py-2.5 rounded-xl shadow-sm">
                         NODE ENGINE
                       </span>
                     </div>
 
                     {serverHealth ? (
                       <div className="space-y-3.5">
-                        <div className="bg-slate-950/80 p-4 rounded-2xl border border-white/5 hover:border-purple-500/20 transition-all shadow-inner">
-                          <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
+                        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 hover:border-purple-200 transition-all shadow-inner">
+                          <span className="text-[11px] uppercase tracking-wider text-slate-500 font-black block mb-1.5">
                             Trạng thái & Tiến trình (PID)
                           </span>
-                          <div className="text-emerald-400 font-black text-sm font-mono flex items-center gap-2">
-                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping shrink-0" />
+                          <div className="text-emerald-700 font-black text-sm font-mono flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping shrink-0" />
                             <span>{serverHealth.status}</span>
-                            {serverHealth.pid && <span className="badge badge-sm bg-emerald-500/20 text-emerald-300 border-emerald-500/30 font-mono font-bold">PID #{serverHealth.pid}</span>}
+                            {serverHealth.pid && <span className="badge badge-sm bg-emerald-50 text-emerald-700 border-emerald-200 font-mono font-bold px-2.5 py-3 rounded-xl shadow-sm">PID #{serverHealth.pid}</span>}
                           </div>
                         </div>
 
-                        <div className="bg-slate-950/80 p-4 rounded-2xl border border-white/5 hover:border-purple-500/20 transition-all shadow-inner">
-                          <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
+                        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 hover:border-purple-200 transition-all shadow-inner">
+                          <span className="text-[11px] uppercase tracking-wider text-slate-500 font-black block mb-1.5">
                             Thời gian liên tiếp hoạt động (Uptime)
                           </span>
-                          <div className="text-white font-black text-sm font-mono bg-purple-500/10 px-3.5 py-2.5 rounded-xl border border-purple-500/20 flex flex-wrap gap-2 items-center justify-between">
-                            <span>⏳ API: <span className="text-purple-300 font-bold">{Math.floor(serverHealth.uptimeSeconds / 3600)}h {Math.floor((serverHealth.uptimeSeconds % 3600) / 60)}p</span></span>
-                            {serverHealth.osUptimeSeconds && <span className="text-xs text-slate-400">OS: {Math.floor(serverHealth.osUptimeSeconds / 3600)}h {Math.floor((serverHealth.osUptimeSeconds % 3600) / 60)}p</span>}
+                          <div className="text-slate-800 font-black text-sm font-mono bg-white px-3.5 py-2.5 rounded-xl border border-slate-200 flex flex-wrap gap-2 items-center justify-between shadow-sm">
+                            <span>⏳ API: <span className="text-purple-700 font-bold">{Math.floor(serverHealth.uptimeSeconds / 3600)}h {Math.floor((serverHealth.uptimeSeconds % 3600) / 60)}p</span></span>
+                            {serverHealth.osUptimeSeconds && <span className="text-xs text-slate-600 font-semibold">OS: {Math.floor(serverHealth.osUptimeSeconds / 3600)}h {Math.floor((serverHealth.osUptimeSeconds % 3600) / 60)}p</span>}
                           </div>
                         </div>
 
-                        <div className="bg-slate-950/80 p-4 rounded-2xl border border-white/5 hover:border-purple-500/20 transition-all shadow-inner">
-                          <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
+                        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 hover:border-purple-200 transition-all shadow-inner">
+                          <span className="text-[11px] uppercase tracking-wider text-slate-500 font-black block mb-1.5">
                             Bộ nhớ RAM Máy chủ (App RSS / V8 Heap)
                           </span>
-                          <div className="text-amber-300 font-black text-sm font-mono">
+                          <div className="text-amber-800 font-black text-sm font-mono">
                             <div className="flex items-center justify-between mb-1">
-                              <span>🧠 {serverHealth.memoryRssMb} MB <span className="text-xs font-normal text-slate-400">(RSS)</span></span>
-                              <span>{serverHealth.memoryHeapUsedMb} MB <span className="text-xs font-normal text-slate-400">(Heap)</span></span>
+                              <span>🧠 {serverHealth.memoryRssMb} MB <span className="text-xs font-normal text-slate-500">(RSS)</span></span>
+                              <span>{serverHealth.memoryHeapUsedMb} MB <span className="text-xs font-normal text-slate-500">(Heap)</span></span>
                             </div>
-                            {serverHealth.totalOsRamMb && <div className="text-xs text-slate-400 font-normal border-t border-white/5 pt-1 mt-1">Tổng RAM hạ tầng Cloud: <strong className="text-white">{serverHealth.totalOsRamMb} MB</strong></div>}
+                            {serverHealth.totalOsRamMb && <div className="text-xs text-slate-500 font-normal border-t border-slate-200/80 pt-1 mt-1">Tổng RAM hạ tầng Cloud: <strong className="text-slate-900">{serverHealth.totalOsRamMb} MB</strong></div>}
                           </div>
                         </div>
 
-                        <div className="bg-slate-950/80 p-4 rounded-2xl border border-white/5 hover:border-purple-500/20 transition-all shadow-inner">
-                          <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
+                        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 hover:border-purple-200 transition-all shadow-inner">
+                          <span className="text-[11px] uppercase tracking-wider text-slate-500 font-black block mb-1.5">
                             Phần cứng CPU & Hệ điều hành
                           </span>
-                          <div className="text-slate-200 font-bold text-xs font-mono">
-                            <div className="truncate mb-1 text-purple-300" title={serverHealth.cpuModel}>
+                          <div className="text-slate-800 font-bold text-xs font-mono">
+                            <div className="truncate mb-1 text-purple-900 font-extrabold" title={serverHealth.cpuModel}>
                               🖥️ {serverHealth.cpuModel || "Cloud vCPU"} ({serverHealth.cpuCores || 1} Cores)
                             </div>
-                            <div className="text-[11px] text-slate-400 flex items-center justify-between border-t border-white/5 pt-1.5">
-                              <span>Platform: <strong className="text-white font-mono">{serverHealth.platform}</strong></span>
-                              <span>Node: <strong className="text-white font-mono">{serverHealth.nodeVersion}</strong></span>
+                            <div className="text-[11px] text-slate-500 flex items-center justify-between border-t border-slate-200/80 pt-1.5">
+                              <span>Platform: <strong className="text-slate-900 font-mono">{serverHealth.platform}</strong></span>
+                              <span>Node: <strong className="text-slate-900 font-mono">{serverHealth.nodeVersion}</strong></span>
                             </div>
                           </div>
                         </div>
                       </div>
                     ) : (
-                      <div className="py-16 text-center text-purple-300 flex flex-col items-center gap-3.5">
-                        <span className="loading loading-bars loading-md text-purple-400"></span>
-                        <span className="font-bold text-xs uppercase tracking-wide text-slate-400">Đang đo ngầm tài nguyên thực từ Railway...</span>
+                      <div className="py-16 text-center text-purple-700 flex flex-col items-center gap-3.5">
+                        <span className="loading loading-bars loading-md text-purple-600"></span>
+                        <span className="font-bold text-xs uppercase tracking-wide text-slate-500">Đang đo ngầm tài nguyên thực từ Railway...</span>
                       </div>
                     )}
                   </div>
                 </div>
 
                 {/* 3. Neon PostgreSQL Cloud DB Telemetry */}
-                <div className="bg-slate-900/70 backdrop-blur-xl border border-emerald-500/30 hover:border-emerald-400/60 transition-all duration-300 rounded-3xl p-6 shadow-[0_10px_30px_-10px_rgba(16,185,129,0.15)] flex flex-col justify-between group">
+                <div className="bg-white/95 border-2 border-slate-200/80 hover:border-emerald-300 transition-all duration-300 rounded-[2.2rem] p-6 shadow-[0_10px_30px_-10px_rgba(30,41,59,0.06)] hover:shadow-md flex flex-col justify-between group">
                   <div>
-                    <div className="flex items-center justify-between mb-5 pb-4 border-b border-emerald-500/20">
+                    <div className="flex items-center justify-between mb-5 pb-4 border-b border-slate-100">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-lg font-bold shadow-inner group-hover:scale-110 transition-transform">
+                        <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 text-lg font-bold shadow-sm group-hover:scale-110 transition-transform">
                           🗄️
                         </div>
                         <div>
-                          <div className="text-[10px] font-black uppercase tracking-wider text-emerald-400/80">DATABASE LAYER</div>
-                          <span className="font-black text-sm text-white">TRẠM CSDL NEON CLOUD</span>
+                          <div className="text-[10px] font-black uppercase tracking-wider text-emerald-600">DATABASE LAYER</div>
+                          <span className="font-black text-sm text-slate-900">TRẠM CSDL NEON CLOUD</span>
                         </div>
                       </div>
-                      <span className="badge bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-black text-[10px] animate-pulse px-3 py-2.5 rounded-xl shadow-sm">
+                      <span className="badge bg-emerald-50 text-emerald-700 border border-emerald-200 font-black text-[10px] px-3 py-2.5 rounded-xl shadow-sm">
                         SQL ONLINE
                       </span>
                     </div>
 
                     {serverHealth && serverHealth.db ? (
                       <div className="space-y-3.5">
-                        <div className="bg-slate-950/80 p-4 rounded-2xl border border-white/5 hover:border-emerald-500/20 transition-all shadow-inner">
-                          <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
+                        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 hover:border-emerald-200 transition-all shadow-inner">
+                          <span className="text-[11px] uppercase tracking-wider text-slate-500 font-black block mb-1.5">
                             Engine CSDL & Tốc độ truy xuất (DB Latency)
                           </span>
-                          <div className="text-emerald-400 font-black text-sm font-mono flex items-center gap-2">
-                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                          <div className="text-emerald-700 font-black text-sm font-mono flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
                             <span>{serverHealth.db.latencyMs ? `${serverHealth.db.latencyMs}ms` : "Siêu nhạy"}</span>
-                            <span className="text-xs text-slate-300 font-semibold px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/20">
+                            <span className="text-xs text-slate-700 font-semibold px-2 py-0.5 rounded-md bg-white border border-slate-200 shadow-sm">
                               {serverHealth.db.status}
                             </span>
                           </div>
                         </div>
 
-                        <div className="bg-slate-950/80 p-4 rounded-2xl border border-white/5 hover:border-emerald-500/20 transition-all shadow-inner">
-                          <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
+                        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 hover:border-emerald-200 transition-all shadow-inner">
+                          <span className="text-[11px] uppercase tracking-wider text-slate-500 font-black block mb-1.5">
                             Dung lượng Thực tế & Quy mô CSDL
                           </span>
-                          <div className="text-white font-black text-sm font-mono flex items-center justify-between bg-emerald-500/10 px-3.5 py-2.5 rounded-xl border border-emerald-500/20">
+                          <div className="text-slate-900 font-black text-sm font-mono flex items-center justify-between bg-white px-3.5 py-2.5 rounded-xl border border-slate-200 shadow-sm">
                             <span>💾 {serverHealth.db.size}</span>
-                            <span className="text-xs text-emerald-300 font-semibold">Gồm {serverHealth.db.tables} Bảng dữ liệu thực</span>
+                            <span className="text-xs text-emerald-700 font-bold">Gồm {serverHealth.db.tables} Bảng dữ liệu thực</span>
                           </div>
                         </div>
 
-                        <div className="bg-slate-950/80 p-4 rounded-2xl border border-white/5 hover:border-emerald-500/20 transition-all shadow-inner">
-                          <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
+                        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 hover:border-emerald-200 transition-all shadow-inner">
+                          <span className="text-[11px] uppercase tracking-wider text-slate-500 font-black block mb-1.5">
                             Bể kết nối SQL (Active Connection Pool)
                           </span>
-                          <div className="text-amber-300 font-black text-sm font-mono flex items-center justify-between">
+                          <div className="text-amber-800 font-black text-sm font-mono flex items-center justify-between">
                             <span>🔌 {serverHealth.db.connections?.active || 1} / {serverHealth.db.connections?.total || 1} kết nối kích hoạt</span>
-                            <span className="badge badge-sm bg-amber-500/20 text-amber-300 border-amber-500/30">Pool Active</span>
+                            <span className="badge badge-sm bg-amber-50 text-amber-800 border-amber-200 px-2.5 py-3 rounded-xl shadow-sm">Pool Active</span>
                           </div>
                         </div>
 
-                        <div className="bg-slate-950/80 p-4 rounded-2xl border border-white/5 hover:border-emerald-500/20 transition-all shadow-inner">
-                          <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-2">
+                        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 hover:border-emerald-200 transition-all shadow-inner">
+                          <span className="text-[11px] uppercase tracking-wider text-slate-500 font-black block mb-2">
                             Thống kê Bản ghi thực tế trong Hệ thống
                           </span>
                           <div className="grid grid-cols-2 gap-2 text-xs font-mono font-bold">
-                            <div className="bg-emerald-500/10 text-emerald-300 p-2.5 rounded-xl border border-emerald-500/20 flex items-center justify-between shadow-sm">
+                            <div className="bg-emerald-50 text-emerald-800 p-2.5 rounded-xl border border-emerald-200 flex items-center justify-between shadow-sm">
                               <span>👥 Accounts:</span>
-                              <span className="text-white font-black">{serverHealth.db.records?.users || 0}</span>
+                              <span className="text-slate-900 font-black">{serverHealth.db.records?.users || 0}</span>
                             </div>
-                            <div className="bg-cyan-500/10 text-cyan-300 p-2.5 rounded-xl border border-cyan-500/20 flex items-center justify-between shadow-sm">
+                            <div className="bg-blue-50 text-blue-800 p-2.5 rounded-xl border border-blue-200 flex items-center justify-between shadow-sm">
                               <span>🔐 Sessions:</span>
-                              <span className="text-white font-black">{serverHealth.db.records?.sessions || 0}</span>
+                              <span className="text-slate-900 font-black">{serverHealth.db.records?.sessions || 0}</span>
                             </div>
-                            <div className="bg-purple-500/10 text-purple-300 p-2.5 rounded-xl border border-purple-500/20 flex items-center justify-between shadow-sm">
+                            <div className="bg-purple-50 text-purple-800 p-2.5 rounded-xl border border-purple-200 flex items-center justify-between shadow-sm">
                               <span>🛡️ Audit Log:</span>
-                              <span className="text-white font-black">{serverHealth.db.records?.audit || 0}</span>
+                              <span className="text-slate-900 font-black">{serverHealth.db.records?.audit || 0}</span>
                             </div>
-                            <div className="bg-rose-500/10 text-rose-300 p-2.5 rounded-xl border border-rose-500/20 flex items-center justify-between shadow-sm">
+                            <div className="bg-rose-50 text-rose-800 p-2.5 rounded-xl border border-rose-200 flex items-center justify-between shadow-sm">
                               <span>🚫 Banned IPs:</span>
-                              <span className="text-white font-black">{serverHealth.db.records?.blacklistedIps || 0}</span>
+                              <span className="text-slate-900 font-black">{serverHealth.db.records?.blacklistedIps || 0}</span>
                             </div>
                           </div>
                         </div>
                       </div>
                     ) : (
-                      <div className="py-16 text-center text-emerald-300 flex flex-col items-center gap-3.5">
-                        <span className="loading loading-spinner loading-md text-emerald-400"></span>
-                        <span className="font-bold text-xs uppercase tracking-wide text-slate-400">Đang trích xuất dữ liệu từ Neon Postgres...</span>
+                      <div className="py-16 text-center text-emerald-700 flex flex-col items-center gap-3.5">
+                        <span className="loading loading-spinner loading-md text-emerald-600"></span>
+                        <span className="font-bold text-xs uppercase tracking-wide text-slate-500">Đang trích xuất dữ liệu từ Neon Postgres...</span>
                       </div>
                     )}
                   </div>
@@ -2067,31 +2067,31 @@ export default function AdminUsers() {
 
           {/* Section 2: Global / Targeted Broadcast Banner */}
           {advancedSubTab === "broadcast" && (
-            <div className="bg-slate-950 text-white rounded-3xl p-6 sm:p-9 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] border border-slate-800/80 relative overflow-hidden animate-fade-in">
-              <div className="absolute top-0 right-0 w-[450px] h-[450px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none -mt-32 -mr-32" />
+            <div className="bg-white/95 text-slate-800 rounded-[2.5rem] p-6 sm:p-9 shadow-[0_15px_50px_-10px_rgba(30,41,59,0.08)] border border-slate-200/80 relative overflow-hidden animate-fade-in backdrop-blur-2xl">
+              <div className="absolute top-0 right-0 w-[450px] h-[450px] bg-blue-400/10 rounded-full blur-[120px] pointer-events-none -mt-32 -mr-32" />
 
-              <div className="relative z-10 mb-8 pb-6 border-b border-white/10">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs font-black mb-2 shadow-inner">
+              <div className="relative z-10 mb-8 pb-6 border-b border-slate-200/80">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-xs font-black mb-2 shadow-sm">
                   <span>📢 GLOBAL & TARGETED BROADCAST HUB</span>
                 </div>
-                <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-blue-200">
+                <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950">
                   Phát Loa Thông Báo Toàn Hệ Thống
                 </h3>
-                <p className="text-sm text-slate-400 font-medium mt-1 max-w-3xl leading-relaxed">
+                <p className="text-sm text-slate-600 font-medium mt-1 max-w-3xl leading-relaxed">
                   Phát thông báo nổi bật tới toàn bộ người dùng đang trực tuyến hoặc chỉ định rõ một tài khoản nhất định. Banner thông báo sẽ tự động nổi lên trên giao diện ứng dụng của người nhận theo thời gian thực!
                 </p>
               </div>
 
               <div className="relative z-10 space-y-6 max-w-4xl">
-                <div className="bg-slate-900/80 p-6 rounded-3xl border border-white/10 shadow-2xl space-y-5">
+                <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200/80 shadow-inner space-y-5">
                   <div>
-                    <label className="label text-xs font-black uppercase text-blue-300 tracking-wider pb-2">
+                    <label className="label text-xs font-black uppercase text-blue-900 tracking-wider pb-2">
                       🎯 Chọn Đối Tượng Nhận Thông Báo (Mục Tiêu Phát Sóng):
                     </label>
                     <select
                       value={broadcastTarget}
                       onChange={(e) => setBroadcastTarget(e.target.value)}
-                      className="select select-bordered w-full rounded-2xl font-bold text-sm bg-slate-950 text-white border-white/20 focus:border-blue-500 h-12 shadow-inner"
+                      className="select select-bordered w-full rounded-2xl font-bold text-sm bg-white text-slate-900 border-slate-300 focus:border-blue-600 h-12 shadow-sm"
                     >
                       <option value="ALL">🌐 Toàn bộ hệ thống (Tất cả người dùng trên Server)</option>
                       {users.map((u) => {
@@ -2106,7 +2106,7 @@ export default function AdminUsers() {
                   </div>
 
                   <div>
-                    <label className="label text-xs font-black uppercase text-blue-300 tracking-wider pb-2">
+                    <label className="label text-xs font-black uppercase text-blue-900 tracking-wider pb-2">
                       💬 Nội Dung Bản Tin Phát Loa:
                     </label>
                     <div className="flex flex-col sm:flex-row gap-3">
@@ -2115,7 +2115,7 @@ export default function AdminUsers() {
                         placeholder="Nhập nội dung thông báo (ví dụ: Bảo trì hệ thống lúc 23h50, vui lòng lưu giữ bài đăng...)"
                         value={broadcastMsg}
                         onChange={(e) => setBroadcastMsg(e.target.value)}
-                        className="input input-bordered flex-1 font-semibold rounded-2xl h-13 bg-slate-950 text-white placeholder:text-slate-500 border-white/20 focus:border-blue-500 shadow-inner px-4 text-base"
+                        className="input input-bordered flex-1 font-semibold rounded-2xl h-13 bg-white text-slate-900 placeholder:text-slate-400 border-slate-300 focus:border-blue-600 shadow-sm px-4 text-base"
                       />
                       <button
                         type="button"
@@ -2138,7 +2138,7 @@ export default function AdminUsers() {
                           };
                           handleActionWithSessionCheck(action);
                         }}
-                        className="btn bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 hover:from-emerald-400 hover:to-cyan-500 text-slate-950 font-black px-8 rounded-2xl h-13 border-0 shadow-[0_0_25px_-5px_rgba(16,185,129,0.5)] transition-all active:scale-95 text-sm"
+                        className="btn bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 text-white font-black px-8 rounded-2xl h-13 border-0 shadow-md transition-all active:scale-95 text-sm cursor-pointer"
                       >
                         🟢 Đăng & Phát Sóng Ngay
                       </button>
@@ -2147,26 +2147,26 @@ export default function AdminUsers() {
                 </div>
 
                 {/* Danh Sách Các Thông Báo Đã Đăng */}
-                <div className="pt-6 border-t border-white/10">
+                <div className="pt-6 border-t border-slate-200/80">
                   <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-sm font-black uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                    <h4 className="text-sm font-black uppercase tracking-wider text-slate-800 flex items-center gap-2">
                       📋 Lịch Sử Thông Báo Đã Đăng (Broadcast Archive)
                     </h4>
-                    <span className="badge badge-neutral badge-sm font-bold">{broadcastList.length} Bản tin</span>
+                    <span className="badge bg-slate-100 text-slate-800 border border-slate-300 font-black text-xs px-3 py-2.5 rounded-xl">{broadcastList.length} Bản tin</span>
                   </div>
 
-                  <div className="overflow-x-auto border border-white/10 rounded-2xl bg-slate-900/50 shadow-inner max-h-96 overflow-y-auto">
+                  <div className="overflow-x-auto border border-slate-200/80 rounded-2xl bg-white shadow-inner max-h-96 overflow-y-auto">
                     <table className="table w-full text-sm font-medium">
-                      <thead className="bg-slate-900 font-extrabold text-slate-300 uppercase text-xs tracking-wider sticky top-0 z-10 border-b border-white/10">
+                      <thead className="bg-slate-50/90 font-extrabold text-slate-800 uppercase text-xs tracking-wider sticky top-0 z-10 border-b border-slate-200/80">
                         <tr>
-                          <th className="py-3.5">Trang Thái</th>
+                          <th className="py-3.5 pl-5">Trạng Thái</th>
                           <th>Nội Dung</th>
                           <th>Đối Tượng</th>
                           <th>Thời Gian Đăng</th>
-                          <th className="text-right">Hành Động</th>
+                          <th className="text-right pr-5">Hành Động</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-white/5 text-slate-200">
+                      <tbody className="divide-y divide-slate-100 text-slate-700">
                         {broadcastList.length === 0 ? (
                           <tr>
                             <td colSpan="5" className="text-center py-12 text-slate-500 font-semibold">
@@ -2177,32 +2177,32 @@ export default function AdminUsers() {
                           broadcastList.map((bItem) => {
                             const isAll = bItem.targetUser === "ALL" || bItem.targetUser === "*";
                             return (
-                              <tr key={bItem.id || bItem.updatedAt} className="hover:bg-white/[0.04] transition-colors">
-                                <td className="py-3.5 font-bold">
+                              <tr key={bItem.id || bItem.updatedAt} className="hover:bg-blue-50/30 transition-colors">
+                                <td className="py-3.5 pl-5 font-bold">
                                   {bItem.active ? (
-                                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-xl text-xs font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm animate-pulse">
-                                      <span className="w-2 h-2 rounded-full bg-emerald-400"></span> Đang Phát
+                                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-xl text-xs font-black bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm animate-pulse">
+                                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Đang Phát
                                     </span>
                                   ) : (
-                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-white/10 text-slate-400 border border-white/10">
+                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
                                       ⚪ Đã Tắt
                                     </span>
                                   )}
                                 </td>
-                                <td className="font-bold max-w-xs truncate text-white" title={bItem.message}>
+                                <td className="font-bold max-w-xs truncate text-slate-900" title={bItem.message}>
                                   {bItem.message}
                                 </td>
                                 <td>
                                   <span className={`px-2.5 py-1 rounded-xl text-xs font-bold font-mono border shadow-sm ${
-                                    isAll ? "bg-cyan-500/15 text-cyan-300 border-cyan-500/30" : "bg-purple-500/15 text-purple-300 border-purple-500/30"
+                                    isAll ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-purple-50 text-purple-700 border-purple-200"
                                   }`}>
                                     {isAll ? "🌐 Toàn Server" : `👤 ${bItem.targetUser}`}
                                   </span>
                                 </td>
-                                <td className="text-xs text-slate-400 font-mono">
+                                <td className="text-xs text-slate-500 font-mono font-semibold">
                                   {bItem.updatedAt ? new Date(bItem.updatedAt).toLocaleString("vi-VN") : "N/A"}
                                 </td>
-                                <td className="text-right whitespace-nowrap">
+                                <td className="text-right whitespace-nowrap pr-5">
                                   <div className="flex items-center justify-end gap-2">
                                     <button
                                       type="button"
@@ -2219,7 +2219,7 @@ export default function AdminUsers() {
                                         handleActionWithSessionCheck(action);
                                       }}
                                       className={`btn btn-xs font-extrabold rounded-xl h-8 px-3 transition-all ${
-                                        bItem.active ? "bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border border-amber-500/40" : "bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 border border-emerald-500/40"
+                                        bItem.active ? "bg-amber-50 hover:bg-amber-500 text-amber-800 hover:text-white border border-amber-200" : "bg-emerald-50 hover:bg-emerald-500 text-emerald-700 hover:text-white border border-emerald-200"
                                       }`}
                                     >
                                       {bItem.active ? "🚫 Tắt Loa" : "🟢 Phát Lại"}
@@ -2235,7 +2235,7 @@ export default function AdminUsers() {
                                         };
                                         handleActionWithSessionCheck(action);
                                       }}
-                                      className="btn btn-xs bg-rose-500/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/40 font-bold rounded-xl h-8 px-3 flex items-center gap-1 transition-all"
+                                      className="btn btn-xs bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white border border-rose-200 font-bold rounded-xl h-8 px-3 flex items-center gap-1 transition-all"
                                       title="Xóa thông báo"
                                     >
                                       <Trash2 className="w-3.5 h-3.5" /> Xóa
@@ -2256,24 +2256,24 @@ export default function AdminUsers() {
 
           {/* Section 3: Permanent IP Blacklist */}
           {advancedSubTab === "blacklist" && (
-            <div className="bg-slate-950 text-white rounded-3xl p-6 sm:p-9 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] border border-slate-800/80 relative overflow-hidden animate-fade-in">
-              <div className="absolute top-0 right-0 w-[450px] h-[450px] bg-rose-500/10 rounded-full blur-[120px] pointer-events-none -mt-32 -mr-32" />
+            <div className="bg-white/95 text-slate-800 rounded-[2.5rem] p-6 sm:p-9 shadow-[0_15px_50px_-10px_rgba(30,41,59,0.08)] border border-slate-200/80 relative overflow-hidden animate-fade-in backdrop-blur-2xl">
+              <div className="absolute top-0 right-0 w-[450px] h-[450px] bg-rose-400/10 rounded-full blur-[120px] pointer-events-none -mt-32 -mr-32" />
 
-              <div className="relative z-10 mb-8 pb-6 border-b border-white/10">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs font-black mb-2 shadow-inner">
+              <div className="relative z-10 mb-8 pb-6 border-b border-slate-200/80">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-50 border border-rose-200 text-rose-800 text-xs font-black mb-2 shadow-sm">
                   <span>🚫 WAF FIREWALL · PERMANENT LOCKOUT</span>
                 </div>
-                <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-rose-100 to-amber-200">
+                <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-rose-950 via-slate-900 to-amber-950">
                   Cấm Cửa Địa Chỉ IP Vĩnh Viễn
                 </h3>
-                <p className="text-sm text-slate-400 font-medium mt-1 max-w-3xl leading-relaxed">
+                <p className="text-sm text-slate-600 font-medium mt-1 max-w-3xl leading-relaxed">
                   Những địa chỉ IP nằm trong danh sách đen này sẽ bị Tường Lửa Thép Huy Locket từ chối kết nối ngay tại tầng giao thức trước khi chạm vào máy chủ Node.js, vô hiệu hóa hoàn toàn mọi truy cập của tin tặc hay spammer.
                 </p>
               </div>
 
               <div className="relative z-10 space-y-6">
-                <div className="bg-slate-900/80 p-6 rounded-3xl border border-rose-500/20 shadow-2xl max-w-4xl">
-                  <label className="label text-xs font-black uppercase tracking-wider text-rose-300 pb-2">
+                <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200/80 shadow-inner max-w-4xl">
+                  <label className="label text-xs font-black uppercase tracking-wider text-rose-900 pb-2">
                     🔒 Phong Tỏa IP Khả Nghi Vào Danh Sách Đen:
                   </label>
                   <div className="flex flex-col sm:flex-row gap-3">
@@ -2282,14 +2282,14 @@ export default function AdminUsers() {
                       placeholder="Nhập địa chỉ IP (VD: 54.196.219.221)..."
                       value={banIpInput}
                       onChange={(e) => setBanIpInput(e.target.value)}
-                      className="input input-bordered w-full sm:w-72 font-mono text-sm rounded-2xl h-12 bg-slate-950 text-white placeholder:text-slate-500 border-white/20 focus:border-rose-500 shadow-inner"
+                      className="input input-bordered w-full sm:w-72 font-mono text-sm rounded-2xl h-12 bg-white text-slate-900 placeholder:text-slate-400 border-slate-300 focus:border-rose-600 shadow-sm"
                     />
                     <input
                       type="text"
                       placeholder="Lý do phong tỏa (VD: Dội bot VPS / Tấn công dò rỉ)..."
                       value={banReasonInput}
                       onChange={(e) => setBanReasonInput(e.target.value)}
-                      className="input input-bordered flex-1 text-sm rounded-2xl h-12 bg-slate-950 text-white placeholder:text-slate-500 border-white/20 focus:border-rose-500 shadow-inner"
+                      className="input input-bordered flex-1 text-sm rounded-2xl h-12 bg-white text-slate-900 placeholder:text-slate-400 border-slate-300 focus:border-rose-600 shadow-sm"
                     />
                     <button
                       type="button"
@@ -2306,7 +2306,7 @@ export default function AdminUsers() {
                         };
                         handleActionWithSessionCheck(action);
                       }}
-                      className="btn bg-gradient-to-r from-rose-600 via-red-600 to-amber-700 hover:from-rose-500 hover:to-amber-600 text-white font-black px-8 rounded-2xl h-12 border-0 shadow-[0_0_25px_-5px_rgba(244,63,94,0.5)] transition-all active:scale-95 text-sm"
+                      className="btn bg-gradient-to-r from-rose-600 via-red-600 to-amber-600 hover:from-rose-700 hover:to-amber-700 text-white font-black px-8 rounded-2xl h-12 border-0 shadow-md transition-all active:scale-95 text-sm cursor-pointer"
                     >
                       🔒 Phong Tỏa Ngay
                     </button>
@@ -2315,24 +2315,24 @@ export default function AdminUsers() {
 
                 <div className="pt-4">
                   <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-sm font-black uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                    <h4 className="text-sm font-black uppercase tracking-wider text-slate-800 flex items-center gap-2">
                       📋 Lịch Sử Phong Tỏa Cấm Cửa (Active Blocklist)
                     </h4>
-                    <span className="badge badge-error badge-sm font-black text-white">{blacklistedIps.length} IP Bị Cấm</span>
+                    <span className="badge bg-rose-100 text-rose-900 border border-rose-300 font-black text-xs px-3 py-2.5 rounded-xl">{blacklistedIps.length} IP Bị Cấm</span>
                   </div>
 
-                  <div className="overflow-x-auto border border-white/10 rounded-2xl bg-slate-900/50 shadow-inner max-h-96 overflow-y-auto">
-                    <table className="table table-zebra w-full text-sm font-medium">
-                      <thead className="bg-slate-900 font-extrabold text-slate-300 uppercase text-xs tracking-wider sticky top-0 z-10 border-b border-white/10">
+                  <div className="overflow-x-auto border border-slate-200/80 rounded-2xl bg-white shadow-inner max-h-96 overflow-y-auto">
+                    <table className="table w-full text-sm font-medium">
+                      <thead className="bg-slate-50/90 font-extrabold text-slate-800 uppercase text-xs tracking-wider sticky top-0 z-10 border-b border-slate-200/80">
                         <tr>
-                          <th className="py-3.5">Địa chỉ IP</th>
+                          <th className="py-3.5 pl-5">Địa chỉ IP</th>
                           <th>Lý do Cấm Cửa</th>
                           <th>Người thao tác</th>
                           <th>Thời gian phong tỏa</th>
-                          <th className="text-right">Hành động</th>
+                          <th className="text-right pr-5">Hành động</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-white/5 text-slate-200">
+                      <tbody className="divide-y divide-slate-100 text-slate-700">
                         {blacklistedIps.length === 0 ? (
                           <tr>
                             <td colSpan="5" className="text-center py-12 text-slate-500 font-semibold">
@@ -2340,14 +2340,14 @@ export default function AdminUsers() {
                             </td>
                           </tr>
                         ) : blacklistedIps.map((b) => (
-                          <tr key={b.ip_address} className="hover:bg-white/[0.04] transition-colors">
-                            <td className="font-mono font-black text-rose-400 text-sm py-3.5">
+                          <tr key={b.ip_address} className="hover:bg-rose-50/30 transition-colors">
+                            <td className="font-mono font-black text-rose-600 text-sm py-3.5 pl-5">
                               🚫 {b.ip_address}
                             </td>
-                            <td className="text-xs font-bold text-slate-200">{b.reason || "—"}</td>
-                            <td className="font-mono text-xs text-cyan-300 font-bold">{b.blocked_by || "SUPER_ADMIN"}</td>
-                            <td className="font-mono text-xs text-slate-400">{formatDateTime(b.created_at)}</td>
-                            <td className="text-right">
+                            <td className="text-xs font-bold text-slate-800">{b.reason || "—"}</td>
+                            <td className="font-mono text-xs text-indigo-700 font-bold">{b.blocked_by || "SUPER_ADMIN"}</td>
+                            <td className="font-mono text-xs text-slate-500">{formatDateTime(b.created_at)}</td>
+                            <td className="text-right pr-5">
                               <button
                                 type="button"
                                 onClick={async () => {
@@ -2358,7 +2358,7 @@ export default function AdminUsers() {
                                   };
                                   handleActionWithSessionCheck(action);
                                 }}
-                                className="btn btn-xs bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 border border-emerald-500/40 font-extrabold rounded-xl h-8 px-4 transition-all"
+                                className="btn btn-xs bg-emerald-50 hover:bg-emerald-500 text-emerald-700 hover:text-white border border-emerald-200 font-extrabold rounded-xl h-8 px-4 transition-all"
                               >
                                 🔓 Mở Khóa IP
                               </button>
@@ -2375,20 +2375,20 @@ export default function AdminUsers() {
 
           {/* Section 4: Live API & Integration Heartbeat Monitor */}
           {advancedSubTab === "heartbeat" && (
-            <div className="bg-slate-950 text-white rounded-3xl p-6 sm:p-9 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] border border-slate-800/80 relative overflow-hidden animate-fade-in">
-              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none -mt-32 -mr-32" />
-              <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-[120px] pointer-events-none -mb-32 -ml-32" />
+            <div className="bg-white/95 text-slate-800 rounded-[2.5rem] p-6 sm:p-9 shadow-[0_15px_50px_-10px_rgba(30,41,59,0.08)] border border-slate-200/80 relative overflow-hidden animate-fade-in backdrop-blur-2xl">
+              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-400/10 rounded-full blur-[120px] pointer-events-none -mt-32 -mr-32" />
+              <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-teal-400/10 rounded-full blur-[120px] pointer-events-none -mb-32 -ml-32" />
 
-              <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4 pb-6 border-b border-white/10">
+              <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4 pb-6 border-b border-slate-200/80">
                 <div>
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-black mb-2 shadow-inner">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-black mb-2 shadow-sm">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
                     <span>REAL-TIME API RADAR · LIVE PROBE</span>
                   </div>
-                  <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-teal-100 to-emerald-200 flex items-center gap-2.5">
+                  <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-emerald-950 via-slate-900 to-teal-950 flex items-center gap-2.5">
                     Trạm Giám Sát Nhịp Sống & Liên Kết API
                   </h2>
-                  <p className="text-sm text-slate-400 font-medium mt-1 max-w-3xl leading-relaxed">
+                  <p className="text-sm text-slate-600 font-medium mt-1 max-w-3xl leading-relaxed">
                     Tự động phóng các xung tín hiệu trực tiếp (Live Ping Probe) tới toàn bộ các Cổng API âm nhạc, thời tiết, định vị và máy chủ trung tâm để chẩn đoán trạng thái Sống/Chết kèm giải pháp sửa chữa tức thì.
                   </p>
                 </div>
@@ -2396,16 +2396,16 @@ export default function AdminUsers() {
                   type="button"
                   onClick={runApiHealthCheck}
                   disabled={testingApis}
-                  className="btn btn-md bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 hover:from-emerald-400 hover:to-cyan-500 text-slate-950 font-black border-0 shadow-[0_0_25px_-5px_rgba(16,185,129,0.5)] rounded-2xl px-6 h-12 shrink-0 transition-all active:scale-95 cursor-pointer text-sm"
+                  className="btn btn-md bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 text-white font-black border-0 shadow-md rounded-2xl px-6 h-12 shrink-0 transition-all active:scale-95 cursor-pointer text-sm"
                 >
                   {testingApis ? (
                     <>
-                      <span className="loading loading-spinner loading-sm text-slate-950" />
+                      <span className="loading loading-spinner loading-sm text-white" />
                       <span>Đang rà soát nhịp sống...</span>
                     </>
                   ) : (
                     <>
-                      <Zap size={18} className="text-amber-900 fill-amber-900" />
+                      <Zap size={18} className="text-yellow-300 fill-yellow-300" />
                       <span>🧪 Kiểm tra ngay (Live Ping)</span>
                     </>
                   )}
@@ -2416,8 +2416,8 @@ export default function AdminUsers() {
               <div className="relative z-10">
                 {apiStatuses.length === 0 ? (
                   <div className="py-20 text-center flex flex-col items-center justify-center gap-4">
-                    <span className="loading loading-bars loading-lg text-emerald-400"></span>
-                    <p className="text-sm font-extrabold text-emerald-300/80 uppercase tracking-widest">Đang thực hiện cuộc rà soát Sóng liên kết lần đầu...</p>
+                    <span className="loading loading-bars loading-lg text-emerald-600"></span>
+                    <p className="text-sm font-extrabold text-emerald-700 uppercase tracking-widest">Đang thực hiện cuộc rà soát Sóng liên kết lần đầu...</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -2426,68 +2426,68 @@ export default function AdminUsers() {
                       return (
                         <div
                           key={item.id}
-                          className={`rounded-3xl p-6 border transition-all duration-300 flex flex-col justify-between shadow-2xl relative overflow-hidden group ${
+                          className={`rounded-3xl p-6 border transition-all duration-300 flex flex-col justify-between shadow-md relative overflow-hidden group ${
                             isOnline
-                              ? "bg-slate-900/80 backdrop-blur-xl border-emerald-500/30 hover:border-emerald-400/60 shadow-[0_10px_30px_-10px_rgba(16,185,129,0.15)]"
-                              : "bg-gradient-to-b from-rose-950/90 to-slate-950 border-rose-500 shadow-[0_10px_35px_-10px_rgba(244,63,94,0.4)] ring-2 ring-rose-500/30 animate-fade-in"
+                              ? "bg-white border-slate-200/80 hover:border-emerald-300 shadow-[0_10px_30px_-10px_rgba(30,41,59,0.06)]"
+                              : "bg-rose-50/90 border-rose-300 shadow-md ring-1 ring-rose-300/50 animate-fade-in"
                           }`}
                         >
                           <div>
                             <div className="flex items-start justify-between gap-2 mb-3">
-                              <h3 className="font-black text-base text-white leading-snug tracking-tight flex items-center gap-2">
+                              <h3 className="font-black text-base text-slate-900 leading-snug tracking-tight flex items-center gap-2">
                                 <span>{item.name}</span>
                               </h3>
                               <span
                                 className={`badge font-black px-3 py-3 rounded-xl shrink-0 text-xs shadow-sm ${
                                   isOnline
-                                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                                    : "bg-rose-500/30 text-rose-300 border border-rose-500 animate-pulse"
+                                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                    : "bg-rose-100 text-rose-800 border border-rose-300 animate-pulse"
                                 }`}
                               >
                                 {isOnline ? "🟢 ONLINE" : "🔴 OFFLINE / LỖI"}
                               </span>
                             </div>
-                            <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed mb-4 font-medium">{item.desc}</p>
+                            <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed mb-4 font-medium">{item.desc}</p>
 
                             {/* AUTOMATED DIAGNOSIS & REMEDY GUIDE */}
-                            <div className={`rounded-2xl p-4 mb-5 border transition-all shadow-inner ${
+                            <div className={`rounded-2xl p-4 mb-5 border transition-all shadow-sm ${
                               isOnline
-                                ? "bg-slate-950/80 border-white/5 text-slate-300 hover:border-white/10"
-                                : "bg-black/60 border-rose-500/50 text-rose-100"
+                                ? "bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300"
+                                : "bg-white border-rose-200 text-rose-900"
                             }`}>
                               <div className="flex items-center gap-2 text-xs font-black mb-2">
                                 <span className="text-base">{isOnline ? "💡" : "🚨"}</span>
-                                <span className={isOnline ? "text-cyan-300 uppercase tracking-wider text-[11px]" : "text-amber-300 uppercase tracking-wider text-xs underline decoration-rose-500 decoration-2"}>
+                                <span className={isOnline ? "text-indigo-900 uppercase tracking-wider text-[11px]" : "text-amber-900 uppercase tracking-wider text-xs underline decoration-rose-500 decoration-2"}>
                                   {isOnline ? "Hướng dẫn bảo trì dự phòng:" : "Chẩn đoán Lỗi & Cách xử lý ngay:"}
                                 </span>
                               </div>
-                              <p className="text-xs leading-relaxed mb-3 text-slate-300 font-medium">
-                                <strong className={isOnline ? "text-teal-400 font-black uppercase text-[11px]" : "text-rose-300 font-black uppercase text-[11px]"}>Nguyên nhân: </strong> 
+                              <p className="text-xs leading-relaxed mb-3 text-slate-700 font-medium">
+                                <strong className={isOnline ? "text-teal-800 font-black uppercase text-[11px]" : "text-rose-700 font-black uppercase text-[11px]"}>Nguyên nhân: </strong> 
                                 {item.errorHelp}
                               </p>
-                              <div className="text-xs font-bold text-amber-200 bg-slate-900/90 p-3 rounded-xl border border-amber-500/20 leading-relaxed flex items-start gap-2 shadow-sm">
+                              <div className="text-xs font-bold text-amber-900 bg-amber-50/90 p-3 rounded-xl border border-amber-200 leading-relaxed flex items-start gap-2 shadow-sm">
                                 <span className="text-base shrink-0">🛠️</span>
                                 <div>
-                                  <strong className="text-amber-300 font-black uppercase text-[11px] block underline mb-0.5">Giải pháp chẩn đoán:</strong>
-                                  <span className="text-slate-200 font-normal">{item.remedy}</span>
+                                  <strong className="text-amber-950 font-black uppercase text-[11px] block underline mb-0.5">Giải pháp chẩn đoán:</strong>
+                                  <span className="text-slate-800 font-normal">{item.remedy}</span>
                                 </div>
                               </div>
                             </div>
                           </div>
 
-                          <div className="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono font-bold">
-                            <span className="flex items-center gap-2 text-slate-300">
+                          <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-mono font-bold">
+                            <span className="flex items-center gap-2 text-slate-600">
                               <span>⏱️ RTT Latency:</span>
                               <span className={`px-2 py-1 rounded-lg border ${
                                 item.ping < 300 
-                                  ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30 font-black" 
-                                  : "bg-amber-500/15 text-amber-300 border-amber-500/30 font-black"
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 font-black" 
+                                  : "bg-amber-50 text-amber-800 border-amber-200 font-black"
                               }`}>
                                 {item.ping} ms
                               </span>
                             </span>
-                            <span className={`font-black px-2.5 py-1 rounded-xl border font-mono ${
-                              isOnline ? "text-slate-300 bg-white/5 border-white/10" : "text-rose-200 bg-rose-500/20 border-rose-500/50"
+                            <span className={`font-black px-2.5 py-1 rounded-xl border font-mono shadow-sm ${
+                              isOnline ? "text-slate-700 bg-white border-slate-200" : "text-rose-800 bg-rose-50 border-rose-200"
                             }`}>
                               {item.httpStatus}
                             </span>
@@ -2499,11 +2499,11 @@ export default function AdminUsers() {
                 )}
               </div>
 
-              <div className="relative z-10 mt-8 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10 border border-emerald-500/30 rounded-2xl p-4 text-xs text-emerald-200 flex items-center gap-3.5 font-medium shadow-lg backdrop-blur-md">
+              <div className="relative z-10 mt-8 bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 border border-emerald-200 rounded-2xl p-4 text-xs text-slate-700 flex items-center gap-3.5 font-medium shadow-sm">
                 <span className="text-2xl shrink-0">🛡️</span>
                 <span className="leading-relaxed">
-                  <strong className="text-white font-black uppercase text-[11px] tracking-wider block mb-0.5">Huy Locket API Guard Note:</strong> 
-                  Các dịch vụ có nhãn <code className="bg-emerald-500/20 px-2 py-0.5 rounded-lg text-white font-mono font-bold border border-emerald-500/30">CORS Guard</code> hoặc trả về HTTP Status (&lt; 500) đều đồng nghĩa máy chủ đầu xa đang mở cổng kết nối và phản hồi các tiến trình Locket một cách hoàn toàn bình thường theo đúng chuẩn bảo mật trình duyệt.
+                  <strong className="text-emerald-950 font-black uppercase text-[11px] tracking-wider block mb-0.5">Huy Locket API Guard Note:</strong> 
+                  Các dịch vụ có nhãn <code className="bg-emerald-100 px-2 py-0.5 rounded-lg text-emerald-900 font-mono font-bold border border-emerald-300 shadow-sm">CORS Guard</code> hoặc trả về HTTP Status (&lt; 500) đều đồng nghĩa máy chủ đầu xa đang mở cổng kết nối và phản hồi các tiến trình Locket một cách hoàn toàn bình thường theo đúng chuẩn bảo mật trình duyệt.
                 </span>
               </div>
             </div>
