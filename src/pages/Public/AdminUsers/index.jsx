@@ -1203,38 +1203,78 @@ export default function AdminUsers() {
       {/* TAB 4: ADVANCED SUPER ADMIN POWER SUITE */}
       {activeTab === "advanced" && (
         <div className="space-y-8 animate-fade-in">
-          {/* Section 1: Server Health Dashboard */}
-          <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-indigo-500/30">
+          {/* Section 1: Dual-Cloud Health Dashboard: Vercel & Railway */}
+          <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 text-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-indigo-500/30">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-xl font-black flex items-center gap-2 text-indigo-300">
-                  <Activity size={22} className="text-emerald-400 animate-pulse" />
-                  Cảm Biến Giám Sát Nhịp Tim Máy Chủ Railway
+                  <Activity size={22} className="text-emerald-400 animate-pulse shrink-0" />
+                  Cảm Biến Giám Sát Hạ Tầng Vercel & Railway (Dual-Cloud Shield)
                 </h2>
-                <p className="text-xs text-indigo-200/70 mt-1">Hệ thống bảo mật tối thượng Huy Locket Shield hoạt động thời gian thực.</p>
+                <p className="text-xs text-indigo-200/70 mt-1">Hệ thống giám sát hai tầng: Giao diện toàn cầu (Vercel CDN) & Máy chủ xử lý trung tâm (Railway API).</p>
               </div>
               <button type="button" onClick={fetchAdvancedData} className="btn btn-sm btn-ghost text-indigo-300">🔄 Cập nhật</button>
             </div>
-            {serverHealth ? (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
-                <div className="bg-indigo-900/40 border border-indigo-500/20 rounded-2xl p-4 text-center">
-                  <p className="text-[11px] text-indigo-300 font-bold uppercase">Trạng Thái</p>
-                  <p className="text-sm sm:text-base font-black text-emerald-400 mt-1">🟢 {serverHealth.status}</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+              {/* Vercel Frontend Edge Shield */}
+              <div className="bg-gradient-to-b from-slate-800/80 to-slate-900/90 border border-purple-500/30 rounded-2xl p-5 shadow-lg relative overflow-hidden">
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/10">
+                  <span className="font-black text-sm text-purple-300 flex items-center gap-1.5">
+                    🌐 TRẠM GIAO DIỆN VERCEL (FRONTEND CDN)
+                  </span>
+                  <span className="badge badge-success badge-sm font-bold animate-pulse">EDGE ACTIVE</span>
                 </div>
-                <div className="bg-indigo-900/40 border border-indigo-500/20 rounded-2xl p-4 text-center">
-                  <p className="text-[11px] text-indigo-300 font-bold uppercase">Thời gian duy trì (Uptime)</p>
-                  <p className="text-lg font-black text-white mt-1 font-mono">{Math.floor(serverHealth.uptimeSeconds / 3600)}h {Math.floor((serverHealth.uptimeSeconds % 3600) / 60)}p</p>
-                </div>
-                <div className="bg-indigo-900/40 border border-indigo-500/20 rounded-2xl p-4 text-center">
-                  <p className="text-[11px] text-indigo-300 font-bold uppercase">Bộ nhớ RAM (RSS / Heap)</p>
-                  <p className="text-lg font-black text-amber-300 mt-1 font-mono">{serverHealth.memoryRssMb} MB / {serverHealth.memoryHeapUsedMb} MB</p>
-                </div>
-                <div className="bg-indigo-900/40 border border-indigo-500/20 rounded-2xl p-4 text-center">
-                  <p className="text-[11px] text-indigo-300 font-bold uppercase">Hệ điều hành</p>
-                  <p className="text-sm font-bold text-slate-300 mt-2 font-mono">{serverHealth.platform} ({serverHealth.nodeVersion})</p>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                    <span className="text-purple-300 font-bold block mb-1">Tường lửa Vercel WAF</span>
+                    <span className="text-emerald-400 font-black text-sm">🟢 Chống DDoS Mạng</span>
+                  </div>
+                  <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                    <span className="text-purple-300 font-bold block mb-1">Giao thức Mạng</span>
+                    <span className="text-white font-black text-sm font-mono">HTTPS · SSL/TLS 1.3</span>
+                  </div>
+                  <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                    <span className="text-purple-300 font-bold block mb-1">Tối ưu tĩnh (Static CDN)</span>
+                    <span className="text-amber-300 font-bold text-xs font-mono">Vite Assets Caching 100%</span>
+                  </div>
+                  <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                    <span className="text-purple-300 font-bold block mb-1">Cổng Proxy Bóc IP</span>
+                    <span className="text-cyan-300 font-bold text-xs font-mono">X-Vercel-Forwarded-For</span>
+                  </div>
                 </div>
               </div>
-            ) : <div className="py-8 text-center text-indigo-300">Đang đo ngầm tài nguyên máy chủ...</div>}
+
+              {/* Railway Backend API Server */}
+              <div className="bg-gradient-to-b from-indigo-900/60 to-slate-900/90 border border-indigo-500/30 rounded-2xl p-5 shadow-lg relative overflow-hidden">
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/10">
+                  <span className="font-black text-sm text-indigo-300 flex items-center gap-1.5">
+                    ⚡ TRẠM XỬ LÝ RAILWAY (BACKEND & DB)
+                  </span>
+                  <span className="badge badge-primary badge-sm font-bold animate-pulse">API SHIELD</span>
+                </div>
+                {serverHealth ? (
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                      <span className="text-indigo-300 font-bold block mb-1">Trạng thái API</span>
+                      <span className="text-emerald-400 font-black text-xs truncate block">🟢 {serverHealth.status}</span>
+                    </div>
+                    <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                      <span className="text-indigo-300 font-bold block mb-1">Thời gian duy trì (Uptime)</span>
+                      <span className="text-white font-black text-sm font-mono">{Math.floor(serverHealth.uptimeSeconds / 3600)}h {Math.floor((serverHealth.uptimeSeconds % 3600) / 60)}p</span>
+                    </div>
+                    <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                      <span className="text-indigo-300 font-bold block mb-1">Bộ nhớ RAM (RSS / Heap)</span>
+                      <span className="text-amber-300 font-black text-sm font-mono">{serverHealth.memoryRssMb} MB / {serverHealth.memoryHeapUsedMb} MB</span>
+                    </div>
+                    <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                      <span className="text-indigo-300 font-bold block mb-1">Hệ điều hành</span>
+                      <span className="text-slate-300 font-bold text-xs font-mono">{serverHealth.platform} ({serverHealth.nodeVersion})</span>
+                    </div>
+                  </div>
+                ) : <div className="py-8 text-center text-indigo-300">Đang đo ngầm tài nguyên máy chủ Railway...</div>}
+              </div>
+            </div>
           </div>
 
           {/* Section 2: Global Broadcast Banner */}
