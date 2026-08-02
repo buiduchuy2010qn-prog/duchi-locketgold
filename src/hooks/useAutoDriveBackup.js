@@ -56,7 +56,7 @@ export function useAutoDriveBackup(selectedFile) {
           /* ignore */
         }
 
-        const st = await fetchDriveServerStatus(true);
+        const st = await fetchDriveServerStatus(false);
         if (!st?.configured || st?.enabled === false) {
           console.warn(
             "[gdrive] skip backup — Drive chưa bật (admin liên kết 1 lần trên Render)",

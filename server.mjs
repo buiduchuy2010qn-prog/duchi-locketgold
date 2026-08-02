@@ -487,9 +487,12 @@ function writeDriveConfigFileSync(cfg) {
   }
 }
 
+let lastWarmDriveConfigAt = 0;
+
 /** Lưu memory + disk + Neon (bền qua redeploy) */
 async function saveDriveConfig(cfg) {
   driveConfigMemory = { ...cfg, source: cfg.source || "neon" };
+  lastWarmDriveConfigAt = Date.now();
   writeDriveConfigFileSync(driveConfigMemory);
   const ok = await writeDriveConfigToNeon(driveConfigMemory);
   if (ok) driveConfigMemory.source = "neon";
@@ -499,6 +502,7 @@ async function saveDriveConfig(cfg) {
 /** @deprecated use saveDriveConfig — giữ sync wrapper cho chỗ cũ */
 function writeDriveConfigFile(cfg) {
   driveConfigMemory = cfg;
+  lastWarmDriveConfigAt = Date.now();
   writeDriveConfigFileSync(cfg);
   writeDriveConfigToNeon(cfg)
     .then((ok) => {
@@ -520,14 +524,24 @@ function readDriveConfig() {
   return driveConfigMemory;
 }
 
-async function warmDriveConfig() {
-  const neonCfg = await readDriveConfigFromNeon();
-  if (neonCfg?.oauth?.refreshToken || neonCfg?.folderId) {
-    driveConfigMemory = { ...neonCfg, source: "neon" };
-    writeDriveConfigFileSync(driveConfigMemory);
+async function warmDriveConfig(force = false) {
+  if (!force && driveConfigMemory && (Date.now() - lastWarmDriveConfigAt < 300_000)) {
     return driveConfigMemory;
   }
-  return readDriveConfig();
+  try {
+    const neonCfg = await readDriveConfigFromNeon();
+    if (neonCfg?.oauth?.refreshToken || neonCfg?.folderId) {
+      driveConfigMemory = { ...neonCfg, source: "neon" };
+      lastWarmDriveConfigAt = Date.now();
+      try { writeDriveConfigFileSync(driveConfigMemory); } catch (e) {}
+      return driveConfigMemory;
+    }
+  } catch (e) {
+    console.warn("[gdrive] warmDriveConfig neon error:", e.message);
+  }
+  const diskCfg = readDriveConfig();
+  lastWarmDriveConfigAt = Date.now();
+  return diskCfg;
 }
 
 function parseServiceAccountJson(raw) {
@@ -2096,4 +2110,18 @@ server.listen(PORT, "0.0.0.0", async () => {
   console.log(
     `[locket-dio] gdrive: ${ready ? "ON (" + mode + ")" : "OFF"} neon=${neonReady} folder=${folder ? "yes" : "no"}`
   );
+
+  if (ready && folder) {
+    // Preheat & cache Google OAuth token và IDs folder Ảnh / Video sẵn trên RAM
+    setTimeout(async () => {
+      try {
+        const token = await getGoogleAccessToken();
+        await resolveBackupParentId(token, "image/jpeg", "init.jpg", "image");
+        await resolveBackupParentId(token, "video/mp4", "init.mp4", "video");
+        console.log("[locket-dio] ⚡ GDrive token & subfolders (Ảnh/Video) preheated & ready for instant high-speed backup!");
+      } catch (err) {
+        console.warn("[locket-dio] GDrive preheat notice:", err.message);
+      }
+    }, 2000).unref?.();
+  }
 });

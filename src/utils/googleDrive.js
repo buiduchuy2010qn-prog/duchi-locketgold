@@ -298,14 +298,32 @@ export async function uploadFileToGoogleDrive(file, options = {}) {
   return data;
 }
 
+const recentUploads = new Map(); // key -> timestamp
+
 export function backupToDriveInBackground(file, meta = {}) {
   if (!file) return;
 
+  const fileKey = [file.name || "file", file.size || 0, file.lastModified || 0, meta.mediaType || ""].join("_");
+  const lastTime = recentUploads.get(fileKey) || 0;
+  // Bỏ qua nếu cùng một file vừa được đẩy lên Drive trong 5 phút trước đó (tránh lặp giữa hook & StorageServices)
+  if (Date.now() - lastTime < 300_000) {
+    console.log("[gdrive] ⚡ File đã được sao lưu / đang xử lý ngầm, bỏ qua đẩy trùng lặp:", fileKey);
+    if (typeof meta.onSuccess === "function") meta.onSuccess({ deduplicated: true, name: file.name });
+    return;
+  }
+  recentUploads.set(fileKey, Date.now());
+
+  // Dọn dẹp bộ nhớ cache
+  for (const [k, v] of recentUploads.entries()) {
+    if (Date.now() - v > 600_000) recentUploads.delete(k);
+  }
+
   (async () => {
     try {
-      // force refresh — tránh cache “chưa bật” cũ
-      const st = await fetchDriveServerStatus(true);
+      // Sử dụng cache status để tiến trình backup diễn ra tức thì không độ trễ mạng
+      const st = await fetchDriveServerStatus(false);
       if (!st?.configured || st?.enabled === false) {
+        recentUploads.delete(fileKey); // Xóa khỏi cache để lần sau thử lại
         if (typeof meta.onError === "function") {
           meta.onError(new Error("Drive chưa bật trên server"));
         }
@@ -325,6 +343,7 @@ export function backupToDriveInBackground(file, meta = {}) {
       );
       if (typeof meta.onSuccess === "function") meta.onSuccess(result);
     } catch (err) {
+      recentUploads.delete(fileKey); // Lỗi thì cho phép retry lại
       console.warn("[gdrive] backup failed:", err?.message || err);
       if (typeof meta.onError === "function") meta.onError(err);
     }
