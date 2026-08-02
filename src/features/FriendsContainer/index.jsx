@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from "react";
 import ReactDOM from "react-dom";
 import { useAppNavigation } from "@/context/AppContext";
+import { logWebUserAction } from "@/services/UserActivityService";
 import { X } from "lucide-react";
 import { AcceptRequestToFriend } from "@/services";
 import IncomingFriendRequests from "./IncomingRequests";
@@ -45,6 +46,11 @@ const FriendsContainer = () => {
       setTimeout(() => setAnimate(true), 10);
       // Mở tab bạn bè → luôn thử sync (force nếu list rỗng)
       refreshFriendsData().catch(() => {});
+      logWebUserAction({
+        actionType: "FRIENDS_VIEW",
+        actionTitle: "Truy cập Danh sách Bạn bè & Nhóm",
+        details: "Thành viên mở danh sách quản lý kết bạn, nhóm và lời mời",
+      }).catch(() => {});
     } else {
       setAnimate(false);
       // Giữ full list khi mở lại — không collapse về 3

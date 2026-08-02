@@ -1,6 +1,7 @@
 import { SonnerInfo } from "@/components/uikit/SonnerToast";
 import { useAuthStore } from "@/stores";
 import { getAvatarOrFallback } from "@/utils";
+import { logWebUserAction } from "@/services/UserActivityService";
 import clsx from "clsx";
 import { X } from "lucide-react";
 import React, { useEffect, useState } from "react";
@@ -20,6 +21,11 @@ const EditProfilePopup = ({ open, onClose }) => {
     if (open) {
       setShowModal(true);
       setTimeout(() => setAnimate(true), 10);
+      logWebUserAction({
+        actionType: "PROFILE_VIEW",
+        actionTitle: "Truy cập Hồ sơ cá nhân (Profile)",
+        details: "Thành viên mở bảng xem hồ sơ cá nhân và chỉnh sửa thông tin tài khoản",
+      }).catch(() => {});
     } else {
       setAnimate(false);
       setTimeout(() => setShowModal(false), 500);

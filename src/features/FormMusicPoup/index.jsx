@@ -1,3 +1,4 @@
+import { logWebUserAction } from "@/services/UserActivityService";
 import clsx from "clsx";
 import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom";
@@ -64,6 +65,11 @@ const FormMusicPoup = ({
     if (open) {
       setShowModal(true);
       setTimeout(() => setAnimate(true), 10);
+      logWebUserAction({
+        actionType: "MUSIC_SELECT",
+        actionTitle: "Mở Thư Viện Nhạc & Spotify",
+        details: "Thành viên mở công cụ tìm và đính kèm bản nhạc vào Moment",
+      }).catch(() => {});
     } else {
       setAnimate(false);
       setTimeout(() => setShowModal(false), 300);

@@ -1617,9 +1617,16 @@ export default function AdminUsers() {
               >
                 <option value="">Tất cả loại hành động</option>
                 <option value="NAVIGATION">🧭 Điều hướng Trang (Navigation)</option>
+                <option value="PROFILE_VIEW">👤 Truy cập Hồ sơ / Profile</option>
+                <option value="FRIENDS_VIEW">👥 Truy cập Danh sách Bạn Bè</option>
+                <option value="SETTINGS_OPEN">⚙️ Mở Cài đặt Ứng Dụng</option>
                 <option value="STREAKS_VIEW">🌟 Xem Lịch sử / Streaks</option>
-                <option value="MENU_OPEN">⚙️ Mở Menu / Profile</option>
-                <option value="MOMENT_POST">📸 Đăng tải Moment</option>
+                <option value="MENU_OPEN">📋 Mở Menu / Rèm điều khiển</option>
+                <option value="MOMENT_POST">📸 Đăng tải Moment mới</option>
+                <option value="REACT_MOMENT">💛 Thả Tim / Reaction Bạn Bè</option>
+                <option value="CHAT_SEND">💬 Gửi Tin Nhắn Phản Hồi</option>
+                <option value="MOMENT_DELETE">🗑️ Xóa Khoảnh Khắc</option>
+                <option value="MUSIC_SELECT">🎵 Mở Thư Viện Nhạc Spotify</option>
               </select>
               <button
                 type="button"
@@ -1659,17 +1666,17 @@ export default function AdminUsers() {
               <span className="text-xs font-black text-teal-700 uppercase tracking-wider">Tổng Lượt Hoạt Động</span>
               <span className="text-2xl sm:text-3xl font-black text-slate-900 mt-2">{userActions.length} <span className="text-xs font-medium text-slate-500">lần ghi nhận</span></span>
             </div>
-            <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-blue-500/10 via-cyan-500/5 to-transparent border border-blue-200/60 shadow-sm flex flex-col justify-between">
-              <span className="text-xs font-black text-blue-700 uppercase tracking-wider">Lượt Điều Hướng (Navigation)</span>
-              <span className="text-2xl sm:text-3xl font-black text-slate-900 mt-2">{userActions.filter(a => a.action_type === 'NAVIGATION').length} <span className="text-xs font-medium text-slate-500">trang</span></span>
+            <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-blue-500/10 via-indigo-500/5 to-transparent border border-blue-200/60 shadow-sm flex flex-col justify-between">
+              <span className="text-xs font-black text-indigo-700 uppercase tracking-wider">Hồ Sơ & Danh Sách Bạn Bè</span>
+              <span className="text-2xl sm:text-3xl font-black text-slate-900 mt-2">{userActions.filter(a => ['PROFILE_VIEW', 'FRIENDS_VIEW', 'SETTINGS_OPEN'].includes(a.action_type)).length} <span className="text-xs font-medium text-slate-500">lượt truy cập</span></span>
             </div>
-            <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent border border-amber-200/60 shadow-sm flex flex-col justify-between">
-              <span className="text-xs font-black text-amber-700 uppercase tracking-wider">Lượt Mở Lịch Sử (Streaks)</span>
-              <span className="text-2xl sm:text-3xl font-black text-slate-900 mt-2">{userActions.filter(a => a.action_type === 'STREAKS_VIEW').length} <span className="text-xs font-medium text-slate-500">lần xem</span></span>
+            <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-amber-500/10 via-rose-500/5 to-transparent border border-amber-200/60 shadow-sm flex flex-col justify-between">
+              <span className="text-xs font-black text-amber-700 uppercase tracking-wider">Tương Tác, Tim & Chat</span>
+              <span className="text-2xl sm:text-3xl font-black text-slate-900 mt-2">{userActions.filter(a => ['REACT_MOMENT', 'CHAT_SEND', 'MOMENT_POST', 'MUSIC_SELECT', 'MOMENT_DELETE'].includes(a.action_type)).length} <span className="text-xs font-medium text-slate-500">thao tác</span></span>
             </div>
-            <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-purple-500/10 via-pink-500/5 to-transparent border border-purple-200/60 shadow-sm flex flex-col justify-between">
-              <span className="text-xs font-black text-purple-700 uppercase tracking-wider">Lượt Mở Menu & Đăng Bài</span>
-              <span className="text-2xl sm:text-3xl font-black text-slate-900 mt-2">{userActions.filter(a => ['MENU_OPEN', 'MOMENT_POST'].includes(a.action_type)).length} <span className="text-xs font-medium text-slate-500">thao tác</span></span>
+            <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-purple-500/10 via-cyan-500/5 to-transparent border border-purple-200/60 shadow-sm flex flex-col justify-between">
+              <span className="text-xs font-black text-purple-700 uppercase tracking-wider">Điều Hướng & Lịch Sử Streaks</span>
+              <span className="text-2xl sm:text-3xl font-black text-slate-900 mt-2">{userActions.filter(a => ['NAVIGATION', 'STREAKS_VIEW', 'MENU_OPEN'].includes(a.action_type)).length} <span className="text-xs font-medium text-slate-500">lượt</span></span>
             </div>
           </div>
 
@@ -1718,15 +1725,36 @@ export default function AdminUsers() {
                     if (item.action_type === "NAVIGATION") {
                       badgeClass = "bg-blue-50 text-blue-700 border-blue-200";
                       actionIcon = "🧭";
+                    } else if (item.action_type === "PROFILE_VIEW") {
+                      badgeClass = "bg-violet-50 text-violet-800 border-violet-300 shadow-xs font-black";
+                      actionIcon = "👤";
+                    } else if (item.action_type === "FRIENDS_VIEW") {
+                      badgeClass = "bg-indigo-50 text-indigo-800 border-indigo-300 shadow-xs font-black";
+                      actionIcon = "👥";
+                    } else if (item.action_type === "SETTINGS_OPEN") {
+                      badgeClass = "bg-slate-100 text-slate-800 border-slate-300 font-bold";
+                      actionIcon = "⚙️";
                     } else if (item.action_type === "STREAKS_VIEW") {
                       badgeClass = "bg-amber-50 text-amber-800 border-amber-300 shadow-xs";
                       actionIcon = "🌟";
                     } else if (item.action_type === "MENU_OPEN") {
                       badgeClass = "bg-purple-50 text-purple-700 border-purple-200";
-                      actionIcon = "⚙️";
+                      actionIcon = "📋";
                     } else if (item.action_type === "MOMENT_POST") {
                       badgeClass = "bg-emerald-50 text-emerald-800 border-emerald-300 shadow-xs font-black";
                       actionIcon = "📸";
+                    } else if (item.action_type === "REACT_MOMENT") {
+                      badgeClass = "bg-amber-100 text-amber-900 border-amber-400 font-black shadow-sm";
+                      actionIcon = "💛";
+                    } else if (item.action_type === "CHAT_SEND") {
+                      badgeClass = "bg-cyan-50 text-cyan-800 border-cyan-300 font-extrabold shadow-xs";
+                      actionIcon = "💬";
+                    } else if (item.action_type === "MOMENT_DELETE") {
+                      badgeClass = "bg-rose-50 text-rose-800 border-rose-300 font-black shadow-xs";
+                      actionIcon = "🗑️";
+                    } else if (item.action_type === "MUSIC_SELECT") {
+                      badgeClass = "bg-teal-50 text-teal-800 border-teal-300 font-bold";
+                      actionIcon = "🎵";
                     }
 
                     const dt = new Date(item.created_at || item.createdAt);

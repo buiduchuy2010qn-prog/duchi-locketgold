@@ -2,6 +2,7 @@ import { getMomentById } from "@/cache/momentDB";
 import { instanceLocketV2 } from "@/libs";
 import { getToken } from "@/utils";
 import { generateUUIDv4Upper } from "@/utils/generate/uuid";
+import { logWebUserAction } from "@/services/UserActivityService";
 
 export const SendReactMoment = async (emoji, selectedMomentId, power) => {
   try {
@@ -16,6 +17,12 @@ export const SendReactMoment = async (emoji, selectedMomentId, power) => {
       },
     };
     const response = await instanceLocketV2.post("reactToMoment", body);
+
+    logWebUserAction({
+      actionType: "REACT_MOMENT",
+      actionTitle: "Thả Reaction lên Khoảnh Khắc",
+      details: `Thành viên thả reaction [${emoji || "💛"}] lên bài đăng bè bạn`,
+    }).catch(() => {});
 
     return response.data;
   } catch (err) {
@@ -81,6 +88,12 @@ export const SendMessageMoment = async (message, selectedMomentId, uid) => {
 
     const response = await instanceLocketV2.post("sendChatMessageV2", body);
 
+    logWebUserAction({
+      actionType: "CHAT_SEND",
+      actionTitle: "Gửi Tin Nhắn phản hồi Khoảnh Khắc",
+      details: `Gửi tin nhắn trả lời bài đăng: "${(message || "").slice(0, 50)}${(message || "").length > 50 ? "..." : ""}"`,
+    }).catch(() => {});
+
     return response.data;
   } catch (err) {
     console.error("sendMessage error:", err);
@@ -113,6 +126,13 @@ export const DeleteMoment = async (selectedMomentId) => {
 
     const deletedIds = res?.data?.result?.data;
     const deletedId = Array.isArray(deletedIds) ? deletedIds[0] : null;
+    if (deletedId) {
+      logWebUserAction({
+        actionType: "MOMENT_DELETE",
+        actionTitle: "Xóa Khoảnh Khắc cá nhân",
+        details: `Thành viên đã gỡ bỏ khoảnh khắc (ID: ${selectedMomentId})`,
+      }).catch(() => {});
+    }
     return deletedId; // 👉 trả về ID đã xoá
   } catch (err) {
     console.warn("❌ Failed", err);

@@ -4,6 +4,7 @@ import {
   useShareHistory,
   useUserSetting,
 } from "@/stores";
+import { logWebUserAction } from "@/services/UserActivityService";
 import clsx from "clsx";
 import {
   CheckCheck,
@@ -36,6 +37,11 @@ const SettingPoup = ({ open, onClose }) => {
     if (open) {
       setShowModal(true);
       setTimeout(() => setAnimate(true), 10);
+      logWebUserAction({
+        actionType: "SETTINGS_OPEN",
+        actionTitle: "Truy cập Cài đặt Ứng dụng (Settings)",
+        details: "Thành viên mở bảng cấu hình tài khoản, quyền riêng tư và tùy chỉnh",
+      }).catch(() => {});
     } else {
       setAnimate(false);
       setTimeout(() => setShowModal(false), 500);
