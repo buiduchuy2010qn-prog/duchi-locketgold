@@ -684,7 +684,7 @@ router.delete("/users/:uid/nuke", requireActiveAdminSession, async (req, res) =>
 
 // 4. Cảm Biến Giám Sát Tài Nguyên Máy Chủ
 router.get("/server-health", async (req, res) => {
-  const health = getServerHealthStats();
+  const health = await getServerHealthStats();
   res.json({ success: true, data: health });
 });
 

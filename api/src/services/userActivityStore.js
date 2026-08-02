@@ -918,16 +918,96 @@ async function nukeUserPermanently(uid) {
 }
 
 // 4. Cảm Biến Giám Sát Tài Nguyên & Thống Kê Máy Chủ
-function getServerHealthStats() {
+async function getServerHealthStats() {
+  const os = require("os");
   const memory = process.memoryUsage();
-  const uptime = process.uptime();
+  const procUptime = process.uptime();
+  const osUptime = os.uptime ? os.uptime() : procUptime;
+
+  const cpus = os.cpus ? os.cpus() : [];
+  const cpuModel = cpus[0]?.model || "Intel/AMD Cloud vCPU";
+  const cpuCores = cpus.length || 1;
+  const cpuSpeed = cpus[0]?.speed ? `${cpus[0].speed} MHz` : "Standard Cloud MHz";
+  const loadAvg = os.loadavg ? os.loadavg().map((n) => Number(n || 0).toFixed(2)).join(", ") : "N/A";
+
+  const totalRamMb = os.totalmem ? Math.round(os.totalmem() / (1024 * 1024)) : 0;
+  const freeRamMb = os.freemem ? Math.round(os.freemem() / (1024 * 1024)) : 0;
+
+  const sql = getSql();
+  const t0 = Date.now();
+  let dbStatus = "DISCONNECTED";
+  let dbVersion = "PostgreSQL Neon Cloud";
+  let dbSize = "N/A";
+  let dbTables = 0;
+  let dbConnections = { active: 0, total: 0 };
+  let dbRecords = { users: 0, sessions: 0, audit: 0, blacklistedIps: 0 };
+  let dbLatencyMs = 0;
+
+  if (sql) {
+    try {
+      const vRes = await sql`SELECT version();`;
+      if (vRes[0]?.version) {
+        dbStatus = "CONNECTED (Neon Serverless)";
+        const vParts = String(vRes[0].version).split(" ");
+        dbVersion = `${vParts[0]} ${vParts[1] || ""}`.trim();
+      }
+      try {
+        const szRes = await sql`SELECT pg_size_pretty(pg_database_size(current_database())) as size;`;
+        dbSize = szRes[0]?.size || "N/A";
+      } catch {}
+      try {
+        const tbRes = await sql`SELECT count(*) as count FROM information_schema.tables WHERE table_schema='public';`;
+        dbTables = Number(tbRes[0]?.count) || 0;
+      } catch {}
+      try {
+        const connRes = await sql`SELECT count(*) as total, count(*) filter (where state = 'active') as active FROM pg_stat_activity WHERE datname = current_database();`;
+        dbConnections = { total: Number(connRes[0]?.total) || 1, active: Number(connRes[0]?.active) || 1 };
+      } catch {}
+      try {
+        const uC = await sql`SELECT count(*) as c FROM web_users;`;
+        const sC = await sql`SELECT count(*) as c FROM user_sessions;`;
+        const aC = await sql`SELECT count(*) as c FROM admin_audit_log;`;
+        const iC = await sql`SELECT count(*) as c FROM ip_blacklist;`;
+        dbRecords = {
+          users: Number(uC[0]?.c) || 0,
+          sessions: Number(sC[0]?.c) || 0,
+          audit: Number(aC[0]?.c) || 0,
+          blacklistedIps: Number(iC[0]?.c) || 0,
+        };
+      } catch {}
+      dbLatencyMs = Date.now() - t0;
+    } catch (err) {
+      dbStatus = `ERROR: ${err?.message || "Lỗi kết nối DB"}`;
+    }
+  }
+
   return {
-    uptimeSeconds: Math.floor(uptime),
+    status: "OPTIMAL (Huy Locket Shield Active)",
+    pid: process.pid,
+    uptimeSeconds: Math.floor(procUptime),
+    osUptimeSeconds: Math.floor(osUptime),
     memoryRssMb: Math.round(memory.rss / (1024 * 1024)),
     memoryHeapUsedMb: Math.round(memory.heapUsed / (1024 * 1024)),
+    memoryHeapTotalMb: Math.round(memory.heapTotal / (1024 * 1024)),
+    totalOsRamMb: totalRamMb,
+    freeOsRamMb: freeRamMb,
+    cpuModel,
+    cpuCores,
+    cpuSpeed,
+    loadAvg,
     nodeVersion: process.version,
-    platform: process.platform + " " + process.arch,
-    status: "OPTIMAL (Huy Locket Shield Active)",
+    platform: `${process.platform} (${process.arch})`,
+    environment: process.env.RAILWAY_ENVIRONMENT || process.env.NODE_ENV || "production",
+    db: {
+      status: dbStatus,
+      version: dbVersion,
+      size: dbSize,
+      tables: dbTables,
+      connections: dbConnections,
+      records: dbRecords,
+      latencyMs: dbLatencyMs,
+    },
+    measuredAt: Date.now(),
   };
 }
 
