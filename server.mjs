@@ -414,16 +414,17 @@ async function writeDriveConfigToNeon(cfg) {
     const refreshToken = String(cfg.oauth?.refreshToken || "");
     const oauthEmail = String(cfg.oauth?.email || "");
     const updatedBy = String(cfg.updatedBy || "");
+    const serviceAccountJson = cfg.serviceAccount ? JSON.stringify(cfg.serviceAccount) : null;
 
-    if (!refreshToken) {
-      console.warn("[gdrive] Neon write skipped — empty refresh token");
+    if (!folderId && !clientId && !refreshToken && !serviceAccountJson) {
+      console.warn("[gdrive] Neon write skipped — completely empty config");
       return false;
     }
 
     await neonSql`
       INSERT INTO gdrive_config (
         id, folder_id, oauth_client_id, oauth_client_secret,
-        oauth_refresh_token, oauth_email, updated_at, updated_by
+        oauth_refresh_token, oauth_email, service_account_json, updated_at, updated_by
       ) VALUES (
         1,
         ${folderId},
@@ -431,6 +432,7 @@ async function writeDriveConfigToNeon(cfg) {
         ${clientSecret},
         ${refreshToken},
         ${oauthEmail},
+        ${serviceAccountJson}::jsonb,
         NOW(),
         ${updatedBy}
       )
@@ -440,19 +442,18 @@ async function writeDriveConfigToNeon(cfg) {
         oauth_client_secret = EXCLUDED.oauth_client_secret,
         oauth_refresh_token = EXCLUDED.oauth_refresh_token,
         oauth_email = EXCLUDED.oauth_email,
+        service_account_json = EXCLUDED.service_account_json,
         updated_at = NOW(),
         updated_by = EXCLUDED.updated_by
     `;
 
     // Xác nhận ngay
-    const rows =
-      await neonSql`SELECT LENGTH(oauth_refresh_token) AS n FROM gdrive_config WHERE id = 1`;
-    const n = Number(rows?.[0]?.n || 0);
-    if (n < 10) {
-      console.error("[gdrive] Neon write verify failed, length=", n);
+    const rows = await neonSql`SELECT id FROM gdrive_config WHERE id = 1`;
+    if (!rows?.[0]) {
+      console.error("[gdrive] Neon write verify failed, no row found");
       return false;
     }
-    console.log("[gdrive] Neon write OK, refresh token length=", n);
+    console.log("[gdrive] 💾 Neon write OK! Config saved permanently to database.");
     return true;
   } catch (e) {
     console.error("[gdrive] Neon write failed:", e.message, e);
@@ -1379,7 +1380,7 @@ async function handleDriveOAuthCallback(req, res) {
       oauth: {
         clientId: oauthCtx.clientId,
         clientSecret: oauthCtx.clientSecret,
-        refreshToken: tokenData.refresh_token,
+        refreshToken: tokenData.refresh_token || prev.oauth?.refreshToken || "",
         email,
       },
       updatedAt: new Date().toISOString(),
