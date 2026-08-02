@@ -20,6 +20,7 @@ const {
   listAuditLogs,
   listReportedContent,
   listWebUsers,
+  purgeBotUsers,
   resolveReport,
   revokeUserSessions,
   setAccountStatus,
@@ -313,6 +314,21 @@ router.get("/users", requireActivityDatabase, async (req, res) => {
       code: "USER_REGISTRY_QUERY_FAILED",
       error: "Unable to load website users",
     });
+  }
+});
+
+router.post("/users/purge-bots", requireActivityDatabase, requireActiveAdminSession, async (req, res) => {
+  res.setHeader("Cache-Control", "no-store, max-age=0");
+  if (req.adminRole !== "super_admin" && req.adminRole !== "admin") {
+    return res.status(403).json({ success: false, error: "Quyền hiện tại không được phép thực hiện thao tác càn quét bot" });
+  }
+  try {
+    const result = await purgeBotUsers(req.adminUid);
+    await audit(req, "PURGE_BOT_USERS", null, `Càn quét và khóa ${result.purgedCount} tài khoản Bot/Clone tự động`);
+    return res.status(200).json({ success: true, count: result.purgedCount, purgedUsers: result.purgedUsers });
+  } catch (error) {
+    console.error("Failed to purge bot users:", error?.code || error?.name || "unknown");
+    return res.status(500).json({ success: false, code: "PURGE_BOTS_FAILED", error: "Không thể càn quét bot" });
   }
 });
 

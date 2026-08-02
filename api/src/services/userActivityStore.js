@@ -710,6 +710,55 @@ async function recordServerUserActivity({ user, req, eventType = 'touch', loginM
   }
 }
 
+async function purgeBotUsers(currentAdminUid = null) {
+  await ensureUserActivitySchema();
+  const sql = getSql();
+  const { getAdminLocketUids, getAdminLocketEmails } = require("./locketAdminVerifier");
+
+  const users = await sql`
+    SELECT
+      u.uid, u.email, u.display_name, u.account_status,
+      COALESCE(ro.role, 'user') AS role,
+      COALESCE(latest.ip_address, u.ip_address) AS ip_address,
+      COALESCE(latest.browser, u.browser) AS browser,
+      COALESCE(latest.device, u.device_type, '') AS device
+    FROM web_users u
+    LEFT JOIN LATERAL (
+      SELECT r.role FROM admin_roles r WHERE r.uid = u.uid LIMIT 1
+    ) ro ON TRUE
+    LEFT JOIN LATERAL (
+      SELECT h.ip_address, h.browser, h.device FROM login_history h
+      WHERE h.uid = u.uid
+      ORDER BY h.created_at DESC
+      LIMIT 1
+    ) latest ON TRUE
+    WHERE u.account_status != 'locked'
+  `;
+
+  const purgedList = [];
+  for (const u of users) {
+    if (u.uid === currentAdminUid || u.role === 'super_admin' || u.role === 'admin') continue;
+    const normEmail = String(u.email || "").trim().toLowerCase();
+    if (getAdminLocketUids().has(u.uid) || (normEmail && getAdminLocketEmails().has(normEmail))) continue;
+
+    const ip = String(u.ip_address || "").trim();
+    const browser = String(u.browser || "").trim().toLowerCase();
+    const device = String(u.device || "").trim().toLowerCase();
+
+    const isCloudIp = /^(54\.|3\.|18\.|13\.|52\.|50\.|23\.)/.test(ip);
+    const isUnknownBrowser = !browser || browser.includes("không xác định") || browser === "unknown";
+    const isSuspiciousEmail = normEmail.startsWith("tiendai") || normEmail.includes("clone");
+
+    if (isCloudIp || (isUnknownBrowser && (device.includes("không xác định") || device === "" || !device)) || isSuspiciousEmail) {
+      await setAccountStatus(u.uid, "locked");
+      await revokeUserSessions(u.uid);
+      purgedList.push({ uid: u.uid, email: u.email, displayName: u.display_name, ip, reason: "Phát hiện Bot/Tool/VPS tự động" });
+    }
+  }
+
+  return { purgedCount: purgedList.length, purgedUsers: purgedList };
+}
+
 module.exports = {
   ONLINE_WINDOW_SECONDS,
   checkAdminPinSet,
@@ -727,6 +776,7 @@ module.exports = {
   listReportedContent,
   listWebUsers,
   normalizeIdentity,
+  purgeBotUsers,
   recordServerUserActivity,
   resolveReport,
   revokeUserSessions,

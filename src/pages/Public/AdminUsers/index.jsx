@@ -18,6 +18,7 @@ import {
   Users,
   ArrowLeft,
   CheckCircle,
+  Zap,
 } from "lucide-react";
 import { SonnerInfo } from "@/components/uikit/SonnerToast";
 import {
@@ -139,6 +140,7 @@ export default function AdminUsers() {
   const [historyError, setHistoryError] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
   const [clearHistoryConfirm, setClearHistoryConfirm] = useState(false);
+  const [purgingBots, setPurgingBots] = useState(false);
   const rootRefreshInFlight = useRef(false);
 
   // Audit Logs states
@@ -513,6 +515,25 @@ export default function AdminUsers() {
     await handleActionWithSessionCheck(fn);
   };
 
+  const handlePurgeBots = async () => {
+    if (!window.confirm("⚡ Bạn có chắc muốn TIÊU DIỆT và KHÓA VĨNH VIỄN toàn bộ các tài khoản Bot rác, nick clone dùng tool hoặc máy chủ VPS bất thường không?")) {
+      return;
+    }
+    const fn = async () => {
+      setPurgingBots(true);
+      try {
+        const res = await adminRequest("/users/purge-bots", {
+          method: "POST",
+        });
+        SonnerInfo(`🔥 Càn quét hoàn tất! Đã tiêu diệt và khóa vĩnh viễn ${res?.count || 0} tài khoản Bot rác & Clone bất thường.`);
+        fetchUsers("", { silent: true });
+      } finally {
+        setPurgingBots(false);
+      }
+    };
+    await handleActionWithSessionCheck(fn);
+  };
+
   if (checkingAdmin || !isAdmin) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -786,6 +807,24 @@ export default function AdminUsers() {
               <h2 className="text-lg font-black flex items-center gap-2 tracking-tight">
                 👥 Người dùng Locket Web <span className="badge badge-neutral badge-sm font-bold text-xs px-2.5 py-2.5">{normalUsers.length}</span>
               </h2>
+              <button
+                type="button"
+                onClick={handlePurgeBots}
+                disabled={purgingBots}
+                className="btn btn-sm bg-gradient-to-r from-red-600 to-amber-500 text-white hover:from-red-700 hover:to-amber-600 border-0 rounded-full font-extrabold px-4 shadow-md hover:shadow-red-500/30 transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                {purgingBots ? (
+                  <>
+                    <span className="loading loading-spinner loading-xs" />
+                    <span>Đang càn quét...</span>
+                  </>
+                ) : (
+                  <>
+                    <Zap size={15} className="animate-pulse text-yellow-300" />
+                    <span>⚡ Càn Quét Bot Rác</span>
+                  </>
+                )}
+              </button>
             </div>
             <div className="bg-base-100 rounded-3xl shadow-sm border border-base-200 overflow-hidden">
               <div className="overflow-x-auto">
