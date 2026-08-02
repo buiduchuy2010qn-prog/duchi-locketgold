@@ -240,3 +240,14 @@ export async function endUserActivitySession() {
     sessionStorage.removeItem(SESSION_KEY);
   }
 }
+
+export async function fetchGlobalBroadcast() {
+  try {
+    const res = await fetch(`${activityBaseUrl()}/broadcast`);
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json?.data || null;
+  } catch (err) {
+    return null;
+  }
+}

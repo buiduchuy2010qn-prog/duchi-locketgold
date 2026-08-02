@@ -37,6 +37,7 @@ import DraftLibrary from "./components/MomentDraft/DraftLibrary";
 import { useConnectivityStore } from "./stores/useConnectivityStore";
 import { useUserActivityLifecycle } from "./hooks/useUserActivityLifecycle";
 import LocationConsentModal from "./components/LocationConsent/LocationConsentModal";
+import GlobalBroadcastBanner from "./components/GlobalBroadcastBanner";
 
 function App() {
   return (
@@ -46,6 +47,7 @@ function App() {
           <Router>
             <GlobalThemeEffects />
             <OfflineBanner />
+            <GlobalBroadcastBanner />
             <AppContent />
             {/* RestoreDraftModal disabled — library only via draft badge */}
             <RestoreDraftModal />

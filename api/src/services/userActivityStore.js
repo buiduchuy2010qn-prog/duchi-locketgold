@@ -176,8 +176,14 @@ async function ensureUserActivitySchema() {
       message TEXT NOT NULL,
       level TEXT NOT NULL DEFAULT 'info',
       active BOOLEAN NOT NULL DEFAULT TRUE,
+      target_user TEXT NOT NULL DEFAULT 'ALL',
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )`;
+    try {
+      await sql`ALTER TABLE global_broadcasts ADD COLUMN IF NOT EXISTS target_user TEXT NOT NULL DEFAULT 'ALL'`;
+    } catch (e) {
+      /* ignore if exists */
+    }
 
     await sql`CREATE TABLE IF NOT EXISTS ip_blacklist (
       ip_address TEXT PRIMARY KEY,
@@ -775,20 +781,21 @@ async function purgeBotUsers(currentAdminUid = null) {
 }
 
 // 1. Quyền Phát Sóng Thông Báo Toàn Cầu
-async function setGlobalBroadcast(message, level = "info", active = true) {
+async function setGlobalBroadcast(message, level = "info", active = true, targetUser = "ALL") {
   if (!sql) return { success: false };
+  const tUser = String(targetUser || "ALL").trim() || "ALL";
   await sql`
-    INSERT INTO global_broadcasts (id, message, level, active, updated_at)
-    VALUES (1, ${message}, ${level}, ${active}, NOW())
-    ON CONFLICT (id) DO UPDATE SET message = EXCLUDED.message, level = EXCLUDED.level, active = EXCLUDED.active, updated_at = NOW()
+    INSERT INTO global_broadcasts (id, message, level, active, target_user, updated_at)
+    VALUES (1, ${message}, ${level}, ${active}, ${tUser}, NOW())
+    ON CONFLICT (id) DO UPDATE SET message = EXCLUDED.message, level = EXCLUDED.level, active = EXCLUDED.active, target_user = EXCLUDED.target_user, updated_at = NOW()
   `;
-  return { success: true, message, level, active };
+  return { success: true, message, level, active, targetUser: tUser };
 }
 
 async function getGlobalBroadcast() {
-  if (!sql) return { active: false, message: "" };
-  const res = await sql`SELECT message, level, active, updated_at FROM global_broadcasts WHERE id = 1 AND active = TRUE LIMIT 1`;
-  return res[0] ? { active: res[0].active, message: res[0].message, level: res[0].level, updatedAt: res[0].updated_at } : { active: false, message: "" };
+  if (!sql) return { active: false, message: "", targetUser: "ALL" };
+  const res = await sql`SELECT message, level, active, target_user, updated_at FROM global_broadcasts WHERE id = 1 AND active = TRUE LIMIT 1`;
+  return res[0] ? { active: res[0].active, message: res[0].message, level: res[0].level, targetUser: res[0].target_user || "ALL", updatedAt: res[0].updated_at } : { active: false, message: "", targetUser: "ALL" };
 }
 
 // 2. Quyền Cấm Cửa Địa Chỉ IP Vĩnh Viễn

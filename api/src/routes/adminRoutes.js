@@ -601,9 +601,9 @@ router.get("/broadcast", async (req, res) => {
 });
 
 router.post("/broadcast", requireActiveAdminSession, async (req, res) => {
-  const { message, level, active } = req.body;
-  const result = await setGlobalBroadcast(message || "", level || "info", Boolean(active));
-  await audit(req, "SET_GLOBAL_BROADCAST", null, `Updated global broadcast: "${message}" (${active ? "ACTIVE" : "OFF"})`);
+  const { message, level, active, targetUser } = req.body || {};
+  const result = await setGlobalBroadcast(message || "", level || "info", Boolean(active), targetUser || "ALL");
+  await audit(req, "SET_GLOBAL_BROADCAST", null, `Updated global broadcast (${targetUser || "ALL"}): "${message}" (${active ? "ACTIVE" : "OFF"})`);
   res.json({ success: true, data: result });
 });
 

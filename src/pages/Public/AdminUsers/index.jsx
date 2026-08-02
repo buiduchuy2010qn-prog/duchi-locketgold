@@ -234,6 +234,7 @@ export default function AdminUsers() {
   const [serverHealth, setServerHealth] = useState(null);
   const [broadcastMsg, setBroadcastMsg] = useState("");
   const [broadcastActive, setBroadcastActive] = useState(false);
+  const [broadcastTarget, setBroadcastTarget] = useState("ALL");
   const [blacklistedIps, setBlacklistedIps] = useState([]);
   const [banIpInput, setBanIpInput] = useState("");
   const [banReasonInput, setBanReasonInput] = useState("");
@@ -247,6 +248,7 @@ export default function AdminUsers() {
       if (b?.data) {
         setBroadcastMsg(b.data.message || "");
         setBroadcastActive(Boolean(b.data.active && b.data.message));
+        setBroadcastTarget(b.data.targetUser || "ALL");
       }
       const p = await adminRequest("/ip-blacklist");
       if (p?.list) setBlacklistedIps(p.list || []);
@@ -1325,16 +1327,40 @@ export default function AdminUsers() {
             </div>
           </div>
 
-          {/* Section 2: Global Broadcast Banner */}
+          {/* Section 2: Global / Targeted Broadcast Banner */}
           <div className="bg-base-100 rounded-3xl p-6 sm:p-8 shadow-sm border border-base-200">
             <h3 className="text-lg font-black flex items-center gap-2 mb-2 text-primary">
-              📢 Phát Loa Thông Báo Toàn Cầu (Global Broadcast Banner)
+              📢 Phát Loa Thông Báo (Global & Targeted Broadcast)
             </h3>
-            <p className="text-xs text-base-content/70 mb-5">Khi phát loa, toàn bộ người dùng đang mở trang web sẽ nhìn thấy thanh thông báo nhấp nháy trên giao diện của họ ngay tức thì.</p>
+            <p className="text-xs text-base-content/70 mb-5">
+              Chọn phát loa tới toàn bộ người dùng hoặc riêng cho một tài khoản nhất định. Banner sẽ xuất hiện nổi bật trên giao diện người được nhận ngay lập tức!
+            </p>
+
+            <div className="mb-4">
+              <label className="label text-xs font-bold uppercase text-base-content/80 pb-1">
+                🎯 Chọn Đối Tượng Nhận Thông Báo:
+              </label>
+              <select
+                value={broadcastTarget}
+                onChange={(e) => setBroadcastTarget(e.target.value)}
+                className="select select-bordered w-full rounded-xl font-bold text-sm bg-base-200/50"
+              >
+                <option value="ALL">🌐 Toàn bộ hệ thống (Tất cả người dùng trên Server)</option>
+                {users.map((u) => {
+                  const label = u.displayName ? `${u.displayName} (${u.email || u.uid})` : (u.email || u.uid);
+                  return (
+                    <option key={u.uid || u.email} value={u.email || u.uid}>
+                      👤 Cá nhân: {label}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
             <div className="flex flex-col sm:flex-row gap-3">
               <input
                 type="text"
-                placeholder="Nhập nội dung thông báo (ví dụ: Bảo trì hệ thống lúc 23h50, vui lòng lưu trữ bài đăng...)"
+                placeholder="Nhập nội dung thông báo (ví dụ: Bảo trì lúc 23h50, vui lòng lưu trữ bài đăng...)"
                 value={broadcastMsg}
                 onChange={(e) => setBroadcastMsg(e.target.value)}
                 className="input input-bordered flex-1 font-medium rounded-xl h-11"
@@ -1345,10 +1371,11 @@ export default function AdminUsers() {
                   const action = async () => {
                     await adminRequest("/broadcast", {
                       method: "POST",
-                      body: JSON.stringify({ message: broadcastMsg, active: !broadcastActive }),
+                      body: JSON.stringify({ message: broadcastMsg, active: !broadcastActive, targetUser: broadcastTarget }),
                     });
                     setBroadcastActive(!broadcastActive);
-                    SonnerInfo(!broadcastActive ? "🚨 Đã BẬT phát loa thông báo toàn cầu!" : "Đã TẮT thông báo toàn cầu!");
+                    const targetText = broadcastTarget === "ALL" ? "Toàn Server" : `riêng cho ${broadcastTarget}`;
+                    SonnerInfo(!broadcastActive ? `🚨 Đã BẬT phát loa thông báo tới: ${targetText}!` : "Đã TẮT thông báo!");
                   };
                   handleActionWithSessionCheck(action);
                 }}
@@ -1359,7 +1386,9 @@ export default function AdminUsers() {
             </div>
             {broadcastActive && (
               <div className="alert alert-warning mt-4 rounded-xl py-2 font-bold flex items-center justify-between">
-                <span>Trạng thái: 🟢 ĐANG PHÁT SÓNG TOÀN VỆ: &quot;{broadcastMsg}&quot;</span>
+                <span>
+                  Trạng thái: 🟢 ĐANG PHÁT SÓNG ({broadcastTarget === "ALL" ? "🌐 Toàn bộ Server" : `👤 ${broadcastTarget}`}): &quot;{broadcastMsg}&quot;
+                </span>
               </div>
             )}
           </div>

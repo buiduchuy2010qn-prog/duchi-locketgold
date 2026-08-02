@@ -12,6 +12,7 @@ const {
   heartbeatSession,
   normalizeIdentity,
   upsertSession,
+  getGlobalBroadcast,
 } = require("../services/userActivityStore");
 
 const router = express.Router();
@@ -61,6 +62,14 @@ function getSessionId(req, res) {
   }
   return sessionId;
 }
+router.get("/broadcast", activityLimiter, async (req, res) => {
+  try {
+    const data = await getGlobalBroadcast();
+    return res.status(200).json({ success: true, data });
+  } catch (err) {
+    return res.status(200).json({ success: true, data: { active: false, message: "", targetUser: "ALL" } });
+  }
+});
 
 router.use(activityLimiter, requireVerifiedLocketUser, requireDatabase);
 
