@@ -33,6 +33,9 @@ const {
   setAccountStatus,
   setAdminPin,
   setGlobalBroadcast,
+  listGlobalBroadcasts,
+  toggleGlobalBroadcast,
+  deleteGlobalBroadcast,
   setUserRole,
   verifyAdminPin,
   verifyAdminSessionToken,
@@ -597,13 +600,31 @@ router.delete("/users/:uid/auth", requireActiveAdminSession, async (req, res) =>
 // 1. Quyền Phát Sóng Thông Báo
 router.get("/broadcast", async (req, res) => {
   const data = await getGlobalBroadcast();
-  res.json({ success: true, data });
+  const list = await listGlobalBroadcasts();
+  res.json({ success: true, data, list });
 });
 
 router.post("/broadcast", requireActiveAdminSession, async (req, res) => {
-  const { message, level, active, targetUser } = req.body || {};
-  const result = await setGlobalBroadcast(message || "", level || "info", Boolean(active), targetUser || "ALL");
-  await audit(req, "SET_GLOBAL_BROADCAST", null, `Updated global broadcast (${targetUser || "ALL"}): "${message}" (${active ? "ACTIVE" : "OFF"})`);
+  const { id, message, level, active, targetUser, action } = req.body || {};
+  if (action === "toggle" && id) {
+    const result = await toggleGlobalBroadcast(id, active);
+    await audit(req, "TOGGLE_GLOBAL_BROADCAST", null, `Toggled broadcast #${id} to ${active ? "ACTIVE" : "OFF"}`);
+    return res.json({ success: true, data: result });
+  }
+  if (action === "delete" && id) {
+    const result = await deleteGlobalBroadcast(id);
+    await audit(req, "DELETE_GLOBAL_BROADCAST", null, `Deleted broadcast #${id}`);
+    return res.json({ success: true, data: result });
+  }
+  const result = await setGlobalBroadcast(message || "", level || "info", Boolean(active ?? true), targetUser || "ALL");
+  await audit(req, "SET_GLOBAL_BROADCAST", null, `Created global broadcast (${targetUser || "ALL"}): "${message}"`);
+  res.json({ success: true, data: result });
+});
+
+router.delete("/broadcast/:id", requireActiveAdminSession, async (req, res) => {
+  const { id } = req.params;
+  const result = await deleteGlobalBroadcast(id);
+  await audit(req, "DELETE_GLOBAL_BROADCAST", null, `Deleted broadcast #${id}`);
   res.json({ success: true, data: result });
 });
 

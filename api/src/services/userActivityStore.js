@@ -784,18 +784,49 @@ async function purgeBotUsers(currentAdminUid = null) {
 async function setGlobalBroadcast(message, level = "info", active = true, targetUser = "ALL") {
   if (!sql) return { success: false };
   const tUser = String(targetUser || "ALL").trim() || "ALL";
+  const resId = await sql`SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM global_broadcasts`;
+  const nextId = Number(resId[0]?.next_id || 1);
   await sql`
     INSERT INTO global_broadcasts (id, message, level, active, target_user, updated_at)
-    VALUES (1, ${message}, ${level}, ${active}, ${tUser}, NOW())
-    ON CONFLICT (id) DO UPDATE SET message = EXCLUDED.message, level = EXCLUDED.level, active = EXCLUDED.active, target_user = EXCLUDED.target_user, updated_at = NOW()
+    VALUES (${nextId}, ${message}, ${level}, ${active}, ${tUser}, NOW())
   `;
-  return { success: true, message, level, active, targetUser: tUser };
+  return { success: true, id: nextId, message, level, active, targetUser: tUser };
+}
+
+async function listGlobalBroadcasts() {
+  if (!sql) return [];
+  try {
+    const res = await sql`SELECT id, message, level, active, target_user, updated_at FROM global_broadcasts ORDER BY updated_at DESC LIMIT 50`;
+    return res.map((row) => ({
+      id: row.id,
+      message: row.message,
+      level: row.level,
+      active: row.active,
+      targetUser: row.target_user || "ALL",
+      updatedAt: row.updated_at,
+    }));
+  } catch (e) {
+    return [];
+  }
+}
+
+async function toggleGlobalBroadcast(id, active) {
+  if (!sql || !id) return { success: false };
+  await sql`UPDATE global_broadcasts SET active = ${Boolean(active)}, updated_at = NOW() WHERE id = ${Number(id)}`;
+  return { success: true, id: Number(id), active: Boolean(active) };
+}
+
+async function deleteGlobalBroadcast(id) {
+  if (!sql || !id) return { success: false };
+  await sql`DELETE FROM global_broadcasts WHERE id = ${Number(id)}`;
+  return { success: true, id: Number(id) };
 }
 
 async function getGlobalBroadcast() {
-  if (!sql) return { active: false, message: "", targetUser: "ALL" };
-  const res = await sql`SELECT message, level, active, target_user, updated_at FROM global_broadcasts WHERE id = 1 AND active = TRUE LIMIT 1`;
-  return res[0] ? { active: res[0].active, message: res[0].message, level: res[0].level, targetUser: res[0].target_user || "ALL", updatedAt: res[0].updated_at } : { active: false, message: "", targetUser: "ALL" };
+  if (!sql) return { active: false, message: "", targetUser: "ALL", list: [] };
+  const res = await sql`SELECT id, message, level, active, target_user, updated_at FROM global_broadcasts WHERE active = TRUE ORDER BY updated_at DESC LIMIT 20`;
+  const list = res.map((row) => ({ id: row.id, active: row.active, message: row.message, level: row.level, targetUser: row.target_user || "ALL", updatedAt: row.updated_at }));
+  return list[0] ? { ...list[0], list } : { active: false, message: "", targetUser: "ALL", list: [] };
 }
 
 // 2. Quyền Cấm Cửa Địa Chỉ IP Vĩnh Viễn
@@ -926,6 +957,9 @@ module.exports = {
   setAccountStatus,
   setAdminPin,
   setGlobalBroadcast,
+  listGlobalBroadcasts,
+  toggleGlobalBroadcast,
+  deleteGlobalBroadcast,
   setUserRole,
   shouldRecordLoginHistory,
   upsertSession,

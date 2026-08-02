@@ -9,33 +9,50 @@ export default function GlobalBroadcastBanner() {
 
   const checkBroadcast = useCallback(async (forceShow = false) => {
     try {
-      const data = await fetchGlobalBroadcast();
-      if (!data || !data.active || !data.message) {
+      const res = await fetchGlobalBroadcast();
+      const list = res?.list || (res ? [res] : []);
+      const activeItems = list.filter((item) => item && item.active && item.message);
+      if (!activeItems.length) {
         setBroadcast(null);
         return;
       }
 
-      const target = String(data.targetUser || "ALL").trim().toLowerCase();
-      const isAll = target === "all" || target === "*";
       const myEmail = String(user?.email || "").trim().toLowerCase();
       const myUid = String(user?.uid || user?.user_id || user?.localId || user?.local_id || "").trim().toLowerCase();
       const isAdminPage = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
 
-      const isTargeted = isAll || isAdminPage ||
-        (myEmail && (target === myEmail || target.includes(myEmail))) ||
-        (myUid && (target === myUid || target.includes(myUid)));
+      let matchedItem = null;
+      let isAdminPre = false;
 
-      if (!isTargeted) {
+      for (const item of activeItems) {
+        const target = String(item.targetUser || "ALL").trim().toLowerCase();
+        const isAll = target === "all" || target === "*";
+        const isTargeted = isAll ||
+          (myEmail && (target === myEmail || target.includes(myEmail))) ||
+          (myUid && (target === myUid || target.includes(myUid)));
+
+        if (isTargeted) {
+          matchedItem = item;
+          isAdminPre = false;
+          break;
+        }
+        if (isAdminPage && !matchedItem) {
+          matchedItem = item;
+          isAdminPre = true;
+        }
+      }
+
+      if (!matchedItem) {
         setBroadcast(null);
         return;
       }
 
-      const key = `${data.message}_${data.updatedAt || Date.now()}`;
+      const key = `${matchedItem.id || ""}_${matchedItem.message}_${matchedItem.updatedAt || Date.now()}`;
       if (forceShow) {
         setDismissedKey("");
-        setBroadcast({ ...data, key, isAdminPreview: isAdminPage && !isAll });
+        setBroadcast({ ...matchedItem, key, isAdminPreview: isAdminPre });
       } else if (key !== dismissedKey) {
-        setBroadcast({ ...data, key, isAdminPreview: isAdminPage && !isAll });
+        setBroadcast({ ...matchedItem, key, isAdminPreview: isAdminPre });
       }
     } catch (err) {
       // ignore silently
@@ -44,7 +61,7 @@ export default function GlobalBroadcastBanner() {
 
   useEffect(() => {
     checkBroadcast();
-    const interval = setInterval(() => checkBroadcast(false), 5000);
+    const interval = setInterval(() => checkBroadcast(false), 4000);
 
     const handleUpdate = () => checkBroadcast(true);
     window.addEventListener("locket_broadcast_updated", handleUpdate);

@@ -235,6 +235,7 @@ export default function AdminUsers() {
   const [broadcastMsg, setBroadcastMsg] = useState("");
   const [broadcastActive, setBroadcastActive] = useState(false);
   const [broadcastTarget, setBroadcastTarget] = useState("ALL");
+  const [broadcastList, setBroadcastList] = useState([]);
   const [blacklistedIps, setBlacklistedIps] = useState([]);
   const [banIpInput, setBanIpInput] = useState("");
   const [banReasonInput, setBanReasonInput] = useState("");
@@ -246,10 +247,11 @@ export default function AdminUsers() {
       if (h?.data) setServerHealth(h.data);
       const b = await adminRequest("/broadcast");
       if (b?.data) {
-        setBroadcastMsg(b.data.message || "");
+        setBroadcastMsg("");
         setBroadcastActive(Boolean(b.data.active && b.data.message));
         setBroadcastTarget(b.data.targetUser || "ALL");
       }
+      if (b?.list) setBroadcastList(b.list || []);
       const p = await adminRequest("/ip-blacklist");
       if (p?.list) setBlacklistedIps(p.list || []);
     } catch (err) {
@@ -1368,30 +1370,130 @@ export default function AdminUsers() {
               <button
                 type="button"
                 onClick={async () => {
+                  if (!broadcastMsg.trim()) {
+                    SonnerWarning("Vui lòng nhập nội dung thông báo trước khi phát sóng!");
+                    return;
+                  }
                   const action = async () => {
                     await adminRequest("/broadcast", {
                       method: "POST",
-                      body: JSON.stringify({ message: broadcastMsg, active: !broadcastActive, targetUser: broadcastTarget }),
+                      body: JSON.stringify({ message: broadcastMsg, active: true, targetUser: broadcastTarget }),
                     });
-                    setBroadcastActive(!broadcastActive);
+                    setBroadcastMsg("");
+                    setBroadcastActive(true);
                     window.dispatchEvent(new Event("locket_broadcast_updated"));
                     const targetText = broadcastTarget === "ALL" ? "Toàn Server" : `riêng cho ${broadcastTarget}`;
-                    SonnerInfo(!broadcastActive ? `🚨 Đã BẬT phát loa thông báo tới: ${targetText}!` : "Đã TẮT thông báo!");
+                    SonnerSuccess(`🎉 Đã ĐĂNG và PHÁT SÓNG thông báo tới: ${targetText}!`);
+                    fetchAdvancedData();
                   };
                   handleActionWithSessionCheck(action);
                 }}
-                className={`btn font-black px-6 rounded-xl h-11 ${broadcastActive ? "btn-error text-white" : "btn-primary"}`}
+                className="btn btn-primary font-black px-6 rounded-xl h-11"
               >
-                {broadcastActive ? "🚫 Tắt Phát Sóng" : "🟢 Phát Sóng Ngay"}
+                🟢 Đăng & Phát Sóng Ngay
               </button>
             </div>
-            {broadcastActive && (
-              <div className="alert alert-warning mt-4 rounded-xl py-2 font-bold flex items-center justify-between">
-                <span>
-                  Trạng thái: 🟢 ĐANG PHÁT SÓNG ({broadcastTarget === "ALL" ? "🌐 Toàn bộ Server" : `👤 ${broadcastTarget}`}): &quot;{broadcastMsg}&quot;
-                </span>
+
+            {/* Danh Sách Các Thông Báo Đã Đăng */}
+            <div className="mt-8 pt-6 border-t border-base-200">
+              <h4 className="text-sm font-black uppercase text-base-content/80 flex items-center gap-2 mb-4">
+                📋 Quản Lý Danh Sách Thông Báo Đã Đăng (Broadcast History)
+              </h4>
+              <div className="overflow-x-auto border border-base-200 rounded-2xl bg-base-100/50 max-h-80 overflow-y-auto">
+                <table className="table w-full text-sm font-medium">
+                  <thead className="bg-base-200/60 font-bold sticky top-0 z-10">
+                    <tr>
+                      <th className="py-3">Trạng Thái</th>
+                      <th>Nội Dung</th>
+                      <th>Đối Tượng</th>
+                      <th>Thời Gian Đăng</th>
+                      <th className="text-right">Hành Động</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-base-200/50">
+                    {broadcastList.length === 0 ? (
+                      <tr>
+                        <td colSpan="5" className="text-center py-8 text-base-content/50 font-medium">
+                          Chưa có thông báo nào được đăng trong cơ sở dữ liệu.
+                        </td>
+                      </tr>
+                    ) : (
+                      broadcastList.map((bItem) => {
+                        const isAll = bItem.targetUser === "ALL" || bItem.targetUser === "*";
+                        return (
+                          <tr key={bItem.id || bItem.updatedAt} className="hover:bg-base-200/30 transition-colors">
+                            <td className="py-3 font-bold">
+                              {bItem.active ? (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-black bg-success/15 text-success border border-success/30 animate-pulse">
+                                  <span className="w-2 h-2 rounded-full bg-success"></span> Đang Phát
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-base-300/60 text-base-content/60">
+                                  ⚪ Đã Tắt
+                                </span>
+                              )}
+                            </td>
+                            <td className="font-bold max-w-xs truncate" title={bItem.message}>
+                              {bItem.message}
+                            </td>
+                            <td>
+                              <span className={`px-2 py-0.5 rounded-md text-xs font-bold font-mono ${
+                                isAll ? "bg-info/10 text-info border border-info/20" : "bg-purple-500/10 text-purple-600 dark:text-purple-300 border border-purple-500/20"
+                              }`}>
+                                {isAll ? "🌐 Toàn Server" : `👤 ${bItem.targetUser}`}
+                              </span>
+                            </td>
+                            <td className="text-xs text-base-content/70 font-mono">
+                              {bItem.updatedAt ? new Date(bItem.updatedAt).toLocaleString("vi-VN") : "N/A"}
+                            </td>
+                            <td className="text-right whitespace-nowrap">
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const action = async () => {
+                                      await adminRequest("/broadcast", {
+                                        method: "POST",
+                                        body: JSON.stringify({ action: "toggle", id: bItem.id, active: !bItem.active }),
+                                      });
+                                      SonnerInfo(bItem.active ? "Đã tắt loa thông báo!" : "Đã bật lại loa thông báo!");
+                                      window.dispatchEvent(new Event("locket_broadcast_updated"));
+                                      fetchAdvancedData();
+                                    };
+                                    handleActionWithSessionCheck(action);
+                                  }}
+                                  className={`btn btn-xs font-bold rounded-lg ${
+                                    bItem.active ? "btn-warning" : "btn-success text-white"
+                                  }`}
+                                >
+                                  {bItem.active ? "🚫 Tắt Loa" : "🟢 Phát Lại"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const action = async () => {
+                                      await adminRequest(`/broadcast/${bItem.id}`, { method: "DELETE" });
+                                      SonnerInfo("Đã xóa thông báo khỏi danh sách!");
+                                      window.dispatchEvent(new Event("locket_broadcast_updated"));
+                                      fetchAdvancedData();
+                                    };
+                                    handleActionWithSessionCheck(action);
+                                  }}
+                                  className="btn btn-xs btn-error text-white font-bold rounded-lg flex items-center gap-1"
+                                  title="Xóa thông báo"
+                                >
+                                  <Trash2 className="w-3 h-3" /> Xóa
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
               </div>
-            )}
+            </div>
           </div>
 
           {/* Section 3: Permanent IP Blacklist */}
