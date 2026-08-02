@@ -20,7 +20,8 @@ import {
   CheckCircle,
   Zap,
 } from "lucide-react";
-import { SonnerInfo } from "@/components/uikit/SonnerToast";
+import { SonnerInfo, SonnerSuccess, SonnerWarning } from "@/components/uikit/SonnerToast";
+import { updateAndSyncGpsLocation } from "@/services/UserActivityService";
 import {
   adminRequest,
   changeAdminPin,
@@ -869,7 +870,31 @@ export default function AdminUsers() {
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-base-content/60">Vị trí (GPS & IP):</span>
-                          <div className="font-semibold text-right">{locationElement}</div>
+                          <div className="font-semibold text-right flex items-center gap-1.5 justify-end">
+                            {locationElement}
+                            {isSelf && !admin.gps_coordinates && !latestLogin?.gps_coordinates && (
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  try {
+                                    const gps = await updateAndSyncGpsLocation();
+                                    if (gps) {
+                                      SonnerSuccess("🎉 Đã lấy tọa độ GPS thực tế!", `Tọa độ thiết bị: ${gps}. Đang đồng bộ về Bảng Quản trị...`);
+                                      setTimeout(() => window.location.reload(), 1500);
+                                    } else {
+                                      SonnerWarning("Chưa cấp quyền GPS", "Hãy bấm biểu tượng bên trái thanh địa chỉ URL (quyền trang web) -> chọn Vị trí (Location) -> Cho phép, rồi quay lại bấm nút này!");
+                                    }
+                                  } catch (err) {
+                                    SonnerWarning("Lỗi định vị", "Vui lòng bật quyền vị trí trên trình duyệt Chrome.");
+                                  }
+                                }}
+                                className="btn btn-xs btn-outline btn-success font-extrabold px-2 h-6 text-[11px] rounded-md animate-pulse shadow-sm"
+                                title="Bấm để lấy tọa độ GPS chính xác từ thiết bị, thay thế cho vị trí IP của cổng trạm nhà mạng"
+                              >
+                                📍 Lấy GPS thật
+                              </button>
+                            )}
+                          </div>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-base-content/60">Nguồn / thiết bị:</span>
