@@ -416,6 +416,7 @@ export default function AdminUsers() {
     }
 
     setClientTelemetry({
+      pingVal: typeof pingMs === "number" ? pingMs : null,
       pingMs: typeof pingMs === "number" ? `${pingMs} ms` : "⚡ < 15 ms",
       connectionType,
       downlinkMbps,
@@ -1609,10 +1610,26 @@ export default function AdminUsers() {
                   <div className="space-y-2.5 text-xs">
                     <div className="bg-white/[0.04] p-3 rounded-2xl border border-white/10 hover:bg-white/[0.07] transition-colors">
                       <span className="text-purple-300 font-bold block mb-1 text-[11px]">Độ trễ phản hồi máy chủ (Real RTT Ping)</span>
-                      <span className="text-emerald-400 font-black text-sm font-mono tracking-tight flex items-center gap-1.5">
-                        <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                        {clientTelemetry?.pingMs || "Đang đo..."} <span className="text-[11px] text-white/70 font-normal">({clientTelemetry?.connectionType || "Online"})</span>
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className={`font-black text-sm font-mono tracking-tight flex items-center gap-1.5 ${
+                          !clientTelemetry?.pingVal || clientTelemetry.pingVal < 350
+                            ? "text-emerald-400"
+                            : clientTelemetry.pingVal < 800
+                              ? "text-amber-300"
+                              : "text-amber-400"
+                        }`}>
+                          <span className={`inline-block w-2 h-2 rounded-full animate-ping ${
+                            !clientTelemetry?.pingVal || clientTelemetry.pingVal < 350 ? "bg-emerald-400" : "bg-amber-400"
+                          }`} />
+                          {clientTelemetry?.pingMs || "Đang đo..."}
+                          <span className="text-[11px] text-white/70 font-normal">({clientTelemetry?.connectionType || "Online"})</span>
+                        </span>
+                        {clientTelemetry?.pingVal > 800 && (
+                          <span className="text-[10px] text-amber-300/90 font-medium bg-amber-500/10 p-2 rounded-xl border border-amber-500/20 block leading-tight">
+                            ℹ️ <strong>Vì sao ping cao?</strong> Máy chủ Railway đặt tại Mỹ (US) & CSDL Neon vừa khôi phục sau chế độ ngủ ngầm (Cold Start). Bấm làm mới lần nữa sẽ tụt xuống dưới 350ms!
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="bg-white/[0.04] p-3 rounded-2xl border border-white/10 hover:bg-white/[0.07] transition-colors">
                       <span className="text-purple-300 font-bold block mb-1 text-[11px]">Bảo mật Tường lửa WAF & Giao thức Edge</span>
