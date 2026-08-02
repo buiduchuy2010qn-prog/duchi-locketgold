@@ -1090,10 +1090,10 @@ export default function AdminUsers() {
           className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl font-black text-sm transition-all duration-300 cursor-pointer ${
             activeTab === "users" 
               ? "bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-700 text-white shadow-lg shadow-indigo-500/20 scale-[1.02] border-0" 
-              : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/80 border border-transparent"
+              : "bg-indigo-50/90 text-indigo-900 hover:bg-indigo-100 border border-indigo-200 shadow-sm"
           }`}
         >
-          <Users size={18} className={activeTab === "users" ? "text-indigo-200 animate-pulse" : "text-slate-500"} /> 
+          <Users size={18} className={activeTab === "users" ? "text-indigo-200 animate-pulse" : "text-indigo-600"} /> 
           <span>Người dùng & Phân quyền ({totalUsers})</span>
         </button>
 
@@ -1103,10 +1103,10 @@ export default function AdminUsers() {
           className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl font-black text-sm transition-all duration-300 cursor-pointer ${
             activeTab === "user_actions" 
               ? "bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white shadow-lg shadow-teal-500/20 scale-[1.02] border-0" 
-              : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/80 border border-transparent"
+              : "bg-teal-50/90 text-teal-900 hover:bg-teal-100 border border-teal-200 shadow-sm"
           }`}
         >
-          <Activity size={18} className={activeTab === "user_actions" ? "text-teal-200 animate-pulse" : "text-slate-500"} /> 
+          <Activity size={18} className={activeTab === "user_actions" ? "text-teal-200 animate-pulse" : "text-teal-600"} /> 
           <span>Giám Sát Hành Vi Web (Realtime)</span>
         </button>
 
@@ -1117,10 +1117,10 @@ export default function AdminUsers() {
             className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl font-black text-sm transition-all duration-300 cursor-pointer ${
               activeTab === "audit" 
                 ? "bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 text-white shadow-lg shadow-purple-500/20 scale-[1.02] border-0" 
-                : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/80 border border-transparent"
+                : "bg-purple-50/90 text-purple-900 hover:bg-purple-100 border border-purple-200 shadow-sm"
             }`}
           >
-            <FileText size={18} className={activeTab === "audit" ? "text-purple-200 animate-pulse" : "text-slate-500"} /> 
+            <FileText size={18} className={activeTab === "audit" ? "text-purple-200 animate-pulse" : "text-purple-600"} /> 
             <span>Nhật ký Quản trị (Audit Log)</span>
           </button>
         )}
@@ -1132,10 +1132,10 @@ export default function AdminUsers() {
             className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl font-black text-sm transition-all duration-300 cursor-pointer ${
               activeTab === "reports" 
                 ? "bg-gradient-to-r from-rose-600 via-amber-600 to-orange-600 text-white shadow-lg shadow-rose-500/20 scale-[1.02] border-0" 
-                : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/80 border border-transparent"
+                : "bg-rose-50/90 text-rose-900 hover:bg-rose-100 border border-rose-200 shadow-sm"
             }`}
           >
-            <Shield size={18} className={activeTab === "reports" ? "text-amber-200 animate-pulse" : "text-slate-500"} /> 
+            <Shield size={18} className={activeTab === "reports" ? "text-amber-200 animate-pulse" : "text-rose-600"} /> 
             <span>Quản lý Nội dung vi phạm</span>
           </button>
         )}
