@@ -1421,58 +1421,81 @@ export default function AdminUsers() {
       {/* TAB 4: ADVANCED SUPER ADMIN POWER SUITE */}
       {activeTab === "advanced" && (
         <div className="space-y-6 animate-fade-in">
-          {/* SUB-NAVIGATOR FOR SUPREME POWER SUITE */}
-          <div className="bg-gradient-to-r from-base-200/90 via-base-200 to-base-200/90 p-2 sm:p-2.5 rounded-3xl shadow-inner border border-base-300 flex flex-wrap gap-2.5 justify-center items-center">
+          {/* SUB-NAVIGATOR FOR SUPREME POWER SUITE - HIGH-DEF 4-COLUMN CARDS */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 bg-slate-950/90 p-3 sm:p-4 rounded-3xl shadow-2xl border border-slate-800/80 backdrop-blur-md">
             <button
               type="button"
               onClick={() => setAdvancedSubTab("telemetry")}
-              className={`btn btn-sm sm:btn-md rounded-2xl font-black px-5 transition-all duration-300 gap-2 cursor-pointer ${
+              className={`flex items-center gap-3.5 p-3.5 rounded-2xl transition-all duration-300 cursor-pointer text-left shadow-lg border-2 ${
                 advancedSubTab === "telemetry"
-                  ? "bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white shadow-lg shadow-indigo-500/30 border-0 scale-[1.02]"
-                  : "btn-ghost hover:bg-base-300/80 text-base-content/70"
+                  ? "bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white border-indigo-400 shadow-indigo-500/30 scale-[1.02]"
+                  : "bg-slate-900/90 text-slate-300 border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800 hover:text-white"
               }`}
             >
-              <Activity size={18} className={advancedSubTab === "telemetry" ? "animate-pulse text-emerald-300" : ""} />
-              <span>📈 Cảm Biến Hạ Tầng (Telemetry)</span>
+              <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${advancedSubTab === "telemetry" ? "bg-white/20 text-white shadow-md" : "bg-indigo-500/20 text-indigo-400"}`}>
+                <Activity size={22} className={advancedSubTab === "telemetry" ? "animate-pulse" : ""} />
+              </div>
+              <div className="overflow-hidden">
+                <div className="text-[11px] font-extrabold uppercase tracking-wider opacity-70">Hạ tầng Cloud</div>
+                <div className="text-sm font-black truncate text-white">📈 Cảm Biến Telemetry</div>
+              </div>
             </button>
+
             <button
               type="button"
               onClick={() => setAdvancedSubTab("broadcast")}
-              className={`btn btn-sm sm:btn-md rounded-2xl font-black px-5 transition-all duration-300 gap-2 cursor-pointer ${
+              className={`flex items-center gap-3.5 p-3.5 rounded-2xl transition-all duration-300 cursor-pointer text-left shadow-lg border-2 ${
                 advancedSubTab === "broadcast"
-                  ? "bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30 border-0 scale-[1.02]"
-                  : "btn-ghost hover:bg-base-300/80 text-base-content/70"
+                  ? "bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 text-white border-cyan-300 shadow-cyan-500/30 scale-[1.02]"
+                  : "bg-slate-900/90 text-slate-300 border-slate-800 hover:border-cyan-500/50 hover:bg-slate-800 hover:text-white"
               }`}
             >
-              <Volume2 size={18} className={advancedSubTab === "broadcast" ? "animate-bounce text-yellow-200" : ""} />
-              <span>📢 Phát Loa Thông Báo (Broadcast)</span>
+              <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${advancedSubTab === "broadcast" ? "bg-white/20 text-yellow-200 shadow-md" : "bg-cyan-500/20 text-cyan-400"}`}>
+                <Volume2 size={22} className={advancedSubTab === "broadcast" ? "animate-bounce" : ""} />
+              </div>
+              <div className="overflow-hidden">
+                <div className="text-[11px] font-extrabold uppercase tracking-wider opacity-70">Hệ thống còi hú</div>
+                <div className="text-sm font-black truncate text-white">📢 Phát Loa Broadcast</div>
+              </div>
             </button>
+
             <button
               type="button"
               onClick={() => setAdvancedSubTab("blacklist")}
-              className={`btn btn-sm sm:btn-md rounded-2xl font-black px-5 transition-all duration-300 gap-2 cursor-pointer ${
+              className={`flex items-center gap-3.5 p-3.5 rounded-2xl transition-all duration-300 cursor-pointer text-left shadow-lg border-2 ${
                 advancedSubTab === "blacklist"
-                  ? "bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white shadow-lg shadow-red-500/30 border-0 scale-[1.02]"
-                  : "btn-ghost hover:bg-base-300/80 text-base-content/70"
+                  ? "bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white border-rose-400 shadow-red-500/30 scale-[1.02]"
+                  : "bg-slate-900/90 text-slate-300 border-slate-800 hover:border-rose-500/50 hover:bg-slate-800 hover:text-white"
               }`}
             >
-              <ShieldAlert size={18} className={advancedSubTab === "blacklist" ? "animate-pulse text-yellow-300" : ""} />
-              <span>🚫 Cấm Cửa IP Vĩnh Viễn (Firewall)</span>
+              <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${advancedSubTab === "blacklist" ? "bg-white/20 text-yellow-300 shadow-md" : "bg-rose-500/20 text-rose-400"}`}>
+                <ShieldAlert size={22} className={advancedSubTab === "blacklist" ? "animate-pulse" : ""} />
+              </div>
+              <div className="overflow-hidden">
+                <div className="text-[11px] font-extrabold uppercase tracking-wider opacity-70">Tường lửa WAF</div>
+                <div className="text-sm font-black truncate text-white">🚫 Cấm Cửa IP Vĩnh Viễn</div>
+              </div>
             </button>
+
             <button
               type="button"
               onClick={() => {
                 setAdvancedSubTab("heartbeat");
                 if (apiStatuses.length === 0) runApiHealthCheck();
               }}
-              className={`btn btn-sm sm:btn-md rounded-2xl font-black px-5 transition-all duration-300 gap-2 cursor-pointer ${
+              className={`flex items-center gap-3.5 p-3.5 rounded-2xl transition-all duration-300 cursor-pointer text-left shadow-lg border-2 ${
                 advancedSubTab === "heartbeat"
-                  ? "bg-gradient-to-r from-emerald-500 via-teal-600 to-cyan-600 text-white shadow-lg shadow-teal-500/30 border-0 scale-[1.02]"
-                  : "btn-ghost hover:bg-base-300/80 text-base-content/70"
+                  ? "bg-gradient-to-r from-emerald-500 via-teal-600 to-cyan-600 text-white border-emerald-300 shadow-emerald-500/30 scale-[1.02]"
+                  : "bg-slate-900/90 text-slate-300 border-slate-800 hover:border-emerald-500/50 hover:bg-slate-800 hover:text-white"
               }`}
             >
-              <Zap size={18} className={advancedSubTab === "heartbeat" ? "animate-bounce text-yellow-300" : ""} />
-              <span>📡 Giám Sát Kết Nối API (Heartbeat)</span>
+              <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${advancedSubTab === "heartbeat" ? "bg-white/20 text-yellow-300 shadow-md" : "bg-emerald-500/20 text-emerald-400"}`}>
+                <Zap size={22} className={advancedSubTab === "heartbeat" ? "animate-bounce" : ""} />
+              </div>
+              <div className="overflow-hidden">
+                <div className="text-[11px] font-extrabold uppercase tracking-wider opacity-70">Đường truyền Live</div>
+                <div className="text-sm font-black truncate text-white">📡 Giám Sát Sóng API</div>
+              </div>
             </button>
           </div>
 
