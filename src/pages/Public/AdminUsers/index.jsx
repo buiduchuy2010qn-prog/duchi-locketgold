@@ -244,6 +244,45 @@ export default function AdminUsers() {
   const [banReasonInput, setBanReasonInput] = useState("");
   const [passwordStatusModal, setPasswordStatusModal] = useState(null);
 
+  // API Heartbeat monitor states
+  const [apiStatuses, setApiStatuses] = useState([]);
+  const [testingApis, setTestingApis] = useState(false);
+
+  const runApiHealthCheck = useCallback(async () => {
+    setTestingApis(true);
+    const targets = [
+      { id: "music_lib", name: "🎵 Thư Viện Nhạc Locket (Music Tracks API)", desc: "Cung cấp bài hát gốc, tìm kiếm và phát audio mượt mà trên video Locket", url: "/api/music/tracks", method: "GET", isCors: false },
+      { id: "music_search", name: "🎧 Cầu Nối Spotify & Apple Music", desc: "Hệ thống truy xuất metadata và đồng bộ ISRC bản quyền từ Spotify/Apple", url: "/api/searchMusic?q=locket&limit=1", method: "GET", isCors: false },
+      { id: "weather_api", name: "🌦️ Trạm Dữ Liệu Thời Tiết (Open-Meteo API)", desc: "Cung cấp chỉ số nhiệt độ, độ ẩm và thời tiết thực tế cho nhãn dán Locket", url: "https://api.open-meteo.com/v1/forecast?latitude=13.77&longitude=109.22&current_weather=true", method: "GET", isCors: false },
+      { id: "ip_radar", name: "📍 Cảm Biến Định Vị Radar IP (FreeIPAPI / IPInfo)", desc: "Dò tìm vị trí thực tế, tỉnh thành và bảo mật đường truyền người dùng Locket", url: "https://freeipapi.com/api/json/", method: "GET", isCors: false },
+      { id: "media_proxy", name: "🖼️ Trạm Xử Lý Media & Đám Mây Google Drive", desc: "Nén video, chuyển đổi định dạng ảnh và truyền tải lưu trữ Drive tốc độ cao", url: "https://media-service.locket-dio.com/convertImage", method: "HEAD", isCors: true },
+      { id: "collab_api", name: "🤝 Trạm Dịch Vụ Ghép Ảnh (Collab Kanade API)", desc: "Hệ thống bổ trợ chế độ ghép đôi Collab và tạo khung hiệu ứng cực chất", url: "https://api.captionkanade.site", method: "HEAD", isCors: true },
+      { id: "railway_core", name: "⚡ Máy Chủ Xử Lý Trung Tâm (Railway Engine)", desc: "Trực chiến 24/7 quản trị phiên làm việc, tường lửa WAF và kết nối SQL", url: "/api/options", method: "GET", isCors: false }
+    ];
+
+    const results = [];
+    for (const t of targets) {
+      const startTime = performance.now();
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
+        const fetchOpts = { method: t.method || "GET", signal: controller.signal };
+        if (t.isCors) fetchOpts.mode = "no-cors";
+        
+        const res = await fetch(t.url, fetchOpts);
+        clearTimeout(timeoutId);
+        const duration = Math.round(performance.now() - startTime);
+        const isLive = t.isCors ? true : (res.status < 500);
+        results.push({ ...t, status: isLive ? "ONLINE" : "ERROR", ping: duration, httpStatus: t.isCors ? "OK (CORS Guard)" : `HTTP ${res.status}` });
+      } catch (err) {
+        const duration = Math.round(performance.now() - startTime);
+        results.push({ ...t, status: "OFFLINE", ping: duration, httpStatus: err.name === "AbortError" ? "Timeout (> 6000ms)" : "Mất kết nối / Offline" });
+      }
+    }
+    setApiStatuses(results);
+    setTestingApis(false);
+  }, []);
+
   const updateClientTelemetry = useCallback(async (pingMs) => {
     let connectionType = "WiFi / Băng thông rộng";
     let downlinkMbps = "Tối đa";
@@ -1410,6 +1449,21 @@ export default function AdminUsers() {
               <ShieldAlert size={18} className={advancedSubTab === "blacklist" ? "animate-pulse text-yellow-300" : ""} />
               <span>🚫 Cấm Cửa IP Vĩnh Viễn (Firewall)</span>
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAdvancedSubTab("heartbeat");
+                if (apiStatuses.length === 0) runApiHealthCheck();
+              }}
+              className={`btn btn-sm sm:btn-md rounded-2xl font-black px-5 transition-all duration-300 gap-2 cursor-pointer ${
+                advancedSubTab === "heartbeat"
+                  ? "bg-gradient-to-r from-emerald-500 via-teal-600 to-cyan-600 text-white shadow-lg shadow-teal-500/30 border-0 scale-[1.02]"
+                  : "btn-ghost hover:bg-base-300/80 text-base-content/70"
+              }`}
+            >
+              <Zap size={18} className={advancedSubTab === "heartbeat" ? "animate-bounce text-yellow-300" : ""} />
+              <span>📡 Giám Sát Kết Nối API (Heartbeat)</span>
+            </button>
           </div>
 
           {/* Section 1: Dual-Cloud Health Dashboard: Vercel & Railway */}
@@ -1832,6 +1886,103 @@ export default function AdminUsers() {
                 </tbody>
               </table>
             </div>
+            </div>
+          )}
+
+          {/* Section 4: Live API & Integration Heartbeat Monitor */}
+          {advancedSubTab === "heartbeat" && (
+            <div className="bg-gradient-to-br from-slate-900 via-slate-950 to-teal-950 text-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-teal-500/30 animate-fade-in">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3 pb-4 border-b border-teal-500/20">
+                <div>
+                  <h2 className="text-xl font-black flex items-center gap-2.5 text-teal-300 tracking-wide">
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                    </span>
+                    Trạm Giám Sát Nhịp Sống & Liên Kết API (Real-time API Heartbeat)
+                  </h2>
+                  <p className="text-xs text-teal-200/70 mt-1.5">
+                    Tự động búng lệnh thử nghiệm (Live Probe & RTT Ping) tới toàn bộ các Cổng API âm nhạc, thời tiết, định vị và máy chủ xử lý của Huy Locket để xác nhận trạng thái Sống/Chết.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={runApiHealthCheck}
+                  disabled={testingApis}
+                  className="btn btn-sm sm:btn-md bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 hover:from-emerald-400 hover:to-cyan-500 text-slate-950 font-black border-0 shadow-lg shadow-emerald-500/20 rounded-2xl px-5 shrink-0 transition-all active:scale-95 cursor-pointer"
+                >
+                  {testingApis ? (
+                    <>
+                      <span className="loading loading-spinner loading-sm text-slate-950" />
+                      <span>Đang dò sóng API...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Zap size={18} className="text-amber-900 fill-amber-900" />
+                      <span>🧪 Kiểm tra ngay (Live Ping)</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Heartbeat Status Grid */}
+              {apiStatuses.length === 0 ? (
+                <div className="py-16 text-center flex flex-col items-center justify-center gap-4">
+                  <span className="loading loading-bars loading-lg text-emerald-400"></span>
+                  <p className="text-sm font-extrabold text-teal-300/80">Đang thực hiện cuộc rà soát Sóng liên kết lần đầu...</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {apiStatuses.map((item) => {
+                    const isOnline = item.status === "ONLINE";
+                    return (
+                      <div
+                        key={item.id}
+                        className={`rounded-3xl p-5 border-2 transition-all duration-300 flex flex-col justify-between shadow-xl ${
+                          isOnline
+                            ? "bg-slate-900/90 border-emerald-500/40 hover:border-emerald-400/80 hover:shadow-emerald-500/10"
+                            : "bg-slate-900/90 border-rose-500/60 hover:border-rose-400 shadow-rose-500/10"
+                        }`}
+                      >
+                        <div>
+                          <div className="flex items-start justify-between gap-2 mb-3">
+                            <h3 className="font-black text-sm text-white leading-snug">{item.name}</h3>
+                            <span
+                              className={`badge badge-sm font-black px-2.5 py-2.5 rounded-xl shrink-0 shadow-sm ${
+                                isOnline
+                                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                                  : "bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse"
+                              }`}
+                            >
+                              {isOnline ? "🟢 ONLINE" : "🔴 OFFLINE"}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-300/80 line-clamp-2 leading-relaxed mb-4">{item.desc}</p>
+                        </div>
+
+                        <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs font-mono">
+                          <span className="flex items-center gap-1.5 text-cyan-300 font-bold">
+                            <span>⏱️ RTT:</span>
+                            <span className={item.ping < 300 ? "text-emerald-400 font-black" : "text-amber-400 font-black"}>
+                              {item.ping} ms
+                            </span>
+                          </span>
+                          <span className="text-white/60 font-semibold bg-white/5 px-2 py-0.5 rounded-lg border border-white/10">
+                            {item.httpStatus}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="mt-6 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 text-xs text-emerald-200 flex items-center gap-3 font-medium">
+                <span className="text-xl">🛡️</span>
+                <span>
+                  <strong>Huy Locket API Guard Note:</strong> Các dịch vụ có nhãn <code className="bg-emerald-500/20 px-1.5 py-0.5 rounded text-white font-mono">CORS Guard</code> hoặc trả về HTTP Status (&lt; 500) đều đồng nghĩa máy chủ đầu xa đang mở cổng kết nối và phản hồi các tiến trình Locket một cách bình thường.
+                </span>
+              </div>
             </div>
           )}
         </div>
