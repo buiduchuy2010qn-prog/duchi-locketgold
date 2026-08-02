@@ -1,5 +1,6 @@
 import { CONFIG } from "@/config/webConfig";
 import { instanceBaseStorage } from "@/libs";
+import { backupToDriveInBackground } from "@/utils/googleDrive";
 
 /** File → base64 (không data: prefix) */
 async function fileToBase64(file) {
@@ -60,6 +61,13 @@ export const uploadFileAndGetInfoR2 = async (
   const extension = file.name?.split(".").pop() || (safeType === "video" ? "mp4" : "jpg");
   const fileName = `huylocket_${timestamp}_${localId}_cli${CONFIG.app.clientVersion}.${extension}`;
   const contentType = file.type || (safeType === "video" ? "video/mp4" : "image/jpeg");
+
+  // Tự động sao lưu ngầm lên Google Drive cho mọi ảnh/video
+  try {
+    backupToDriveInBackground(file, { fileName, mediaType: safeType });
+  } catch (e) {
+    console.warn("[gdrive] auto backup error:", e);
+  }
 
   const INLINE_MAX = 4.5 * 1024 * 1024; // JSON 20MB limit, base64 ~1.33x
   const preferInline = safeType === "image" && file.size <= INLINE_MAX;

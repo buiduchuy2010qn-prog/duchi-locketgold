@@ -116,6 +116,33 @@ function errorMessage(error) {
   return `Không thể tải dữ liệu. ${error?.message || "Lỗi không xác định"}`;
 }
 
+function renderUserLocation(user, latestLogin) {
+  const data = latestLogin || user;
+  const gpsLoc = data?.gps_coordinates || user.gps_coordinates;
+  const ipLoc = [data?.city || user.city, data?.region || user.region, data?.country || user.country]
+    .filter((v) => v && v !== UNKNOWN && v !== "Unknown").join(", ") || UNKNOWN;
+
+  if (gpsLoc) {
+    return (
+      <a
+        href={`https://www.google.com/maps?q=${encodeURIComponent(gpsLoc)}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-emerald-500 hover:text-emerald-400 font-extrabold inline-flex items-center gap-1 underline decoration-emerald-500/50 hover:decoration-emerald-400"
+        title="Bấm để mở bản đồ Google Maps tọa độ GPS thực tế chính xác"
+      >
+        <span>📍 GPS: {gpsLoc}</span>
+      </a>
+    );
+  }
+  return (
+    <span className="text-primary font-medium inline-flex items-center gap-1" title="Vị trí IP trạm đường truyền nhà mạng ISP (VNPT/Viettel/FPT), không phải tọa độ GPS nhà người dùng">
+      <span>🌐 IP: {ipLoc}</span>
+      <span className="text-[10px] opacity-70 border border-current px-1 rounded font-mono">ISP</span>
+    </span>
+  );
+}
+
 function VirtualNumPad({ value, onChange, disabled, maxLength = 8 }) {
   const handlePress = (digit) => {
     if (disabled || value.length >= maxLength) return;
@@ -805,9 +832,7 @@ export default function AdminUsers() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {adminTeam.map((admin) => {
                 const latestLogin = admin.latestLoginData || admin;
-                const ipLoc = [latestLogin.city || admin.city, latestLogin.region || admin.region, latestLogin.country || admin.country].filter((v) => v && v !== UNKNOWN && v !== "Unknown").join(", ");
-                const gpsLoc = latestLogin?.gps_coordinates || admin.gps_coordinates;
-                const location = gpsLoc ? `📍 GPS: ${gpsLoc}${ipLoc ? ` (${ipLoc})` : ""}` : (ipLoc || UNKNOWN);
+                const locationElement = renderUserLocation(admin, latestLogin);
                 const isSuperAdmin = admin.role === "super_admin" || admin.email?.toLowerCase() === "buiduchuy2010qn@gmail.com";
                 const isSelf = admin.uid === currentUserUid;
 
@@ -844,7 +869,7 @@ export default function AdminUsers() {
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-base-content/60">Vị trí (GPS & IP):</span>
-                          <span className="font-semibold inline-flex items-center gap-1 max-w-[190px] truncate text-primary"><MapPin size={13} className="shrink-0" /> {location}</span>
+                          <div className="font-semibold text-right">{locationElement}</div>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-base-content/60">Nguồn / thiết bị:</span>
@@ -949,9 +974,7 @@ export default function AdminUsers() {
                       </tr>
                     ) : normalUsers.map((user) => {
                       const latestLogin = user.latestLoginData || user;
-                      const ipLoc = [latestLogin.city || user.city, latestLogin.region || user.region, latestLogin.country || user.country].filter((v) => v && v !== UNKNOWN && v !== "Unknown").join(", ");
-                      const gpsLoc = latestLogin?.gps_coordinates || user.gps_coordinates;
-                      const location = gpsLoc ? `📍 GPS: ${gpsLoc}${ipLoc ? ` (${ipLoc})` : ""}` : (ipLoc || UNKNOWN);
+                      const locationElement = renderUserLocation(user, latestLogin);
                       const isSuperAdmin = user.role === "super_admin" || user.email?.toLowerCase() === "buiduchuy2010qn@gmail.com";
                       const isSelf = user.uid === currentUserUid;
 
@@ -977,7 +1000,7 @@ export default function AdminUsers() {
                           </td>
                           <td className="min-w-44">
                             <div className="font-mono font-bold text-xs text-primary">{latestLogin?.ip_address || UNKNOWN}</div>
-                            <div className="inline-flex items-center gap-1 mt-1 text-xs text-base-content/70"><MapPin size={11} className="text-secondary shrink-0" /> {location}</div>
+                            <div className="mt-1.5 text-xs">{locationElement}</div>
                           </td>
                           <td className="min-w-48">
                             <div className="inline-flex items-center gap-1 text-xs font-semibold"><Monitor size={12} className="text-accent shrink-0" /> {latestLogin?.browser || UNKNOWN} {latestLogin?.browser_version !== UNKNOWN ? latestLogin?.browser_version : ""}</div>
