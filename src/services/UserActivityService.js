@@ -251,3 +251,18 @@ export async function fetchGlobalBroadcast() {
     return null;
   }
 }
+
+export async function logWebUserAction({ actionType, actionTitle, details = null }) {
+  const { idToken } = getToken();
+  if (!idToken || !actionType || !actionTitle) return null;
+  try {
+    return await activityRequest("/action", {
+      sessionId: getSessionId(),
+      actionType,
+      actionTitle,
+      details,
+    });
+  } catch (err) {
+    return null;
+  }
+}

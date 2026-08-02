@@ -220,6 +220,15 @@ export default function AdminUsers() {
   const [purgingBots, setPurgingBots] = useState(false);
   const rootRefreshInFlight = useRef(false);
 
+  // Web User Actions (Realtime Behavior Surveillance) states
+  const [userActions, setUserActions] = useState([]);
+  const [userActionsLoading, setUserActionsLoading] = useState(false);
+  const [userActionsError, setUserActionsError] = useState(null);
+  const [userActionsFilterType, setUserActionsFilterType] = useState("");
+  const [userActionsSearch, setUserActionsSearch] = useState("");
+  const [autoRefreshActions, setAutoRefreshActions] = useState(true);
+  const [clearingActions, setClearingActions] = useState(false);
+
   // Audit Logs states
   const [auditLogs, setAuditLogs] = useState([]);
   const [auditLoading, setAuditLoading] = useState(false);
@@ -560,6 +569,42 @@ export default function AdminUsers() {
     }
   }, []);
 
+  const fetchUserActions = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setUserActionsLoading(true);
+    setUserActionsError(null);
+    try {
+      const query = new URLSearchParams({ limit: "200" });
+      if (userActionsFilterType) query.set("actionType", userActionsFilterType);
+      if (userActionsSearch) query.set("search", userActionsSearch);
+      const data = await adminRequest(`/user-actions?${query.toString()}`);
+      setUserActions(data.actions || []);
+    } catch (err) {
+      if (err?.code === "ADMIN_SESSION_EXPIRED" || err?.status === 401) {
+        clearShortAdminSessionToken();
+        setIsGateUnlocked(false);
+      }
+      if (!silent) setUserActionsError(errorMessage(err));
+    } finally {
+      if (!silent) setUserActionsLoading(false);
+    }
+  }, [userActionsFilterType, userActionsSearch]);
+
+  const handleClearUserActions = async () => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa sạch nhật ký hoạt động Web của tất cả người dùng không? (Hành động này không thể hoàn tác)")) {
+      return;
+    }
+    setClearingActions(true);
+    try {
+      await adminRequest("/user-actions", { method: "DELETE" });
+      setUserActions([]);
+      SonnerSuccess("Đã xóa sạch lịch sử theo dõi hoạt động Web!");
+    } catch (err) {
+      SonnerWarning(errorMessage(err));
+    } finally {
+      setClearingActions(false);
+    }
+  };
+
   useEffect(() => {
     if (!hasAdminSession()) {
       setCheckingAdmin(false);
@@ -623,7 +668,18 @@ export default function AdminUsers() {
     if (activeTab === "reports" && currentRole !== "support") {
       fetchReports();
     }
-  }, [activeTab, isAdmin, isGateUnlocked, currentRole, fetchAuditLogs, fetchReports]);
+    if (activeTab === "user_actions") {
+      fetchUserActions();
+    }
+  }, [activeTab, isAdmin, isGateUnlocked, currentRole, fetchAuditLogs, fetchReports, fetchUserActions]);
+
+  useEffect(() => {
+    if (!isAdmin || !isGateUnlocked || activeTab !== "user_actions" || !autoRefreshActions) return undefined;
+    const timer = window.setInterval(() => {
+      if (!document.hidden) fetchUserActions({ silent: true });
+    }, 10_000);
+    return () => window.clearInterval(timer);
+  }, [isAdmin, isGateUnlocked, activeTab, autoRefreshActions, fetchUserActions]);
 
   const { adminTeam, normalUsers } = useMemo(() => {
     const normalized = search.trim().toLowerCase();
@@ -1039,6 +1095,19 @@ export default function AdminUsers() {
         >
           <Users size={18} className={activeTab === "users" ? "text-indigo-200 animate-pulse" : "text-slate-500"} /> 
           <span>Người dùng & Phân quyền ({totalUsers})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => { setActiveTab("user_actions"); fetchUserActions(); }}
+          className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl font-black text-sm transition-all duration-300 cursor-pointer ${
+            activeTab === "user_actions" 
+              ? "bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white shadow-lg shadow-teal-500/20 scale-[1.02] border-0" 
+              : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/80 border border-transparent"
+          }`}
+        >
+          <Activity size={18} className={activeTab === "user_actions" ? "text-teal-200 animate-pulse" : "text-slate-500"} /> 
+          <span>Giám Sát Hành Vi Web (Realtime)</span>
         </button>
 
         {(currentRole === "super_admin" || currentRole === "admin") && (
@@ -1509,6 +1578,207 @@ export default function AdminUsers() {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB: USER ACTIONS MONITORING (Giám Sát Hành Vi Web Realtime) */}
+      {activeTab === "user_actions" && (
+        <div className="bg-white/95 text-slate-800 rounded-[2.5rem] shadow-[0_15px_50px_-10px_rgba(30,41,59,0.08)] border border-slate-200/80 p-6 sm:p-9 animate-fade-in relative overflow-hidden backdrop-blur-2xl">
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-teal-400/10 rounded-full blur-[130px] pointer-events-none -mt-32 -mr-32" />
+          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-emerald-400/10 rounded-full blur-[120px] pointer-events-none -mb-32 -ml-32" />
+          
+          <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-slate-200/80">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-50 border border-teal-200 text-teal-800 text-xs font-black mb-3 shadow-sm">
+                <span className="w-2 h-2 rounded-full bg-teal-500 animate-ping" />
+                <span>🌐 REALTIME WEB BEHAVIOR RADAR (100% DỮ LIỆU THẬT)</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-teal-950 via-slate-900 to-emerald-900 flex items-center gap-2.5">
+                Giám Sát Hành Vi Người Dùng Trực Tuyến
+              </h2>
+              <p className="text-sm text-slate-600 font-medium mt-1">
+                Tường thuật thời gian thực mọi thao tác trên ứng dụng web của thành viên Huy Locket (truy cập menu, mở lịch sử, đăng bài, hay điều hướng các trang).
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto shrink-0">
+              <input
+                type="text"
+                placeholder="Tìm user, email, UID hoặc hành động..."
+                className="input input-bordered text-xs rounded-2xl h-11 bg-slate-50 text-slate-900 border-slate-200 focus:border-teal-600 focus:bg-white font-bold px-4 shadow-inner"
+                value={userActionsSearch}
+                onChange={(e) => setUserActionsSearch(e.target.value)}
+              />
+              <select
+                className="select select-bordered text-xs rounded-2xl h-11 bg-slate-50 text-slate-900 border-slate-200 focus:border-teal-600 font-bold px-4 shadow-inner"
+                value={userActionsFilterType}
+                onChange={(e) => setUserActionsFilterType(e.target.value)}
+              >
+                <option value="">Tất cả loại hành động</option>
+                <option value="NAVIGATION">🧭 Điều hướng Trang (Navigation)</option>
+                <option value="STREAKS_VIEW">🌟 Xem Lịch sử / Streaks</option>
+                <option value="MENU_OPEN">⚙️ Mở Menu / Profile</option>
+                <option value="MOMENT_POST">📸 Đăng tải Moment</option>
+              </select>
+              <button
+                type="button"
+                onClick={() => setAutoRefreshActions(!autoRefreshActions)}
+                className={`btn rounded-2xl h-11 px-3 text-xs font-black transition ${autoRefreshActions ? "bg-teal-600 text-white shadow-md shadow-teal-500/30" : "bg-slate-100 text-slate-600 border-slate-300"}`}
+                title="Tự động cập nhật mỗi 10 giây"
+              >
+                {autoRefreshActions ? "🟢 Auto-refresh ON" : "⚪ Auto OFF"}
+              </button>
+              <button
+                type="button"
+                onClick={() => fetchUserActions()}
+                className="btn bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 rounded-2xl h-11 px-4 font-extrabold flex items-center gap-2 shadow-sm cursor-pointer active:scale-95"
+                title="Tải lại ngay"
+              >
+                <RefreshCw size={17} className={userActionsLoading ? "animate-spin text-teal-600" : "text-teal-600"} />
+                <span>Làm mới</span>
+              </button>
+              {(currentRole === "super_admin" || currentRole === "admin") && (
+                <button
+                  type="button"
+                  onClick={handleClearUserActions}
+                  disabled={clearingActions}
+                  className="btn bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-2xl h-11 px-4 text-xs font-black shadow-sm flex items-center gap-1.5"
+                  title="Xóa sạch lịch sử theo dõi hành vi"
+                >
+                  <Trash2 size={15} />
+                  <span>Xóa nhật ký</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* STATS OVERVIEW CARDS */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+            <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-teal-500/10 via-emerald-500/5 to-transparent border border-teal-200/60 shadow-sm flex flex-col justify-between">
+              <span className="text-xs font-black text-teal-700 uppercase tracking-wider">Tổng Lượt Hoạt Động</span>
+              <span className="text-2xl sm:text-3xl font-black text-slate-900 mt-2">{userActions.length} <span className="text-xs font-medium text-slate-500">lần ghi nhận</span></span>
+            </div>
+            <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-blue-500/10 via-cyan-500/5 to-transparent border border-blue-200/60 shadow-sm flex flex-col justify-between">
+              <span className="text-xs font-black text-blue-700 uppercase tracking-wider">Lượt Điều Hướng (Navigation)</span>
+              <span className="text-2xl sm:text-3xl font-black text-slate-900 mt-2">{userActions.filter(a => a.action_type === 'NAVIGATION').length} <span className="text-xs font-medium text-slate-500">trang</span></span>
+            </div>
+            <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent border border-amber-200/60 shadow-sm flex flex-col justify-between">
+              <span className="text-xs font-black text-amber-700 uppercase tracking-wider">Lượt Mở Lịch Sử (Streaks)</span>
+              <span className="text-2xl sm:text-3xl font-black text-slate-900 mt-2">{userActions.filter(a => a.action_type === 'STREAKS_VIEW').length} <span className="text-xs font-medium text-slate-500">lần xem</span></span>
+            </div>
+            <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-purple-500/10 via-pink-500/5 to-transparent border border-purple-200/60 shadow-sm flex flex-col justify-between">
+              <span className="text-xs font-black text-purple-700 uppercase tracking-wider">Lượt Mở Menu & Đăng Bài</span>
+              <span className="text-2xl sm:text-3xl font-black text-slate-900 mt-2">{userActions.filter(a => ['MENU_OPEN', 'MOMENT_POST'].includes(a.action_type)).length} <span className="text-xs font-medium text-slate-500">thao tác</span></span>
+            </div>
+          </div>
+
+          {userActionsError && (
+            <div className="alert alert-error mb-6 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-sm font-bold shadow-sm">
+              <span>⚠️ Lỗi tải dữ liệu theo dõi: {userActionsError}</span>
+            </div>
+          )}
+
+          {/* BEHAVIOR LOG TABLE */}
+          <div className="overflow-x-auto rounded-3xl border border-slate-200/80 shadow-[0_4px_25px_-5px_rgba(0,0,0,0.04)] bg-white">
+            <table className="table w-full text-sm font-medium text-left">
+              <thead className="bg-slate-50 text-slate-600 uppercase text-[11px] font-black tracking-wider border-b border-slate-200/80">
+                <tr>
+                  <th className="py-4 pl-6">Thành viên thao tác</th>
+                  <th className="py-4">Loại hành vi</th>
+                  <th className="py-4">Chi tiết / Đường dẫn</th>
+                  <th className="py-4">Thiết bị & IP</th>
+                  <th className="py-4 pr-6 text-right">Thời điểm (Thực tế)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {userActionsLoading && userActions.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" className="text-center py-12 text-slate-400 font-bold">
+                      <div className="flex items-center justify-center gap-3">
+                        <RefreshCw className="animate-spin text-teal-600" size={24} />
+                        <span>Đang truy xuất dữ liệu cảm biến thời gian thực...</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : userActions.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" className="text-center py-14 text-slate-400 font-bold">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <Activity size={36} className="text-teal-300 stroke-1" />
+                        <span className="text-base text-slate-600 font-extrabold">Chưa ghi nhận thao tác người dùng nào trên trang web</span>
+                        <span className="text-xs text-slate-400 max-w-sm text-center">Hệ thống đang sẵn sàng! Hãy thử điều hướng, mở menu, xem lịch sử hoặc đăng bài trên ứng dụng web để kiểm nghiệm cảm biến.</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  userActions.map((item) => {
+                    let badgeClass = "bg-slate-100 text-slate-700 border-slate-200";
+                    let actionIcon = "📌";
+                    if (item.action_type === "NAVIGATION") {
+                      badgeClass = "bg-blue-50 text-blue-700 border-blue-200";
+                      actionIcon = "🧭";
+                    } else if (item.action_type === "STREAKS_VIEW") {
+                      badgeClass = "bg-amber-50 text-amber-800 border-amber-300 shadow-xs";
+                      actionIcon = "🌟";
+                    } else if (item.action_type === "MENU_OPEN") {
+                      badgeClass = "bg-purple-50 text-purple-700 border-purple-200";
+                      actionIcon = "⚙️";
+                    } else if (item.action_type === "MOMENT_POST") {
+                      badgeClass = "bg-emerald-50 text-emerald-800 border-emerald-300 shadow-xs font-black";
+                      actionIcon = "📸";
+                    }
+
+                    const dt = new Date(item.created_at || item.createdAt);
+                    const isToday = dt.toDateString() === new Date().toDateString();
+                    const timeStr = isToday ? `Hôm nay, ${dt.toLocaleTimeString("vi-VN")}` : dt.toLocaleString("vi-VN");
+
+                    return (
+                      <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="py-4 pl-6 align-top">
+                          <div className="flex flex-col">
+                            <span className="font-extrabold text-slate-900 text-sm">{item.display_name || item.user_uid || "Khách / Ẩn danh"}</span>
+                            {item.email && <span className="text-xs font-medium text-slate-500">{item.email}</span>}
+                            <span className="text-[10px] font-mono text-slate-400 mt-0.5 select-all">{item.user_uid}</span>
+                          </div>
+                        </td>
+                        <td className="py-4 align-top">
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl border text-xs font-black ${badgeClass}`}>
+                            <span>{actionIcon}</span>
+                            <span>{item.action_title || item.action_type}</span>
+                          </span>
+                        </td>
+                        <td className="py-4 align-top">
+                          <span className="text-xs font-bold text-slate-700 block bg-slate-50/80 p-2 rounded-xl border border-slate-100 max-w-md break-words">
+                            {item.action_details || "—"}
+                          </span>
+                        </td>
+                        <td className="py-4 align-top">
+                          <div className="flex flex-col gap-1 text-xs text-slate-600">
+                            <span className="font-bold text-slate-800 flex items-center gap-1">
+                              <Monitor size={12} className="text-slate-400" />
+                              <span>{item.device_name || "Trình duyệt Web"}</span>
+                            </span>
+                            {item.ip_address && (
+                              <span className="text-[11px] text-slate-400 font-mono flex items-center gap-1">
+                                <MapPin size={11} className="text-teal-500" />
+                                <span>{item.ip_address}</span>
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-4 pr-6 align-top text-right whitespace-nowrap">
+                          <span className="text-xs font-extrabold text-slate-700 block">{timeStr}</span>
+                          <span className="text-[10px] font-semibold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-md mt-1 inline-block border border-teal-100">
+                            Realtime Telemetry
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

@@ -9,6 +9,7 @@ import { normalizeMoment } from "@/utils";
 import { overlayFromOptionsData } from "@/utils/standardize/normalizeMoments";
 import { useStreakStore } from "@/stores/StreakStores";
 import { useMomentsStoreV2 } from "@/stores/MomentStores";
+import { logWebUserAction } from "@/services/UserActivityService";
 
 import {
   saveUploadItemToDB,
@@ -326,6 +327,13 @@ export const useUploadQueueStore = create((set, get) => ({
           item.contentType === "video" ? "Video" : "Hình ảnh"
         } đã được tải lên!`,
       );
+      try {
+        logWebUserAction({
+          actionType: "MOMENT_POST",
+          actionTitle: `Đăng ${item.contentType === "video" ? "Video" : "Hình ảnh"} mới lên Locket`,
+          details: `Đã đăng thành công khoảnh khắc từ trình duyệt Web`,
+        });
+      } catch (e) {}
       useStreakStore.getState().fetchStreakIfNeeded();
 
       get().autoCleanupItem(item.id);

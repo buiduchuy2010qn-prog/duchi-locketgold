@@ -143,4 +143,25 @@ router.post("/logout", async (req, res) => {
   }
 });
 
+router.post("/action", async (req, res) => {
+  try {
+    const { actionType, actionTitle, details } = req.body || {};
+    if (!actionType || !actionTitle) {
+      return res.status(400).json({ success: false, error: "Missing actionType or actionTitle" });
+    }
+    const identity = normalizeIdentity(req.verifiedLocketUser);
+    await require("../services/userActivityStore").recordWebUserAction({
+      user: { ...identity, uid: identity.uid },
+      req,
+      actionType,
+      actionTitle,
+      details: typeof details === "object" && details ? JSON.stringify(details) : String(details || "")
+    });
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    console.warn("User action tracking failed:", err?.message || err);
+    return res.status(200).json({ success: false });
+  }
+});
+
 module.exports = router;

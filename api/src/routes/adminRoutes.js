@@ -41,6 +41,8 @@ const {
   verifyAdminSessionToken,
   writeAudit,
   healIpLocationInDb,
+  listWebUserActions,
+  clearWebUserActions,
 } = require("../services/userActivityStore");
 const { getRequestContext, lookupPublicIpLocation } = require("../services/userActivityContext");
 
@@ -531,6 +533,35 @@ router.get("/audit-logs", requireActivityDatabase, async (req, res) => {
   } catch (error) {
     console.error("Failed to list audit logs:", error?.message || "unknown");
     return res.status(500).json({ success: false, error: "Không thể tải nhật ký quản trị" });
+  }
+});
+
+router.get("/user-actions", requireActivityDatabase, async (req, res) => {
+  res.setHeader("Cache-Control", "no-store, max-age=0");
+  try {
+    const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 150, 1), 300);
+    const offset = Math.max(Number.parseInt(req.query.offset, 10) || 0, 0);
+    const search = String(req.query.search || "").trim();
+    const actionType = String(req.query.actionType || "").trim();
+    const uid = String(req.query.uid || "").trim();
+    
+    const result = await listWebUserActions({ uid, actionType, search, limit, offset });
+    return res.status(200).json({ success: true, actions: result.actions, total: result.total });
+  } catch (error) {
+    console.error("Failed to list user actions:", error?.message || "unknown");
+    return res.status(500).json({ success: false, error: "Không thể tải nhật ký hoạt động người dùng" });
+  }
+});
+
+router.delete("/user-actions", requireActivityDatabase, requireActiveAdminSession, async (req, res) => {
+  try {
+    const uid = String(req.query.uid || "").trim() || null;
+    await clearWebUserActions(uid);
+    await audit(req, "CLEAR_USER_ACTIONS", uid || "ALL", `Cleared user activity action logs for ${uid || "ALL"}`);
+    return res.status(200).json({ success: true, message: "Đã xóa lịch sử hoạt động thành công!" });
+  } catch (error) {
+    console.error("Failed to clear user actions:", error?.message || "unknown");
+    return res.status(500).json({ success: false, error: "Lỗi khi xóa lịch sử hoạt động" });
   }
 });
 

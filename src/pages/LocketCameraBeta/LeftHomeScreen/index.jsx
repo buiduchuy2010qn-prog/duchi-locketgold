@@ -8,6 +8,7 @@ import RollcallsPost from "./Views/RollcallsPage";
 import StreakLocket from "./Views/CalenderStreak";
 import { useAuthStore, useMomentsStoreV2 } from "@/stores";
 import { getToken } from "@/utils/storage";
+import { logWebUserAction } from "@/services/UserActivityService";
 
 const LeftHomeScreen = ({ setIsProfileOpen }) => {
   const { user } = useAuthStore();
@@ -31,6 +32,11 @@ const LeftHomeScreen = ({ setIsProfileOpen }) => {
   useEffect(() => {
     if (isProfileOpen && myId) {
       useMomentsStoreV2.getState().fetchMoments(null, myId);
+      logWebUserAction({
+        actionType: "MENU_OPEN",
+        actionTitle: "Mở Menu tính năng & Quản lý cá nhân",
+        details: "Mở ngăn menu bên trái màn hình (Hồ sơ, Lịch sử, Cài đặt)",
+      });
     }
   }, [isProfileOpen, myId]);
 
