@@ -565,31 +565,31 @@ function parseServiceAccountJson(raw) {
 }
 
 function loadServiceAccount() {
+  const cfg = readDriveConfig();
+  if (cfg?.serviceAccount) return cfg.serviceAccount;
   const fromEnv = parseServiceAccountJson(
     process.env.GOOGLE_SERVICE_ACCOUNT_JSON || ""
   );
   if (fromEnv) return fromEnv;
-  const cfg = readDriveConfig();
-  if (cfg?.serviceAccount) return cfg.serviceAccount;
   return null;
 }
 
-/** OAuth client + refresh token (ưu tiên — ghi được Drive cá nhân) */
+/** OAuth client + refresh token (ưu tiên đọc từ Neon CSDL trước để các lần gia hạn mới áp dụng vĩnh cửu) */
 function loadOauthCreds() {
   const cfg = readDriveConfig();
   const clientId = (
-    process.env.GOOGLE_OAUTH_CLIENT_ID ||
     cfg?.oauth?.clientId ||
+    process.env.GOOGLE_OAUTH_CLIENT_ID ||
     ""
   ).trim();
   const clientSecret = (
-    process.env.GOOGLE_OAUTH_CLIENT_SECRET ||
     cfg?.oauth?.clientSecret ||
+    process.env.GOOGLE_OAUTH_CLIENT_SECRET ||
     ""
   ).trim();
   const refreshToken = (
-    process.env.GOOGLE_OAUTH_REFRESH_TOKEN ||
     cfg?.oauth?.refreshToken ||
+    process.env.GOOGLE_OAUTH_REFRESH_TOKEN ||
     ""
   ).trim();
   const email = (cfg?.oauth?.email || "").trim();
@@ -598,10 +598,10 @@ function loadOauthCreds() {
 }
 
 function getDriveFolderId() {
-  const fromEnv = (process.env.GOOGLE_DRIVE_FOLDER_ID || "").trim();
-  if (fromEnv) return fromEnv;
   const cfg = readDriveConfig();
-  return (cfg?.folderId || "").trim();
+  const fromCfg = (cfg?.folderId || "").trim();
+  if (fromCfg) return fromCfg;
+  return (process.env.GOOGLE_DRIVE_FOLDER_ID || "").trim();
 }
 
 function normalizeFolderId(raw) {
@@ -1015,14 +1015,14 @@ async function handleDriveStatus(req, res) {
       "Service Account không ghi được Drive cá nhân — dùng OAuth.";
   }
 
-  const source = process.env.GOOGLE_OAUTH_REFRESH_TOKEN
-    ? "env-oauth"
-    : process.env.GOOGLE_SERVICE_ACCOUNT_JSON
-      ? "env-sa"
-      : cfg?.source === "neon" || neonReady
-        ? "neon"
-        : cfg
-          ? "file"
+  const source = cfg?.oauth?.refreshToken && (cfg?.source === "neon" || neonReady)
+    ? "neon"
+    : cfg?.oauth?.refreshToken
+      ? "file"
+      : process.env.GOOGLE_OAUTH_REFRESH_TOKEN
+        ? "env-oauth"
+        : process.env.GOOGLE_SERVICE_ACCOUNT_JSON
+          ? "env-sa"
           : "none";
 
   const oauthCallbackUrl = `${publicBaseUrl(req)}/api/drive-oauth-callback`;
