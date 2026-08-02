@@ -202,6 +202,31 @@ export default function AdminUsers() {
   const [reportsLoading, setReportsLoading] = useState(false);
   const [reportsError, setReportsError] = useState(null);
 
+  // Advanced Super Admin tools states
+  const [serverHealth, setServerHealth] = useState(null);
+  const [broadcastMsg, setBroadcastMsg] = useState("");
+  const [broadcastActive, setBroadcastActive] = useState(false);
+  const [blacklistedIps, setBlacklistedIps] = useState([]);
+  const [banIpInput, setBanIpInput] = useState("");
+  const [banReasonInput, setBanReasonInput] = useState("");
+  const [passwordStatusModal, setPasswordStatusModal] = useState(null);
+
+  const fetchAdvancedData = useCallback(async () => {
+    try {
+      const h = await adminRequest("/server-health");
+      if (h?.data) setServerHealth(h.data);
+      const b = await adminRequest("/broadcast");
+      if (b?.data) {
+        setBroadcastMsg(b.data.message || "");
+        setBroadcastActive(Boolean(b.data.active && b.data.message));
+      }
+      const p = await adminRequest("/ip-blacklist");
+      if (p?.list) setBlacklistedIps(p.list || []);
+    } catch (err) {
+      console.warn("Failed fetching advanced tools data:", err);
+    }
+  }, []);
+
   // Modals state
   const [actionModal, setActionModal] = useState(null); // { type: 'lock'|'unlock'|'revoke'|'role', user, newRole, reason }
   const [reauthModalOpen, setReauthModalOpen] = useState(false);
@@ -426,6 +451,7 @@ export default function AdminUsers() {
       }
       setIsGateUnlocked(true);
       fetchUsers();
+      fetchAdvancedData();
     } catch (err) {
       setGateError(err.message || "Xác minh mã PIN thất bại. Vui lòng kiểm tra lại mã PIN.");
     } finally {
@@ -489,6 +515,14 @@ export default function AdminUsers() {
           : entry;
         setUsers((current) => current.map(update));
         setSelectedUser((current) => current && current.uid === user.uid ? update(current) : current);
+      } else if (type === "nuke") {
+        await adminRequest(`/users/${encodeURIComponent(user.uid)}/nuke`, {
+          method: "DELETE",
+          body: JSON.stringify({ reason: reason.trim() }),
+        });
+        SonnerInfo(`🔥 Đã Tiêu Hủy (Nuke) vĩnh viễn tài khoản của ${user.email || user.uid} khỏi hệ thống!`);
+        setUsers((current) => current.filter((entry) => entry.uid !== user.uid));
+        if (selectedUser?.uid === user.uid) setSelectedUser(null);
       }
       setActionModal(null);
     };
@@ -499,6 +533,7 @@ export default function AdminUsers() {
       setActionLoading(null);
     }
   };
+
 
   const handleReauthSubmit = async (event) => {
     event.preventDefault();
@@ -738,7 +773,15 @@ export default function AdminUsers() {
             <Shield size={16} /> Quản lý Nội dung vi phạm
           </button>
         )}
+        <button
+          type="button"
+          onClick={() => { setActiveTab("advanced"); fetchAdvancedData(); }}
+          className={`tab gap-2 font-bold transition-all ${activeTab === "advanced" ? "tab-active bg-gradient-to-r from-amber-500 to-red-600 text-white shadow-md rounded-xl" : ""}`}
+        >
+          <Zap size={16} className="text-yellow-300 animate-pulse" /> 🚀 Quyền Lực Tối Thượng
+        </button>
       </div>
+
 
       {/* TAB 1: USERS AND RBAC */}
       {activeTab === "users" && (
@@ -1157,8 +1200,173 @@ export default function AdminUsers() {
         </div>
       )}
 
+      {/* TAB 4: ADVANCED SUPER ADMIN POWER SUITE */}
+      {activeTab === "advanced" && (
+        <div className="space-y-8 animate-fade-in">
+          {/* Section 1: Server Health Dashboard */}
+          <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-indigo-500/30">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-xl font-black flex items-center gap-2 text-indigo-300">
+                  <Activity size={22} className="text-emerald-400 animate-pulse" />
+                  Cảm Biến Giám Sát Nhịp Tim Máy Chủ Railway
+                </h2>
+                <p className="text-xs text-indigo-200/70 mt-1">Hệ thống bảo mật tối thượng Huy Locket Shield hoạt động thời gian thực.</p>
+              </div>
+              <button type="button" onClick={fetchAdvancedData} className="btn btn-sm btn-ghost text-indigo-300">🔄 Cập nhật</button>
+            </div>
+            {serverHealth ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
+                <div className="bg-indigo-900/40 border border-indigo-500/20 rounded-2xl p-4 text-center">
+                  <p className="text-[11px] text-indigo-300 font-bold uppercase">Trạng Thái</p>
+                  <p className="text-sm sm:text-base font-black text-emerald-400 mt-1">🟢 {serverHealth.status}</p>
+                </div>
+                <div className="bg-indigo-900/40 border border-indigo-500/20 rounded-2xl p-4 text-center">
+                  <p className="text-[11px] text-indigo-300 font-bold uppercase">Thời gian duy trì (Uptime)</p>
+                  <p className="text-lg font-black text-white mt-1 font-mono">{Math.floor(serverHealth.uptimeSeconds / 3600)}h {Math.floor((serverHealth.uptimeSeconds % 3600) / 60)}p</p>
+                </div>
+                <div className="bg-indigo-900/40 border border-indigo-500/20 rounded-2xl p-4 text-center">
+                  <p className="text-[11px] text-indigo-300 font-bold uppercase">Bộ nhớ RAM (RSS / Heap)</p>
+                  <p className="text-lg font-black text-amber-300 mt-1 font-mono">{serverHealth.memoryRssMb} MB / {serverHealth.memoryHeapUsedMb} MB</p>
+                </div>
+                <div className="bg-indigo-900/40 border border-indigo-500/20 rounded-2xl p-4 text-center">
+                  <p className="text-[11px] text-indigo-300 font-bold uppercase">Hệ điều hành</p>
+                  <p className="text-sm font-bold text-slate-300 mt-2 font-mono">{serverHealth.platform} ({serverHealth.nodeVersion})</p>
+                </div>
+              </div>
+            ) : <div className="py-8 text-center text-indigo-300">Đang đo ngầm tài nguyên máy chủ...</div>}
+          </div>
+
+          {/* Section 2: Global Broadcast Banner */}
+          <div className="bg-base-100 rounded-3xl p-6 sm:p-8 shadow-sm border border-base-200">
+            <h3 className="text-lg font-black flex items-center gap-2 mb-2 text-primary">
+              📢 Phát Loa Thông Báo Toàn Cầu (Global Broadcast Banner)
+            </h3>
+            <p className="text-xs text-base-content/70 mb-5">Khi phát loa, toàn bộ người dùng đang mở trang web sẽ nhìn thấy thanh thông báo nhấp nháy trên giao diện của họ ngay tức thì.</p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input
+                type="text"
+                placeholder="Nhập nội dung thông báo (ví dụ: Bảo trì hệ thống lúc 23h50, vui lòng lưu trữ bài đăng...)"
+                value={broadcastMsg}
+                onChange={(e) => setBroadcastMsg(e.target.value)}
+                className="input input-bordered flex-1 font-medium rounded-xl h-11"
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  const action = async () => {
+                    await adminRequest("/broadcast", {
+                      method: "POST",
+                      body: JSON.stringify({ message: broadcastMsg, active: !broadcastActive }),
+                    });
+                    setBroadcastActive(!broadcastActive);
+                    SonnerInfo(!broadcastActive ? "🚨 Đã BẬT phát loa thông báo toàn cầu!" : "Đã TẮT thông báo toàn cầu!");
+                  };
+                  handleActionWithSessionCheck(action);
+                }}
+                className={`btn font-black px-6 rounded-xl h-11 ${broadcastActive ? "btn-error text-white" : "btn-primary"}`}
+              >
+                {broadcastActive ? "🚫 Tắt Phát Sóng" : "🟢 Phát Sóng Ngay"}
+              </button>
+            </div>
+            {broadcastActive && (
+              <div className="alert alert-warning mt-4 rounded-xl py-2 font-bold flex items-center justify-between">
+                <span>Trạng thái: 🟢 ĐANG PHÁT SÓNG TOÀN VỆ: &quot;{broadcastMsg}&quot;</span>
+              </div>
+            )}
+          </div>
+
+          {/* Section 3: Permanent IP Blacklist */}
+          <div className="bg-base-100 rounded-3xl p-6 sm:p-8 shadow-sm border border-base-200">
+            <h3 className="text-lg font-black flex items-center gap-2 mb-2 text-error">
+              🚫 Cấm Cửa Địa Chỉ IP Vĩnh Viễn (Permanent IP Blacklist)
+            </h3>
+            <p className="text-xs text-base-content/70 mb-5">Những địa chỉ IP trong danh sách này sẽ bị Tường Lửa Thép Huy Locket từ chối kết nối trước khi chạm vào máy chủ, không thể dùng bất kỳ tài khoản nào để truy cập.</p>
+
+            <div className="flex flex-col sm:flex-row gap-3 mb-6">
+              <input
+                type="text"
+                placeholder="Nhập địa chỉ IP cần phong tỏa (VD: 54.196.219.221)..."
+                value={banIpInput}
+                onChange={(e) => setBanIpInput(e.target.value)}
+                className="input input-bordered w-full sm:w-72 font-mono text-sm rounded-xl h-11"
+              />
+              <input
+                type="text"
+                placeholder="Lý do cấm (VD: Dội bot VPS / Phát tán rác)..."
+                value={banReasonInput}
+                onChange={(e) => setBanReasonInput(e.target.value)}
+                className="input input-bordered flex-1 text-sm rounded-xl h-11"
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!banIpInput.trim()) return SonnerInfo("Vui lòng nhập số IP hợp lệ");
+                  const action = async () => {
+                    await adminRequest("/ip-blacklist", {
+                      method: "POST",
+                      body: JSON.stringify({ ip_address: banIpInput.trim(), reason: banReasonInput.trim() || "Cấm bởi Quản Trị Viên" }),
+                    });
+                    SonnerInfo(`🛑 Đã cấm vĩnh viễn IP: ${banIpInput.trim()}`);
+                    setBanIpInput(""); setBanReasonInput("");
+                    fetchAdvancedData();
+                  };
+                  handleActionWithSessionCheck(action);
+                }}
+                className="btn btn-error font-black text-white px-6 rounded-xl h-11"
+              >
+                🔒 Phong Tỏa IP
+              </button>
+            </div>
+
+            <div className="overflow-x-auto border border-base-200 rounded-2xl">
+              <table className="table table-sm table-zebra w-full">
+                <thead className="bg-base-200/60 font-bold">
+                  <tr>
+                    <th>Địa chỉ IP</th>
+                    <th>Lý do Cấm Cửa</th>
+                    <th>Người thao tác</th>
+                    <th>Thời gian phong tỏa</th>
+                    <th className="text-right">Hành động</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {blacklistedIps.length === 0 ? (
+                    <tr><td colSpan="5" className="text-center py-8 text-base-content/50 font-medium">Chưa có IP nào bị phong tỏa trong cơ sở dữ liệu.</td></tr>
+                  ) : blacklistedIps.map((b) => (
+                    <tr key={b.ip_address} className="hover">
+                      <td className="font-mono font-bold text-error text-sm">{b.ip_address}</td>
+                      <td className="text-xs font-semibold">{b.reason || "—"}</td>
+                      <td className="font-mono text-xs text-primary">{b.blocked_by || "SUPER_ADMIN"}</td>
+                      <td className="font-mono text-xs text-base-content/70">{formatDateTime(b.created_at)}</td>
+                      <td className="text-right">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const action = async () => {
+                              await adminRequest(`/ip-blacklist/${encodeURIComponent(b.ip_address)}`, { method: "DELETE" });
+                              SonnerInfo(`Đã mở cửa IP: ${b.ip_address}`);
+                              fetchAdvancedData();
+                            };
+                            handleActionWithSessionCheck(action);
+                          }}
+                          className="btn btn-xs btn-outline btn-success font-bold rounded-lg h-7 px-3"
+                        >
+                          Mở khóa IP
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MODAL CHI TIẾT USER & LỊCH SỬ ĐĂNG NHẬP */}
       {selectedUser && (
+
         <div className="modal modal-open modal-bottom sm:modal-middle" onClick={() => setSelectedUser(null)}>
           <div className="modal-box max-w-5xl rounded-3xl p-6 sm:p-8 shadow-2xl border-2 border-primary/20 bg-base-100" onClick={(event) => event.stopPropagation()}>
             <button type="button" className="btn btn-sm btn-circle btn-ghost absolute right-5 top-5 text-base-content/60 hover:bg-base-200" onClick={() => setSelectedUser(null)}>✕</button>
@@ -1430,6 +1638,42 @@ export default function AdminUsers() {
           </div>
         </div>
       )}
+
+      {/* MODAL QUẢN LÝ VÀ HỖ TRỢ KHÔI PHỤC MẬT KHẨU */}
+      {passwordStatusModal && (
+        <div className="modal modal-open modal-bottom sm:modal-middle" onClick={() => setPasswordStatusModal(null)}>
+          <div className="modal-box max-w-lg rounded-3xl p-6 sm:p-7 shadow-2xl border-2 border-info/30 bg-base-100" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between pb-3 border-b border-base-200">
+              <h3 className="font-black text-lg text-info flex items-center gap-2">🔑 Kiểm tra & Hỗ trợ Mật Khẩu</h3>
+              <button type="button" className="btn btn-sm btn-circle btn-ghost" onClick={() => setPasswordStatusModal(null)}>✕</button>
+            </div>
+            <div className="py-4 space-y-4 text-sm">
+              <div>
+                <span className="text-xs text-base-content/60 font-bold uppercase block">Hồ sơ người dùng</span>
+                <p className="font-bold text-base-content text-base mt-0.5">{passwordStatusModal.displayName}</p>
+                <p className="text-xs font-mono text-primary mt-0.5">{passwordStatusModal.email}</p>
+              </div>
+              <div className="bg-base-200/70 p-3.5 rounded-2xl border border-base-300">
+                <span className="text-xs text-secondary font-bold block mb-1">🛡️ Trạng Thái & Quyền Trợ Giúp:</span>
+                <p className="text-xs text-base-content/80 leading-relaxed font-medium">{passwordStatusModal.policy}</p>
+              </div>
+              {passwordStatusModal.canResetViaFirebase ? (
+                <div className="alert alert-success/20 border border-success/30 rounded-2xl py-3 text-xs font-semibold text-success-content flex items-center gap-2">
+                  <span>✅ Email chính chủ hợp lệ. Bất cứ khi nào người dùng quên mật khẩu, họ có thể dùng nút Khôi Phục ở Màn Đăng Nhập hoặc liên hệ Admin gởi cổng bảo mật.</span>
+                </div>
+              ) : (
+                <div className="alert alert-error/20 border border-error/30 rounded-2xl py-3 text-xs font-semibold text-error flex items-center gap-2">
+                  <span>⚠️ Tài khoản này chưa gắn Email chuẩn. Yêu cầu liên hệ trực tiếp Admin Huy để cập nhật email trước khi reset.</span>
+                </div>
+              )}
+            </div>
+            <div className="modal-action">
+              <button type="button" onClick={() => setPasswordStatusModal(null)} className="btn btn-primary rounded-xl font-bold px-6 w-full">Đã rõ</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

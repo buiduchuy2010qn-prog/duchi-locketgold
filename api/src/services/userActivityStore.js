@@ -171,14 +171,29 @@ async function ensureUserActivitySchema() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )`;
 
+    await sql`CREATE TABLE IF NOT EXISTS global_broadcasts (
+      id INT PRIMARY KEY DEFAULT 1,
+      message TEXT NOT NULL,
+      level TEXT NOT NULL DEFAULT 'info',
+      active BOOLEAN NOT NULL DEFAULT TRUE,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )`;
+
+    await sql`CREATE TABLE IF NOT EXISTS ip_blacklist (
+      ip_address TEXT PRIMARY KEY,
+      reason TEXT,
+      blocked_by TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )`;
+
     await sql`
       INSERT INTO web_users (uid, auth_provider, account_status, created_at, last_seen_at, current_web_source, updated_at)
       SELECT uid, 'locket-firebase', 'active', COALESCE(MIN(created_at), NOW()), COALESCE(MAX(created_at), NOW()), 'web-locket', NOW()
       FROM login_history
-      WHERE uid IS NOT NULL AND uid <> ''
       GROUP BY uid
       ON CONFLICT (uid) DO NOTHING
     `;
+    await loadBlacklistedIps().catch(() => {});
   })().catch((error) => {
     schemaPromise = null;
     throw error;
@@ -759,29 +774,129 @@ async function purgeBotUsers(currentAdminUid = null) {
   return { purgedCount: purgedList.length, purgedUsers: purgedList };
 }
 
+// 1. Quyền Phát Sóng Thông Báo Toàn Cầu
+async function setGlobalBroadcast(message, level = "info", active = true) {
+  if (!sql) return { success: false };
+  await sql`
+    INSERT INTO global_broadcasts (id, message, level, active, updated_at)
+    VALUES (1, ${message}, ${level}, ${active}, NOW())
+    ON CONFLICT (id) DO UPDATE SET message = EXCLUDED.message, level = EXCLUDED.level, active = EXCLUDED.active, updated_at = NOW()
+  `;
+  return { success: true, message, level, active };
+}
+
+async function getGlobalBroadcast() {
+  if (!sql) return { active: false, message: "" };
+  const res = await sql`SELECT message, level, active, updated_at FROM global_broadcasts WHERE id = 1 AND active = TRUE LIMIT 1`;
+  return res[0] ? { active: res[0].active, message: res[0].message, level: res[0].level, updatedAt: res[0].updated_at } : { active: false, message: "" };
+}
+
+// 2. Quyền Cấm Cửa Địa Chỉ IP Vĩnh Viễn
+const blacklistedIpsMemory = new Set();
+async function loadBlacklistedIps() {
+  if (!sql) return;
+  try {
+    const res = await sql`SELECT ip_address FROM ip_blacklist`;
+    blacklistedIpsMemory.clear();
+    for (const row of res) {
+      blacklistedIpsMemory.add(row.ip_address);
+    }
+  } catch {}
+}
+
+async function addIpBlacklist(ip_address, reason = "Banned by Admin", blocked_by = "SUPER_ADMIN") {
+  if (!sql || !ip_address || ip_address === "Không xác định") return { success: false };
+  await sql`
+    INSERT INTO ip_blacklist (ip_address, reason, blocked_by, created_at)
+    VALUES (${ip_address}, ${reason}, ${blocked_by}, NOW())
+    ON CONFLICT (ip_address) DO UPDATE SET reason = EXCLUDED.reason, blocked_by = EXCLUDED.blocked_by, created_at = NOW()
+  `;
+  blacklistedIpsMemory.add(ip_address);
+  return { success: true, ip_address };
+}
+
+async function removeIpBlacklist(ip_address) {
+  if (!sql || !ip_address) return { success: false };
+  await sql`DELETE FROM ip_blacklist WHERE ip_address = ${ip_address}`;
+  blacklistedIpsMemory.delete(ip_address);
+  return { success: true, ip_address };
+}
+
+async function listBlacklistedIps() {
+  if (!sql) return [];
+  return await sql`SELECT ip_address, reason, blocked_by, created_at FROM ip_blacklist ORDER BY created_at DESC LIMIT 1000`;
+}
+
+function isIpBlacklisted(ip) {
+  return blacklistedIpsMemory.has(ip);
+}
+
+// 3. Quyền Xóa Khởi Tử Vĩnh Viễn Từng Tài Khoản
+async function nukeUserPermanently(uid) {
+  if (!sql || !uid) return { success: false };
+  await sql`DELETE FROM login_history WHERE uid = ${uid} OR user_uid = ${uid}`;
+  await sql`DELETE FROM user_sessions WHERE uid = ${uid}`;
+  await sql`DELETE FROM web_users WHERE uid = ${uid}`;
+  return { success: true };
+}
+
+// 4. Cảm Biến Giám Sát Tài Nguyên & Thống Kê Máy Chủ
+function getServerHealthStats() {
+  const memory = process.memoryUsage();
+  const uptime = process.uptime();
+  return {
+    uptimeSeconds: Math.floor(uptime),
+    memoryRssMb: Math.round(memory.rss / (1024 * 1024)),
+    memoryHeapUsedMb: Math.round(memory.heapUsed / (1024 * 1024)),
+    nodeVersion: process.version,
+    platform: process.platform + " " + process.arch,
+    status: "OPTIMAL (Huy Locket Shield Active)",
+  };
+}
+
+// 5. Quyền kiểm tra trạng thái khôi phục Mật Khẩu (Password Recovery Status)
+function getUserPasswordRecoveryStatus(email) {
+  return {
+    email: email || "Chưa gắn email",
+    canResetViaFirebase: Boolean(email && email.includes("@")),
+    secureDirectLinkSupported: true,
+    policy: "Bảo vệ bởi Mã hóa chuẩn Locket Firebase. Không lưu bản rõ, nhưng hỗ trợ kích hoạt cổng đổi mật khẩu KHẨN CẤP khi người dùng quên.",
+  };
+}
+
 module.exports = {
   ONLINE_WINDOW_SECONDS,
+  addIpBlacklist,
   checkAdminPinSet,
   clearLoginHistory,
   createAdminSession,
   endSession,
   ensureUserActivitySchema,
   getAccountStatus,
+  getGlobalBroadcast,
   getLoginHistory,
+  getServerHealthStats,
+  getUserPasswordRecoveryStatus,
   getUserRole,
   getWebUser,
   hasActivityDatabase,
   heartbeatSession,
+  isIpBlacklisted,
   listAuditLogs,
+  listBlacklistedIps,
   listReportedContent,
   listWebUsers,
+  loadBlacklistedIps,
   normalizeIdentity,
+  nukeUserPermanently,
   purgeBotUsers,
   recordServerUserActivity,
+  removeIpBlacklist,
   resolveReport,
   revokeUserSessions,
   setAccountStatus,
   setAdminPin,
+  setGlobalBroadcast,
   setUserRole,
   shouldRecordLoginHistory,
   upsertSession,

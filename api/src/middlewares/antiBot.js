@@ -3,6 +3,7 @@
  * Bảo vệ máy chủ Railway khỏi Bot cào dữ liệu, tool tự động (curl, python, postman...) và tấn công DDoS
  */
 const rateLimit = require("express-rate-limit");
+const { isIpBlacklisted } = require("../services/userActivityStore");
 
 // Danh sách từ khóa trong User-Agent của Bot, Tool cào dữ liệu, Scraper và Trình duyệt ảo
 const BLOCKED_UA_KEYWORDS = [
@@ -48,7 +49,15 @@ function antiBotMiddleware(req, res, next) {
 
   const userAgent = String(req.headers["user-agent"] || "").trim();
   const ip =
-    req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "unknown";
+    req.headers["cf-connecting-ip"] || req.headers["x-real-ip"] || (req.headers["x-forwarded-for"] ? String(req.headers["x-forwarded-for"]).split(",")[0].trim() : null) || req.socket?.remoteAddress || "unknown";
+
+  if (isIpBlacklisted(ip)) {
+    return res.status(403).json({
+      success: false,
+      code: "IP_BANNED",
+      error: "Địa chỉ IP của bạn đã bị Huy Locket cấm truy cập vĩnh viễn do vi phạm chính sách bảo mật.",
+    });
+  }
 
   // 2. Chặn các yêu cầu thiếu User-Agent hoặc quá ngắn (tool tự động / script cắm máy chủ VPS)
   if (!userAgent || userAgent.length < 5) {

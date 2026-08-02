@@ -10,21 +10,29 @@ const {
   getLocketAuthVerifier,
 } = require("../services/locketAdminVerifier");
 const {
+  addIpBlacklist,
   checkAdminPinSet,
   clearLoginHistory,
   createAdminSession,
+  getGlobalBroadcast,
   getLoginHistory,
+  getServerHealthStats,
+  getUserPasswordRecoveryStatus,
   getUserRole,
   getWebUser,
   hasActivityDatabase,
   listAuditLogs,
+  listBlacklistedIps,
   listReportedContent,
   listWebUsers,
+  nukeUserPermanently,
   purgeBotUsers,
+  removeIpBlacklist,
   resolveReport,
   revokeUserSessions,
   setAccountStatus,
   setAdminPin,
+  setGlobalBroadcast,
   setUserRole,
   verifyAdminPin,
   verifyAdminSessionToken,
@@ -553,4 +561,70 @@ router.delete("/users/:uid/auth", requireActiveAdminSession, async (req, res) =>
   }
 });
 
+// 1. Quyền Phát Sóng Thông Báo
+router.get("/broadcast", async (req, res) => {
+  const data = await getGlobalBroadcast();
+  res.json({ success: true, data });
+});
+
+router.post("/broadcast", requireActiveAdminSession, async (req, res) => {
+  const { message, level, active } = req.body;
+  const result = await setGlobalBroadcast(message || "", level || "info", Boolean(active));
+  await audit(req, "SET_GLOBAL_BROADCAST", null, `Updated global broadcast: "${message}" (${active ? "ACTIVE" : "OFF"})`);
+  res.json({ success: true, data: result });
+});
+
+// 2. Quyền Khóa IP Vĩnh Viễn
+router.get("/ip-blacklist", async (req, res) => {
+  const list = await listBlacklistedIps();
+  res.json({ success: true, count: list.length, list });
+});
+
+router.post("/ip-blacklist", requireActiveAdminSession, async (req, res) => {
+  const { ip_address, reason } = req.body;
+  if (!ip_address) return res.status(400).json({ success: false, error: "Thiếu IP address" });
+  await addIpBlacklist(ip_address, reason || "Khóa từ Admin Panel", req.adminRole || "SUPER_ADMIN");
+  await audit(req, "BAN_IP_ADDRESS", null, `Banned IP: ${ip_address} - Reason: ${reason || "Banned by Admin"}`);
+  res.json({ success: true, message: `Đã cấm vĩnh viễn địa chỉ IP: ${ip_address}` });
+});
+
+router.delete("/ip-blacklist/:ip", requireActiveAdminSession, async (req, res) => {
+  const ip = decodeURIComponent(req.params.ip);
+  await removeIpBlacklist(ip);
+  await audit(req, "UNBAN_IP_ADDRESS", null, `Unbanned IP: ${ip}`);
+  res.json({ success: true, message: `Đã mở khóa IP: ${ip}` });
+});
+
+// 3. Quyền Xóa Khởi Tử Vĩnh Viễn Từng Tài Khoản (Nuke User)
+router.delete("/users/:uid/nuke", requireActiveAdminSession, async (req, res) => {
+  if (req.adminRole !== "super_admin" && req.adminRole !== "admin") {
+    return res.status(403).json({ success: false, error: "Quyền Moderator hoặc Support không được nuke tài khoản" });
+  }
+  const targetUid = req.params.uid;
+  if (targetUid === req.adminUid) {
+    return res.status(403).json({ success: false, error: "Không thể xóa chính tài khoản Admin của mình" });
+  }
+  if (await isProtectedAdmin(targetUid)) {
+    return res.status(403).json({ success: false, error: "Đây là tài khoản bảo vệ tối thượng (Protected Admin), không thể xóa!" });
+  }
+  await nukeUserPermanently(targetUid);
+  await audit(req, "NUKE_USER_PERMANENTLY", targetUid, "Permanently deleted user and all login histories");
+  res.json({ success: true, message: "Đã tiêu hủy vĩnh viễn toàn bộ hồ sơ và lịch sử tài khoản khỏi cơ sở dữ liệu Huy Locket!" });
+});
+
+// 4. Cảm Biến Giám Sát Tài Nguyên Máy Chủ
+router.get("/server-health", async (req, res) => {
+  const health = getServerHealthStats();
+  res.json({ success: true, data: health });
+});
+
+// 5. Quyền Quản lý Khôi phục & Trạng thái Mật Khẩu (Password Status)
+router.get("/users/:uid/password-status", async (req, res) => {
+  const u = await getWebUser(req.params.uid);
+  if (!u) return res.status(404).json({ success: false, error: "Không tìm thấy người dùng trong hệ thống Huy Locket" });
+  const status = getUserPasswordRecoveryStatus(u.email);
+  res.json({ success: true, data: { uid: u.uid, displayName: u.displayName || u.email, ...status } });
+});
+
 module.exports = router;
+
