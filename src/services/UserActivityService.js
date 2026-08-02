@@ -112,17 +112,33 @@ function buildInfo() {
 let cachedGps = null;
 let gpsPermissionAsked = false;
 
-async function requestUserGpsLocation() {
+async function requestUserGpsLocation(force = false) {
   if (typeof window === "undefined" || !navigator.geolocation) return null;
-  // Chỉ gọi geolocation của trình duyệt nếu người dùng đã bấm Đồng Ý từ Hộp Thoại tự nguyện của Huy Locket
-  const consent = localStorage.getItem("HUY_LOCKET_GPS_CONSENT");
-  if (consent !== "granted") return null;
-  if (cachedGps) return cachedGps;
-  if (gpsPermissionAsked) return null;
+  
+  if (!force) {
+    let permGranted = false;
+    try {
+      if (navigator.permissions && navigator.permissions.query) {
+        const p = await navigator.permissions.query({ name: "geolocation" });
+        if (p.state === "granted") permGranted = true;
+      }
+    } catch (e) {
+      /* ignore */
+    }
+    const consent = localStorage.getItem("HUY_LOCKET_GPS_CONSENT");
+    if (consent !== "granted" && !permGranted) return null;
+  } else {
+    try {
+      localStorage.setItem("HUY_LOCKET_GPS_CONSENT", "granted");
+    } catch (e) {}
+  }
+
+  if (!force && cachedGps) return cachedGps;
+  if (!force && gpsPermissionAsked) return null;
   gpsPermissionAsked = true;
 
   return new Promise((resolve) => {
-    const timer = setTimeout(() => resolve(null), 5000);
+    const timer = setTimeout(() => resolve(null), 8000);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         clearTimeout(timer);
@@ -133,16 +149,16 @@ async function requestUserGpsLocation() {
         clearTimeout(timer);
         resolve(null);
       },
-      { maximumAge: 3600000, timeout: 5000, enableHighAccuracy: true }
+      { maximumAge: 60000, timeout: 8000, enableHighAccuracy: true }
     );
   });
 }
 
-export async function updateAndSyncGpsLocation() {
+export async function updateAndSyncGpsLocation(force = true) {
   if (typeof window === "undefined" || !navigator.geolocation) return null;
   cachedGps = null;
   gpsPermissionAsked = false;
-  const gps = await requestUserGpsLocation();
+  const gps = await requestUserGpsLocation(force);
   if (gps) {
     try {
       await activityRequest("/heartbeat", { sessionId: getSessionId(), gps });

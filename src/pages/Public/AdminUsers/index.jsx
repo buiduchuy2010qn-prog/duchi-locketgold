@@ -130,16 +130,16 @@ function renderUserLocation(user, latestLogin) {
         target="_blank"
         rel="noopener noreferrer"
         className="text-emerald-500 hover:text-emerald-400 font-extrabold inline-flex items-center gap-1 underline decoration-emerald-500/50 hover:decoration-emerald-400"
-        title="Bấm để mở bản đồ Google Maps tọa độ GPS thực tế chính xác"
+        title="Tọa độ GPS chính xác (do người dùng đã bật định vị trên thiết bị)"
       >
-        <span>📍 GPS: {gpsLoc}</span>
+        <span>📍 GPS chính xác: {gpsLoc}</span>
       </a>
     );
   }
   return (
-    <span className="text-primary font-medium inline-flex items-center gap-1" title="Vị trí IP trạm đường truyền nhà mạng ISP (VNPT/Viettel/FPT), không phải tọa độ GPS nhà người dùng">
-      <span>🌐 IP: {ipLoc}</span>
-      <span className="text-[10px] opacity-70 border border-current px-1 rounded font-mono">ISP</span>
+    <span className="text-amber-500 font-semibold inline-flex items-center gap-1.5 text-xs" title="Vị trí trạm nhà mạng gần đúng theo IP (do người dùng không bật định vị GPS)">
+      <span>🌐 Vị trí IP (gần đúng): {ipLoc}</span>
+      <span className="text-[10px] opacity-90 border border-amber-500/50 px-1.5 py-0.5 rounded font-mono bg-amber-500/10">Chưa bật GPS</span>
     </span>
   );
 }
@@ -877,7 +877,7 @@ export default function AdminUsers() {
                                 type="button"
                                 onClick={async () => {
                                   try {
-                                    const gps = await updateAndSyncGpsLocation();
+                                    const gps = await updateAndSyncGpsLocation(true);
                                     if (gps) {
                                       SonnerSuccess("🎉 Đã lấy tọa độ GPS thực tế!", `Tọa độ thiết bị: ${gps}. Đang đồng bộ về Bảng Quản trị...`);
                                       setTimeout(() => window.location.reload(), 1500);
@@ -1546,7 +1546,7 @@ export default function AdminUsers() {
                         <tr key={entry.event_id || entry.session_id} className="hover">
                           <td className="whitespace-nowrap text-xs font-medium">{formatDateTime(entry.created_at)}</td>
                           <td className="font-mono text-xs font-bold text-primary">{entry.ip_address || UNKNOWN}</td>
-                          <td><span className="inline-flex items-center font-semibold gap-1 text-xs"><MapPin size={11} className="text-secondary shrink-0" /> {entry.gps_coordinates ? `📍 GPS: ${entry.gps_coordinates}` : ([entry.city, entry.region, entry.country].filter((v) => v && v !== UNKNOWN).join(", ") || UNKNOWN)}</span></td>
+                          <td><span className="inline-flex items-center font-semibold gap-1 text-xs"><MapPin size={11} className="text-secondary shrink-0" /> {entry.gps_coordinates ? "📍 GPS chính xác: " + entry.gps_coordinates : "🌐 Vị trí IP (gần đúng): " + ([entry.city, entry.region, entry.country].filter((v) => v && v !== UNKNOWN).join(", ") || UNKNOWN) + " [Chưa bật GPS]"}</span></td>
                           <td><span className="font-bold text-xs">{entry.browser || UNKNOWN} {entry.browser_version && entry.browser_version !== UNKNOWN ? entry.browser_version : ""}</span><br /><span className="text-[11px] text-base-content/60">{entry.os || UNKNOWN} · {entry.device || UNKNOWN}</span></td>
                           <td><span className="badge badge-ghost font-mono badge-xs py-2 px-2">{loginMethodLabel(entry.login_method)}</span></td>
                           <td className="font-mono text-xs">{entry.web_version || "—"}<br /><span className="text-[10px] text-base-content/50">{entry.commit_hash || entry.build_id || "—"}</span></td>
