@@ -1446,7 +1446,7 @@ async function handleDriveBackup(req, res) {
     filename = String(req.headers["x-filename"] || "locketdio.bin");
   }
   // Chặn path traversal
-  filename = path.basename(filename).replace(/[^\w.\-()+\s]/g, "_") || "locketdio.bin";
+  filename = path.basename(filename).replace(/[^\w.\-()+[\]\s]/g, "_") || "locketdio.bin";
   const contentType = req.headers["content-type"] || "application/octet-stream";
   const mediaHint = String(
     req.headers["x-media-type"] || ""

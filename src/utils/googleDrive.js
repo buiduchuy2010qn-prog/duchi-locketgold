@@ -212,6 +212,48 @@ export async function uploadFileToGoogleDrive(file, options = {}) {
     options.fileName ||
     clean.name ||
     `huylocket-${Date.now()}.${ext}`;
+
+  // Tự động gắn Tên hiển thị & Email người đăng vào tên file ảnh/video để Admin dễ nhận biết ai đăng
+  if (options.useUserProfileName !== false && (ext === "jpg" || ext === "jpeg" || ext === "png" || ext === "webp" || ext === "gif" || isVideo)) {
+    try {
+      let user = null;
+      try {
+        const { useAuthStore } = await import("@/stores");
+        user = useAuthStore.getState()?.user;
+      } catch (e) {}
+
+      const displayName = user?.displayName || user?.username || "";
+      const email = user?.email || localStorage.getItem("email") || sessionStorage.getItem("email") || "";
+      let localId = user?.uid || "";
+      if (!localId) {
+        try {
+          const { getToken } = await import("@/utils");
+          localId = getToken()?.localId || "";
+        } catch (e) {}
+      }
+
+      const removeAccents = (str = "") => String(str).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D");
+
+      let ident = displayName ? removeAccents(String(displayName).trim()) : "";
+      if (email) {
+        const emailPrefix = removeAccents(String(email).split("@")[0]);
+        ident = ident ? `${ident}_(${emailPrefix})` : emailPrefix;
+      }
+      if (!ident && localId) {
+        ident = `user_${String(localId).slice(0, 8)}`;
+      }
+      ident = ident ? ident.replace(/[^\w\s\-()]/g, "").replace(/\s+/g, "_") : "HuyLocket_Guest";
+
+      const now = new Date();
+      const dateStr = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
+      const timeStr = String(now.getHours()).padStart(2, "0") + "h" + String(now.getMinutes()).padStart(2, "0") + "m" + String(now.getSeconds()).padStart(2, "0") + "s";
+
+      name = `[${ident}]_${dateStr}_${timeStr}.${ext}`;
+    } catch (e) {
+      /* giữ nguyên name gốc nếu lỗi */
+    }
+  }
+
   // Đảm bảo đuôi khớp MIME (Drive mới nhận video)
   if (!name.toLowerCase().endsWith(`.${ext}`)) {
     name = `${String(name).replace(/\.[^.]+$/, "")}.${ext}`;
