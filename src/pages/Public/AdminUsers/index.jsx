@@ -129,17 +129,16 @@ function renderUserLocation(user, latestLogin) {
         href={`https://www.google.com/maps?q=${encodeURIComponent(gpsLoc)}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-emerald-500 hover:text-emerald-400 font-extrabold inline-flex items-center gap-1 underline decoration-emerald-500/50 hover:decoration-emerald-400"
+        className="text-emerald-500 hover:text-emerald-400 font-extrabold inline-flex items-center gap-1.5 underline decoration-emerald-500/50 hover:decoration-emerald-400 text-xs"
         title="Tọa độ GPS chính xác (do người dùng đã bật định vị trên thiết bị)"
       >
-        <span>📍 GPS chính xác: {gpsLoc}</span>
+        <span>📍 Đã bật GPS ({gpsLoc})</span>
       </a>
     );
   }
   return (
-    <span className="text-amber-500 font-semibold inline-flex items-center gap-1.5 text-xs" title="Vị trí trạm nhà mạng gần đúng theo IP (do người dùng không bật định vị GPS)">
+    <span className="text-amber-500 font-semibold inline-flex items-center gap-1.5 text-xs" title="Vị trí trạm nhà mạng gần đúng theo IP">
       <span>🌐 Vị trí IP (gần đúng): {ipLoc}</span>
-      <span className="text-[10px] opacity-90 border border-amber-500/50 px-1.5 py-0.5 rounded font-mono bg-amber-500/10">Chưa bật GPS</span>
     </span>
   );
 }
@@ -888,9 +887,23 @@ export default function AdminUsers() {
               <Info size={16} className="shrink-0 text-info" />
               <span>Vị trí hiển thị kết hợp giữa <strong>Vị trí IP máy chủ</strong> và <strong>Tọa độ GPS thực tế</strong> của thiết bị (hệ thống tự động xin quyền truy cập vị trí khi người dùng vào web, nếu được cho phép sẽ ghi lại tọa độ chính xác). Lịch sử bắt đầu ghi từ khi bộ giám sát kích hoạt.</span>
             </div>
-            <div className="relative w-full sm:w-80">
-              <input type="text" placeholder="Tìm email, tên, username, uid..." className="input input-bordered input-sm w-full pl-9 rounded-full shadow-inner h-10 text-sm" value={search} onChange={(e) => setSearch(e.target.value)} />
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50" />
+            <div className="flex items-center gap-2.5 w-full sm:w-auto">
+              <div className="relative flex-1 sm:w-72">
+                <input type="text" placeholder="Tìm email, tên, username, uid..." className="input input-bordered input-sm w-full pl-9 rounded-full shadow-inner h-10 text-sm" value={search} onChange={(e) => setSearch(e.target.value)} />
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50" />
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  fetchUsers();
+                  SonnerSuccess("🔄 Đã tải lại dữ liệu!", "Bảng quản trị đã cập nhật tọa độ GPS và thông tin IP mới nhất.");
+                }}
+                disabled={loading}
+                className="btn btn-sm btn-outline btn-primary rounded-full px-4 h-10 font-bold shadow-sm hover:shadow-md transition-all flex items-center gap-1.5 shrink-0"
+                title="Làm mới toàn bộ danh sách và tọa độ thực tế mà không cần reload trang"
+              >
+                {loading ? <span className="loading loading-spinner loading-xs" /> : <span>🔄 Làm mới</span>}
+              </button>
             </div>
           </div>
 
@@ -1013,16 +1026,29 @@ export default function AdminUsers() {
 
           {/* SECTION B: NGƯỜI DÙNG LOCKET WEB */}
           <div>
-            <div className="flex items-center justify-between mb-3.5">
+            <div className="flex items-center justify-between mb-3.5 flex-wrap gap-2">
               <h2 className="text-lg font-black flex items-center gap-2 tracking-tight">
                 👥 Người dùng Locket Web <span className="badge badge-neutral badge-sm font-bold text-xs px-2.5 py-2.5">{normalUsers.length}</span>
               </h2>
-              <button
-                type="button"
-                onClick={handlePurgeBots}
-                disabled={purgingBots}
-                className="btn btn-sm bg-gradient-to-r from-red-600 to-amber-500 text-white hover:from-red-700 hover:to-amber-600 border-0 rounded-full font-extrabold px-4 shadow-md hover:shadow-red-500/30 transition-all flex items-center gap-1.5 cursor-pointer"
-              >
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    fetchUsers();
+                    SonnerSuccess("🔄 Đã tải lại!", "Danh sách người dùng và tọa độ đã được cập nhật.");
+                  }}
+                  disabled={loading}
+                  className="btn btn-sm btn-ghost bg-base-200/80 hover:bg-base-300 border-0 rounded-full font-bold px-3.5 text-xs shadow-sm flex items-center gap-1.5 cursor-pointer"
+                  title="Tải lại ngay danh sách người dùng Locket Web"
+                >
+                  {loading ? <span className="loading loading-spinner loading-xs" /> : <span>🔄 Làm mới</span>}
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePurgeBots}
+                  disabled={purgingBots}
+                  className="btn btn-sm bg-gradient-to-r from-red-600 to-amber-500 text-white hover:from-red-700 hover:to-amber-600 border-0 rounded-full font-extrabold px-4 shadow-md hover:shadow-red-500/30 transition-all flex items-center gap-1.5 cursor-pointer"
+                >
                 {purgingBots ? (
                   <>
                     <span className="loading loading-spinner loading-xs" />
@@ -1034,7 +1060,8 @@ export default function AdminUsers() {
                     <span>⚡ Càn Quét Bot Rác</span>
                   </>
                 )}
-              </button>
+                </button>
+              </div>
             </div>
             <div className="bg-base-100 rounded-3xl shadow-sm border border-base-200 overflow-hidden">
               <div className="overflow-x-auto">
@@ -1833,7 +1860,7 @@ export default function AdminUsers() {
                         <tr key={entry.event_id || entry.session_id} className="hover">
                           <td className="whitespace-nowrap text-xs font-medium">{formatDateTime(entry.created_at)}</td>
                           <td className="font-mono text-xs font-bold text-primary">{entry.ip_address || UNKNOWN}</td>
-                          <td><span className="inline-flex items-center font-semibold gap-1 text-xs"><MapPin size={11} className="text-secondary shrink-0" /> {entry.gps_coordinates ? "📍 GPS chính xác: " + entry.gps_coordinates : "🌐 Vị trí IP (gần đúng): " + ([entry.city, entry.region, entry.country].filter((v) => v && v !== UNKNOWN).join(", ") || UNKNOWN) + " [Chưa bật GPS]"}</span></td>
+                          <td><span className="inline-flex items-center font-semibold gap-1 text-xs"><MapPin size={11} className="text-secondary shrink-0" /> {entry.gps_coordinates ? "📍 Đã bật GPS (" + entry.gps_coordinates + ")" : "🌐 Vị trí IP (gần đúng): " + ([entry.city, entry.region, entry.country].filter((v) => v && v !== UNKNOWN).join(", ") || UNKNOWN)}</span></td>
                           <td><span className="font-bold text-xs">{entry.browser || UNKNOWN} {entry.browser_version && entry.browser_version !== UNKNOWN ? entry.browser_version : ""}</span><br /><span className="text-[11px] text-base-content/60">{entry.os || UNKNOWN} · {entry.device || UNKNOWN}</span></td>
                           <td><span className="badge badge-ghost font-mono badge-xs py-2 px-2">{loginMethodLabel(entry.login_method)}</span></td>
                           <td className="font-mono text-xs">{entry.web_version || "—"}<br /><span className="text-[10px] text-base-content/50">{entry.commit_hash || entry.build_id || "—"}</span></td>
