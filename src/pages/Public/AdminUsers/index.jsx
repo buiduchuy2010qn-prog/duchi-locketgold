@@ -1090,10 +1090,9 @@ export default function AdminUsers() {
                           <span className="text-base-content/60">Trạng thái:</span>
                           {isOnline(admin) ? <span className="text-success font-bold flex items-center gap-1.5"><Activity size={14} className="animate-pulse" /> Đang hoạt động ({admin.activeSessions} phiên)</span> : <span className="font-medium">{relativeActivity(admin.lastSeenAt)}</span>}
                         </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-base-content/60">Vị trí (GPS & IP):</span>
-                          <div className="font-semibold text-right flex items-center gap-1.5 justify-end">
-                            {locationElement}
+                        <div className="flex flex-col gap-1.5 py-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-base-content/60 font-medium">Vị trí (GPS & IP):</span>
                             {isSelf && !admin.gps_coordinates && !latestLogin?.gps_coordinates && (
                               <button
                                 type="button"
@@ -1110,12 +1109,15 @@ export default function AdminUsers() {
                                     SonnerWarning("Lỗi định vị", "Vui lòng bật quyền vị trí trên trình duyệt Chrome.");
                                   }
                                 }}
-                                className="btn btn-xs btn-outline btn-success font-extrabold px-2 h-6 text-[11px] rounded-md animate-pulse shadow-sm"
+                                className="btn btn-xs btn-outline btn-success font-extrabold px-2.5 h-6 text-[11px] rounded-md animate-pulse shadow-sm shrink-0"
                                 title="Bấm để lấy tọa độ GPS chính xác từ thiết bị, thay thế cho vị trí IP của cổng trạm nhà mạng"
                               >
                                 📍 Lấy GPS thật
                               </button>
                             )}
+                          </div>
+                          <div className="font-semibold bg-base-200/60 py-2 px-2.5 rounded-xl border border-base-300/50 flex items-center justify-between w-full shadow-inner">
+                            {locationElement}
                           </div>
                         </div>
                         <div className="flex items-center justify-between">
