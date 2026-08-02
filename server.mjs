@@ -651,7 +651,7 @@ async function getAccessTokenFromRefresh(oauth) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data.access_token) {
     throw new Error(
-      data.error_description || data.error || "OAuth refresh token failed"
+      "[OAuth Error] " + (data.error_description || data.error || "OAuth refresh token failed")
     );
   }
   return data;
@@ -795,8 +795,8 @@ async function ensureDriveSubfolder(token, parentId, folderName) {
   const created = await createRes.json().catch(() => ({}));
   if (!createRes.ok || !created.id) {
     throw new Error(
-      created?.error?.message ||
-        `Không tạo được folder "${folderName}" trên Drive`
+      "[Subfolder Error] " + (created?.error?.message ||
+        `Không tạo được folder "${folderName}" trên Drive`)
     );
   }
   return created.id;
@@ -890,7 +890,7 @@ async function uploadToSharedDrive(fileBuf, contentType, filename, mediaHint) {
         "Service Account không ghi được Drive cá nhân. Vào /admin/google-drive → Đăng nhập Google (OAuth)."
       );
     }
-    throw new Error(msg);
+    throw new Error("[Drive Upload Error] " + msg);
   }
   return {
     ...data,

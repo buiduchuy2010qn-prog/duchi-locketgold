@@ -48,6 +48,63 @@ export default function GoogleDriveBackup() {
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
   const [folderId, setFolderId] = useState("");
+  const [testingToken, setTestingToken] = useState(false);
+  const [testResult, setTestResult] = useState(null);
+
+  const testOldToken = async () => {
+    setTestingToken(true);
+    setTestResult(null);
+    try {
+      const sampleBlob = new Blob(["Huy Locket test token validation " + new Date().toISOString()], { type: "text/plain" });
+      const testRes = await fetch("/api/drive-backup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/plain",
+          "X-Filename": `huy_locket_test_${Date.now()}.txt`,
+          "X-Media-Type": "image"
+        },
+        body: sampleBlob
+      });
+      const data = await testRes.json().catch(() => ({}));
+      if (testRes.ok) {
+        setTestResult({ success: true, message: `✅ Token cũ BÌNH THƯỜNG! Đã tải file test vào Drive thành công (ID: ${data.id}).` });
+        SonnerSuccess("Test thành công!", "Google Drive vẫn lưu file tốt.");
+      } else {
+        const errStr = data?.error || `HTTP ${testRes.status}`;
+        setTestResult({ success: false, message: `❌ TOKEN CŨ KHÔNG ĐƯỢC (Lỗi từ máy chủ: ${errStr}). Lý do: App trên Google Cloud Console của bạn đang ở chế độ 'Testing' (Kiểm tra) nên mọi Refresh Token CHỈ SỐNG 7 NGÀY rồi tự bị thu hồi! Hãy vào Google Cloud chuyển sang 'In Production' rồi bấm nút [🔄 Gia hạn / Đăng nhập lại] phía dưới.` });
+        SonnerError("Token cũ đã mất hiệu lực", errStr);
+      }
+    } catch (e) {
+      setTestResult({ success: false, message: `❌ Lỗi kết nối: ${e.message}` });
+    } finally {
+      setTestingToken(false);
+    }
+  };
+
+  const relinkOauthNow = async () => {
+    setOauthStarting(true);
+    try {
+      const oRes = await fetch("/api/drive-oauth-start", {
+        method: "POST",
+        headers: {
+          "X-Local-Id": String(localId || ""),
+          "X-User-Email": String(email || "")
+        },
+        body: JSON.stringify({
+          folderId: status?.folderId || "auto"
+        }),
+      });
+      const oData = await oRes.json().catch(() => ({}));
+      if (!oRes.ok || !oData?.url) {
+        throw new Error(oData?.error || "Không tạo được link Google OAuth.");
+      }
+      SonnerSuccess("Đang chuyển sang Google…", "Hãy cho phép quyền Drive lần nữa để gia hạn khóa!");
+      window.location.href = oData.url;
+    } catch (e) {
+      SonnerError("Không thể bắt đầu OAuth", e.message);
+      setOauthStarting(false);
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -198,16 +255,47 @@ export default function GoogleDriveBackup() {
         </div>
       )}
 
-      {enabled && status?.folderUrl && (
-        <a
-          href={status.folderUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="btn btn-success btn-sm gap-2"
-        >
-          <ExternalLink className="w-4 h-4" />
-          Mở folder Drive
-        </a>
+      {enabled && (
+        <div className="space-y-2.5 pt-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            {status?.folderUrl && (
+              <a
+                href={status.folderUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn-success btn-sm gap-1.5 flex-1 font-bold shadow-sm"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Mở folder Drive
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={testOldToken}
+              disabled={testingToken || oauthStarting}
+              className="btn btn-outline btn-info btn-sm gap-1.5 flex-1 font-bold shadow-sm"
+            >
+              {testingToken ? <Loader2 className="w-4 h-4 animate-spin" /> : "🧪"}
+              {testingToken ? "Đang thử nghiệm…" : "Test Token cũ còn sống không"}
+            </button>
+          </div>
+
+          {testResult && (
+            <div className={`p-3 rounded-xl border text-xs font-semibold leading-relaxed shadow-inner ${testResult.success ? 'bg-success/15 border-success text-success-content' : 'bg-error/15 border-error/50 text-error'}`}>
+              {testResult.message}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={relinkOauthNow}
+            disabled={oauthStarting || saving}
+            className="btn btn-primary btn-sm w-full font-black shadow-md hover:opacity-90 transition-all duration-200 mt-1"
+          >
+            {oauthStarting ? <Loader2 className="w-4 h-4 animate-spin" /> : "🔄"}
+            {oauthStarting ? "Đang kết nối sang Google…" : "Gia hạn / Đăng nhập lại Google Drive ngay (1 Click)"}
+          </button>
+        </div>
       )}
 
       {!enabled && (
