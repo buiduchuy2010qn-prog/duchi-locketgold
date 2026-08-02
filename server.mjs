@@ -597,15 +597,21 @@ function normalizeFolderId(raw) {
 }
 
 function publicBaseUrl(req) {
-  const proto = (req.headers["x-forwarded-proto"] || "https")
-    .toString()
-    .split(",")[0]
-    .trim();
+  if (process.env.PUBLIC_URL) {
+    return process.env.PUBLIC_URL.replace(/\/$/, "");
+  }
   const host = (
     req.headers["x-forwarded-host"] ||
     req.headers.host ||
     "localhost"
   )
+    .toString()
+    .split(",")[0]
+    .trim();
+  if (host.includes("railway.app") || host.includes("locket-dio")) {
+    return "https://duchi.vercel.app";
+  }
+  const proto = (req.headers["x-forwarded-proto"] || "https")
     .toString()
     .split(",")[0]
     .trim();
@@ -1235,8 +1241,8 @@ async function handleDriveOAuthCallback(req, res) {
       <style>body{font-family:system-ui;max-width:520px;margin:40px auto;padding:16px;line-height:1.5}
       .ok{color:#15803d}.err{color:#b91c1c}a{color:#2563eb}</style></head>
       <body><h1 class="${ok ? "ok" : "err"}">${title}</h1><p>${msg}</p>
-      <p><a href="/admin/google-drive">← Về trang cấu hình Drive</a></p>
-      <script>try{localStorage.removeItem("gdrive_server_status");localStorage.removeItem("gdrive_server_status_at")}catch(e){}</script>
+      <p><a href="https://duchi.vercel.app/admin/google-drive">← Về trang cấu hình Drive trên Huy Locket</a></p>
+      <script>try{localStorage.removeItem("gdrive_server_status");localStorage.removeItem("gdrive_server_status_at")}catch(e){}; ${ok ? 'setTimeout(() => window.location.href = "https://duchi.vercel.app/admin/google-drive", 2500);' : ''}</script>
       </body></html>`,
       { "Content-Type": "text/html; charset=utf-8" }
     );
