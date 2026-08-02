@@ -1553,6 +1553,7 @@ export default function AdminUsers() {
                 </div>
               </div>
             </div>
+            </div>
           )}
 
           {/* Section 2: Global / Targeted Broadcast Banner */}
@@ -1721,6 +1722,7 @@ export default function AdminUsers() {
                 </table>
               </div>
             </div>
+            </div>
           )}
 
           {/* Section 3: Permanent IP Blacklist */}
@@ -1807,6 +1809,7 @@ export default function AdminUsers() {
                   ))}
                 </tbody>
               </table>
+            </div>
             </div>
           )}
         </div>
