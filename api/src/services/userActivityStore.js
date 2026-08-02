@@ -782,20 +782,32 @@ async function purgeBotUsers(currentAdminUid = null) {
 
 // 1. Quyền Phát Sóng Thông Báo Toàn Cầu
 async function setGlobalBroadcast(message, level = "info", active = true, targetUser = "ALL") {
-  if (!sql) return { success: false };
-  const tUser = String(targetUser || "ALL").trim() || "ALL";
-  const resId = await sql`SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM global_broadcasts`;
-  const nextId = Number(resId[0]?.next_id || 1);
-  await sql`
-    INSERT INTO global_broadcasts (id, message, level, active, target_user, updated_at)
-    VALUES (${nextId}, ${message}, ${level}, ${active}, ${tUser}, NOW())
-  `;
-  return { success: true, id: nextId, message, level, active, targetUser: tUser };
+  if (!sql) return { success: false, error: "Cơ sở dữ liệu chưa kết nối" };
+  try {
+    await ensureUserActivitySchema();
+    const tUser = String(targetUser || "ALL").trim() || "ALL";
+    let nextId = 1;
+    try {
+      const resId = await sql`SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM global_broadcasts`;
+      nextId = Number(resId[0]?.next_id) || 1;
+    } catch (e) {
+      nextId = Math.floor(Date.now() / 1000);
+    }
+    await sql`
+      INSERT INTO global_broadcasts (id, message, level, active, target_user, updated_at)
+      VALUES (${nextId}, ${message}, ${level}, ${active}, ${tUser}, NOW())
+    `;
+    return { success: true, id: nextId, message, level, active, targetUser: tUser };
+  } catch (err) {
+    console.error("setGlobalBroadcast error:", err);
+    return { success: false, error: err?.message || "Lỗi SQL khi đăng thông báo" };
+  }
 }
 
 async function listGlobalBroadcasts() {
   if (!sql) return [];
   try {
+    await ensureUserActivitySchema();
     const res = await sql`SELECT id, message, level, active, target_user, updated_at FROM global_broadcasts ORDER BY updated_at DESC LIMIT 50`;
     return res.map((row) => ({
       id: row.id,
@@ -806,27 +818,44 @@ async function listGlobalBroadcasts() {
       updatedAt: row.updated_at,
     }));
   } catch (e) {
+    console.error("listGlobalBroadcasts error:", e);
     return [];
   }
 }
 
 async function toggleGlobalBroadcast(id, active) {
   if (!sql || !id) return { success: false };
-  await sql`UPDATE global_broadcasts SET active = ${Boolean(active)}, updated_at = NOW() WHERE id = ${Number(id)}`;
-  return { success: true, id: Number(id), active: Boolean(active) };
+  try {
+    await ensureUserActivitySchema();
+    await sql`UPDATE global_broadcasts SET active = ${Boolean(active)}, updated_at = NOW() WHERE id = ${Number(id)}`;
+    return { success: true, id: Number(id), active: Boolean(active) };
+  } catch (err) {
+    return { success: false, error: err?.message };
+  }
 }
 
 async function deleteGlobalBroadcast(id) {
   if (!sql || !id) return { success: false };
-  await sql`DELETE FROM global_broadcasts WHERE id = ${Number(id)}`;
-  return { success: true, id: Number(id) };
+  try {
+    await ensureUserActivitySchema();
+    await sql`DELETE FROM global_broadcasts WHERE id = ${Number(id)}`;
+    return { success: true, id: Number(id) };
+  } catch (err) {
+    return { success: false, error: err?.message };
+  }
 }
 
 async function getGlobalBroadcast() {
   if (!sql) return { active: false, message: "", targetUser: "ALL", list: [] };
-  const res = await sql`SELECT id, message, level, active, target_user, updated_at FROM global_broadcasts WHERE active = TRUE ORDER BY updated_at DESC LIMIT 20`;
-  const list = res.map((row) => ({ id: row.id, active: row.active, message: row.message, level: row.level, targetUser: row.target_user || "ALL", updatedAt: row.updated_at }));
-  return list[0] ? { ...list[0], list } : { active: false, message: "", targetUser: "ALL", list: [] };
+  try {
+    await ensureUserActivitySchema();
+    const res = await sql`SELECT id, message, level, active, target_user, updated_at FROM global_broadcasts WHERE active = TRUE ORDER BY updated_at DESC LIMIT 20`;
+    const list = res.map((row) => ({ id: row.id, active: row.active, message: row.message, level: row.level, targetUser: row.target_user || "ALL", updatedAt: row.updated_at }));
+    return list[0] ? { ...list[0], list } : { active: false, message: "", targetUser: "ALL", list: [] };
+  } catch (err) {
+    console.error("getGlobalBroadcast error:", err);
+    return { active: false, message: "", targetUser: "ALL", list: [] };
+  }
 }
 
 // 2. Quyền Cấm Cửa Địa Chỉ IP Vĩnh Viễn

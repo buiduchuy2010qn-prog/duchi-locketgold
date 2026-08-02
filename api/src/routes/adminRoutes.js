@@ -599,33 +599,49 @@ router.delete("/users/:uid/auth", requireActiveAdminSession, async (req, res) =>
 
 // 1. Quyền Phát Sóng Thông Báo
 router.get("/broadcast", async (req, res) => {
-  const data = await getGlobalBroadcast();
-  const list = await listGlobalBroadcasts();
-  res.json({ success: true, data, list });
+  try {
+    const data = await getGlobalBroadcast();
+    const list = await listGlobalBroadcasts();
+    res.json({ success: true, data, list });
+  } catch (err) {
+    res.json({ success: false, error: err?.message });
+  }
 });
 
 router.post("/broadcast", requireActiveAdminSession, async (req, res) => {
-  const { id, message, level, active, targetUser, action } = req.body || {};
-  if (action === "toggle" && id) {
-    const result = await toggleGlobalBroadcast(id, active);
-    await audit(req, "TOGGLE_GLOBAL_BROADCAST", null, `Toggled broadcast #${id} to ${active ? "ACTIVE" : "OFF"}`);
-    return res.json({ success: true, data: result });
+  try {
+    const { id, message, level, active, targetUser, action } = req.body || {};
+    if (action === "toggle" && id) {
+      const result = await toggleGlobalBroadcast(id, active);
+      await audit(req, "TOGGLE_GLOBAL_BROADCAST", null, `Toggled broadcast #${id} to ${active ? "ACTIVE" : "OFF"}`);
+      return res.json({ success: true, data: result });
+    }
+    if (action === "delete" && id) {
+      const result = await deleteGlobalBroadcast(id);
+      await audit(req, "DELETE_GLOBAL_BROADCAST", null, `Deleted broadcast #${id}`);
+      return res.json({ success: true, data: result });
+    }
+    const result = await setGlobalBroadcast(message || "", level || "info", Boolean(active ?? true), targetUser || "ALL");
+    if (!result || !result.success) {
+      return res.status(500).json({ success: false, error: result?.error || "Không thể lưu vào CSDL" });
+    }
+    await audit(req, "SET_GLOBAL_BROADCAST", null, `Created global broadcast (${targetUser || "ALL"}): "${message}"`);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    console.error("POST /broadcast error:", err);
+    res.status(500).json({ success: false, error: err?.message || "Lỗi xử lý máy chủ" });
   }
-  if (action === "delete" && id) {
-    const result = await deleteGlobalBroadcast(id);
-    await audit(req, "DELETE_GLOBAL_BROADCAST", null, `Deleted broadcast #${id}`);
-    return res.json({ success: true, data: result });
-  }
-  const result = await setGlobalBroadcast(message || "", level || "info", Boolean(active ?? true), targetUser || "ALL");
-  await audit(req, "SET_GLOBAL_BROADCAST", null, `Created global broadcast (${targetUser || "ALL"}): "${message}"`);
-  res.json({ success: true, data: result });
 });
 
 router.delete("/broadcast/:id", requireActiveAdminSession, async (req, res) => {
-  const { id } = req.params;
-  const result = await deleteGlobalBroadcast(id);
-  await audit(req, "DELETE_GLOBAL_BROADCAST", null, `Deleted broadcast #${id}`);
-  res.json({ success: true, data: result });
+  try {
+    const { id } = req.params;
+    const result = await deleteGlobalBroadcast(id);
+    await audit(req, "DELETE_GLOBAL_BROADCAST", null, `Deleted broadcast #${id}`);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err?.message });
+  }
 });
 
 // 2. Quyền Khóa IP Vĩnh Viễn
