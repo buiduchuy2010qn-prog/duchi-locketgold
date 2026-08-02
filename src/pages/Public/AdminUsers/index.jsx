@@ -247,6 +247,7 @@ export default function AdminUsers() {
   // API Heartbeat monitor states
   const [apiStatuses, setApiStatuses] = useState([]);
   const [testingApis, setTestingApis] = useState(false);
+  const [refreshingTelemetry, setRefreshingTelemetry] = useState(false);
 
   const runApiHealthCheck = useCallback(async () => {
     setTestingApis(true);
@@ -362,10 +363,11 @@ export default function AdminUsers() {
     });
   }, []);
 
-  const fetchAdvancedData = useCallback(async () => {
+  const fetchAdvancedData = useCallback(async (isUserAction = false) => {
+    if (typeof isUserAction === "boolean" && isUserAction) setRefreshingTelemetry(true);
     try {
       const tStart = performance.now();
-      const h = await adminRequest("/server-health");
+      const h = await adminRequest(`/server-health?_=${Date.now()}`);
       const tEnd = performance.now();
       if (h?.data) {
         setServerHealth(h.data);
@@ -373,17 +375,25 @@ export default function AdminUsers() {
       } else {
         updateClientTelemetry(null);
       }
-      const b = await adminRequest("/broadcast");
+      const b = await adminRequest(`/broadcast?_=${Date.now()}`);
       if (b?.data) {
         setBroadcastMsg("");
         setBroadcastActive(Boolean(b.data.active && b.data.message));
         setBroadcastTarget(b.data.targetUser || "ALL");
       }
       if (b?.list) setBroadcastList(b.list || []);
-      const p = await adminRequest("/ip-blacklist");
+      const p = await adminRequest(`/ip-blacklist?_=${Date.now()}`);
       if (p?.list) setBlacklistedIps(p.list || []);
+      if (typeof isUserAction === "boolean" && isUserAction) {
+        SonnerSuccess("⚡ Đã cập nhật chỉ số cảm biến và nhịp tim máy chủ mới nhất!");
+      }
     } catch (err) {
       console.warn("Failed fetching advanced tools data:", err);
+      if (typeof isUserAction === "boolean" && isUserAction) {
+        SonnerWarning("⚠️ Mất kết nối tới trạm Railway khi cập nhật cảm biến.");
+      }
+    } finally {
+      if (typeof isUserAction === "boolean" && isUserAction) setRefreshingTelemetry(false);
     }
   }, [updateClientTelemetry]);
 
@@ -1477,8 +1487,23 @@ export default function AdminUsers() {
                 </h2>
                 <p className="text-xs text-indigo-200/70 mt-1">Hệ thống đo tải tài nguyên thực tế (Real Telemetry): Giao diện Edge (Vercel CDN), Máy chủ trung tâm (Railway API) & CSDL (Neon Cloud).</p>
               </div>
-              <button type="button" onClick={fetchAdvancedData} className="btn btn-sm sm:btn-md bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-extrabold border-0 shadow-md transition-all duration-300 shrink-0">
-                🔄 Làm mới Cảm biến
+              <button
+                type="button"
+                onClick={() => fetchAdvancedData(true)}
+                disabled={refreshingTelemetry}
+                className="btn btn-sm sm:btn-md bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-extrabold border-0 shadow-md transition-all duration-300 shrink-0 rounded-2xl px-5 active:scale-95 cursor-pointer"
+              >
+                {refreshingTelemetry ? (
+                  <>
+                    <span className="loading loading-spinner loading-sm text-cyan-300" />
+                    <span>Đang đo sóng Railway...</span>
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw size={16} className="text-cyan-300" />
+                    <span>🔄 Làm mới Cảm biến</span>
+                  </>
+                )}
               </button>
             </div>
 
