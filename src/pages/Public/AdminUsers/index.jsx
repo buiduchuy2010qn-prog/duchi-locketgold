@@ -804,8 +804,8 @@ export default function AdminUsers() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {adminTeam.map((admin) => {
-                const latestLogin = admin.latestLoginData;
-                const ipLoc = latestLogin ? [latestLogin.city, latestLogin.region, latestLogin.country].filter((v) => v && v !== UNKNOWN).join(", ") : "";
+                const latestLogin = admin.latestLoginData || admin;
+                const ipLoc = [latestLogin.city || admin.city, latestLogin.region || admin.region, latestLogin.country || admin.country].filter((v) => v && v !== UNKNOWN && v !== "Unknown").join(", ");
                 const gpsLoc = latestLogin?.gps_coordinates || admin.gps_coordinates;
                 const location = gpsLoc ? `📍 GPS: ${gpsLoc}${ipLoc ? ` (${ipLoc})` : ""}` : (ipLoc || UNKNOWN);
                 const isSuperAdmin = admin.role === "super_admin" || admin.email?.toLowerCase() === "buiduchuy2010qn@gmail.com";
@@ -948,8 +948,8 @@ export default function AdminUsers() {
                         </td>
                       </tr>
                     ) : normalUsers.map((user) => {
-                      const latestLogin = user.latestLoginData;
-                      const ipLoc = latestLogin ? [latestLogin.city, latestLogin.region, latestLogin.country].filter((v) => v && v !== UNKNOWN).join(", ") : "";
+                      const latestLogin = user.latestLoginData || user;
+                      const ipLoc = [latestLogin.city || user.city, latestLogin.region || user.region, latestLogin.country || user.country].filter((v) => v && v !== UNKNOWN && v !== "Unknown").join(", ");
                       const gpsLoc = latestLogin?.gps_coordinates || user.gps_coordinates;
                       const location = gpsLoc ? `📍 GPS: ${gpsLoc}${ipLoc ? ` (${ipLoc})` : ""}` : (ipLoc || UNKNOWN);
                       const isSuperAdmin = user.role === "super_admin" || user.email?.toLowerCase() === "buiduchuy2010qn@gmail.com";

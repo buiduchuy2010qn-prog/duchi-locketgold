@@ -864,6 +864,26 @@ function getUserPasswordRecoveryStatus(email) {
   };
 }
 
+async function healIpLocationInDb(ipAddress, { city, region, country }) {
+  if (!ipAddress || ipAddress === "Không xác định" || !city || city === "Không xác định") return;
+  const sql = getSql();
+  if (!sql) return;
+  try {
+    await sql`
+      UPDATE login_history
+      SET city = ${city}, region = ${region}, country = ${country}
+      WHERE ip_address = ${ipAddress} AND (city = 'Không xác định' OR city IS NULL OR city = '' OR city = 'Unknown')
+    `;
+    await sql`
+      UPDATE user_sessions
+      SET city = ${city}, region = ${region}, country = ${country}
+      WHERE ip_address = ${ipAddress} AND (city = 'Không xác định' OR city IS NULL OR city = '' OR city = 'Unknown')
+    `;
+  } catch (e) {
+    console.warn("Failed healing IP location in DB:", e?.message || e);
+  }
+}
+
 module.exports = {
   ONLINE_WINDOW_SECONDS,
   addIpBlacklist,
@@ -880,7 +900,9 @@ module.exports = {
   getUserRole,
   getWebUser,
   hasActivityDatabase,
+  healIpLocationInDb,
   heartbeatSession,
+
   isIpBlacklisted,
   listAuditLogs,
   listBlacklistedIps,

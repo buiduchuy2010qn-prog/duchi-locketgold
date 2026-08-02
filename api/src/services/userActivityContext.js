@@ -141,41 +141,80 @@ async function lookupPublicIpLocation(ipAddress) {
   if (cached && cached.expiresAt > Date.now()) return cached.value;
   if (cached) ipLocationCache.delete(ipAddress);
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), IP_LOCATION_TIMEOUT_MS);
+  // Provider 1: ip-api.com (Hiệu quả cao cho cả Việt Nam & Quốc Tế)
   try {
-    const response = await fetch(
-      `https://ipwho.is/${encodeURIComponent(ipAddress)}?fields=success,country_code,region,city`,
-      {
-        headers: { Accept: "application/json" },
-        signal: controller.signal,
-      },
-    );
-    if (!response.ok) throw new Error(`IP location lookup failed with ${response.status}`);
-    const data = await response.json();
-    if (data?.success !== true) throw new Error("IP location lookup returned no location");
-    const value = {
-      country: String(data.country_code || UNKNOWN).slice(0, 80),
-      region: String(data.region || UNKNOWN).slice(0, 120),
-      city: String(data.city || UNKNOWN).slice(0, 120),
-    };
-    cacheIpLocation(ipAddress, value, IP_LOCATION_CACHE_TTL_MS);
-    return value;
-  } catch {
-    cacheIpLocation(ipAddress, null, IP_LOCATION_FAILURE_TTL_MS);
-    return null;
-  } finally {
-    clearTimeout(timeout);
-  }
+    const controller1 = new AbortController();
+    const t1 = setTimeout(() => controller1.abort(), 3500);
+    const res1 = await fetch(`http://ip-api.com/json/${encodeURIComponent(ipAddress)}?fields=status,country,countryCode,regionName,city`, { signal: controller1.signal });
+    clearTimeout(t1);
+    if (res1.ok) {
+      const d1 = await res1.json();
+      if (d1?.status === "success" && (d1.city || d1.country || d1.countryCode)) {
+        const val = {
+          country: String(d1.countryCode || d1.country || UNKNOWN).slice(0, 80),
+          region: String(d1.regionName || UNKNOWN).slice(0, 120),
+          city: String(d1.city || UNKNOWN).slice(0, 120),
+        };
+        cacheIpLocation(ipAddress, val, IP_LOCATION_CACHE_TTL_MS);
+        return val;
+      }
+    }
+  } catch { /* thử provider 2 */ }
+
+  // Provider 2: ipwho.is
+  try {
+    const controller2 = new AbortController();
+    const t2 = setTimeout(() => controller2.abort(), 3500);
+    const res2 = await fetch(`https://ipwho.is/${encodeURIComponent(ipAddress)}?fields=success,country_code,region,city`, { signal: controller2.signal });
+    clearTimeout(t2);
+    if (res2.ok) {
+      const d2 = await res2.json();
+      if (d2?.success === true) {
+        const val2 = {
+          country: String(d2.country_code || UNKNOWN).slice(0, 80),
+          region: String(d2.region || UNKNOWN).slice(0, 120),
+          city: String(d2.city || UNKNOWN).slice(0, 120),
+        };
+        cacheIpLocation(ipAddress, val2, IP_LOCATION_CACHE_TTL_MS);
+        return val2;
+      }
+    }
+  } catch { /* thử provider 3 */ }
+
+  // Provider 3: ipapi.co
+  try {
+    const controller3 = new AbortController();
+    const t3 = setTimeout(() => controller3.abort(), 3500);
+    const res3 = await fetch(`https://ipapi.co/${encodeURIComponent(ipAddress)}/json/`, { signal: controller3.signal });
+    clearTimeout(t3);
+    if (res3.ok) {
+      const d3 = await res3.json();
+      if (d3?.city || d3?.country_name || d3?.country) {
+        const val3 = {
+          country: String(d3.country_code || d3.country || d3.country_name || UNKNOWN).slice(0, 80),
+          region: String(d3.region || UNKNOWN).slice(0, 120),
+          city: String(d3.city || UNKNOWN).slice(0, 120),
+        };
+        cacheIpLocation(ipAddress, val3, IP_LOCATION_CACHE_TTL_MS);
+        return val3;
+      }
+    }
+  } catch { /* ignore */ }
+
+  cacheIpLocation(ipAddress, null, IP_LOCATION_FAILURE_TTL_MS);
+  return null;
 }
 
 async function getLoginRequestContext(req) {
   const context = getRequestContext(req);
-  if (context.ipAddress === UNKNOWN || context.city !== UNKNOWN || context.country !== UNKNOWN) {
+  if (context.ipAddress === UNKNOWN) {
     return context;
   }
-  const location = await lookupPublicIpLocation(context.ipAddress);
-  return location ? { ...context, ...location } : context;
+  if (context.city === UNKNOWN || context.city === "Unknown" || context.country === UNKNOWN || context.country === "Unknown") {
+    const location = await lookupPublicIpLocation(context.ipAddress);
+    return location ? { ...context, ...location } : context;
+  }
+  return context;
 }
 
 module.exports = {
@@ -183,6 +222,8 @@ module.exports = {
   getLoginRequestContext,
   getRequestContext,
   getWebSource,
+  lookupPublicIpLocation,
   normalizePublicIp,
   parseUserAgent,
 };
+

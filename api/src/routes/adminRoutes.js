@@ -37,8 +37,9 @@ const {
   verifyAdminPin,
   verifyAdminSessionToken,
   writeAudit,
+  healIpLocationInDb,
 } = require("../services/userActivityStore");
-const { getRequestContext } = require("../services/userActivityContext");
+const { getRequestContext, lookupPublicIpLocation } = require("../services/userActivityContext");
 
 const router = express.Router();
 
@@ -301,6 +302,23 @@ router.get("/users", requireActivityDatabase, async (req, res) => {
       };
     });
 
+    await Promise.all(users.map(async (u) => {
+      const data = u.latestLoginData;
+      if (data && data.ip_address && data.ip_address !== "Không xác định" && data.ip_address !== "Unknown") {
+        if (!data.city || data.city === "Không xác định" || data.city === "Unknown" || !data.country || data.country === "Không xác định") {
+          try {
+            const loc = await lookupPublicIpLocation(data.ip_address);
+            if (loc && (loc.city !== "Không xác định" || loc.country !== "Không xác định")) {
+              data.city = loc.city;
+              data.region = loc.region;
+              data.country = loc.country;
+              healIpLocationInDb(data.ip_address, loc).catch(() => {});
+            }
+          } catch { /* ignore geo error */ }
+        }
+      }
+    }));
+
     if (req.query.live !== "1") {
       await audit(req, "LIST_WEB_USERS", null, "Listed verified Huy Locket website users");
     }
@@ -348,6 +366,21 @@ router.get("/users/:uid/login-history", requireActivityDatabase, async (req, res
       ? Math.min(Math.max(requestedLimit, 1), 200)
       : 100;
     const history = await getLoginHistory(req.params.uid, limit);
+    await Promise.all(history.map(async (item) => {
+      if (item.ip_address && item.ip_address !== "Không xác định" && item.ip_address !== "Unknown") {
+        if (!item.city || item.city === "Không xác định" || item.city === "Unknown") {
+          try {
+            const loc = await lookupPublicIpLocation(item.ip_address);
+            if (loc && (loc.city !== "Không xác định" || loc.country !== "Không xác định")) {
+              item.city = loc.city;
+              item.region = loc.region;
+              item.country = loc.country;
+              healIpLocationInDb(item.ip_address, loc).catch(() => {});
+            }
+          } catch { /* ignore */ }
+        }
+      }
+    }));
     await audit(req, "VIEW_LOGIN_HISTORY", req.params.uid, "Viewed website login history");
     return res.status(200).json({ success: true, history });
   } catch (error) {
