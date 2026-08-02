@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { SonnerInfo, SonnerSuccess, SonnerWarning } from "@/components/uikit/SonnerToast";
 import { updateAndSyncGpsLocation } from "@/services/UserActivityService";
+import { CONFIG } from "@/config";
 import {
   adminRequest,
   changeAdminPin,
@@ -251,14 +252,78 @@ export default function AdminUsers() {
 
   const runApiHealthCheck = useCallback(async () => {
     setTestingApis(true);
+    const apiDomain = String(CONFIG.api.baseUrl || "https://huy-locket-api-production.up.railway.app").replace(/\/$/, "");
     const targets = [
-      { id: "music_lib", name: "🎵 Thư Viện Nhạc Locket (Music Tracks API)", desc: "Cung cấp bài hát gốc, tìm kiếm và phát audio mượt mà trên video Locket", url: "/api/music/tracks", method: "GET", isCors: false },
-      { id: "music_search", name: "🎧 Cầu Nối Spotify & Apple Music", desc: "Hệ thống truy xuất metadata và đồng bộ ISRC bản quyền từ Spotify/Apple", url: "/api/searchMusic?q=locket&limit=1", method: "GET", isCors: false },
-      { id: "weather_api", name: "🌦️ Trạm Dữ Liệu Thời Tiết (Open-Meteo API)", desc: "Cung cấp chỉ số nhiệt độ, độ ẩm và thời tiết thực tế cho nhãn dán Locket", url: "https://api.open-meteo.com/v1/forecast?latitude=13.77&longitude=109.22&current_weather=true", method: "GET", isCors: false },
-      { id: "ip_radar", name: "📍 Cảm Biến Định Vị Radar IP (FreeIPAPI / IPInfo)", desc: "Dò tìm vị trí thực tế, tỉnh thành và bảo mật đường truyền người dùng Locket", url: "https://freeipapi.com/api/json/", method: "GET", isCors: false },
-      { id: "media_proxy", name: "🖼️ Trạm Xử Lý Media & Đám Mây Google Drive", desc: "Nén video, chuyển đổi định dạng ảnh và truyền tải lưu trữ Drive tốc độ cao", url: "https://media-service.locket-dio.com/convertImage", method: "HEAD", isCors: true },
-      { id: "collab_api", name: "🤝 Trạm Dịch Vụ Ghép Ảnh (Collab Kanade API)", desc: "Hệ thống bổ trợ chế độ ghép đôi Collab và tạo khung hiệu ứng cực chất", url: "https://api.captionkanade.site", method: "HEAD", isCors: true },
-      { id: "railway_core", name: "⚡ Máy Chủ Xử Lý Trung Tâm (Railway Engine)", desc: "Trực chiến 24/7 quản trị phiên làm việc, tường lửa WAF và kết nối SQL", url: "/api/options", method: "GET", isCors: false }
+      {
+        id: "music_lib",
+        name: "🎵 Thư Viện Nhạc Locket (Music Tracks API)",
+        desc: "Cung cấp bài hát gốc, tìm kiếm và phát audio mượt mà trên video Locket",
+        url: `${apiDomain}/api/music/tracks`,
+        method: "GET",
+        isCors: false,
+        errorHelp: "Lỗi 404/500: Máy chủ Railway chưa đồng bộ route âm nhạc hoặc CSDL Neon mất bảng music_tracks.",
+        remedy: "Mở bảng điều khiển Railway (Tab Deployments) kiểm tra Log máy chủ và bấm 'Restart Service' để khởi động lại."
+      },
+      {
+        id: "music_search",
+        name: "🎧 Cầu Nối Spotify & Apple Music",
+        desc: "Hệ thống truy xuất metadata và đồng bộ ISRC bản quyền từ Spotify/Apple",
+        url: `${apiDomain}/api/searchMusic?q=locket&limit=1`,
+        method: "GET",
+        isCors: false,
+        errorHelp: "Nghẽn Token: API Key Spotify/Apple bị hạn chế số lần gọi (Rate-limit) hoặc từ chối chứng chỉ.",
+        remedy: "Hệ thống đã có cụm chuyển trạm dự phòng Apple Music. Nếu vẫn lỗi, vào trang Spotify Developer cấp lại cặp Client ID & Secret mới trong biến môi trường Railway."
+      },
+      {
+        id: "weather_api",
+        name: "🌦️ Trạm Dữ Liệu Thời Tiết (Open-Meteo API)",
+        desc: "Cung cấp chỉ số nhiệt độ, độ ẩm và thời tiết thực tế cho nhãn dán Locket",
+        url: "https://api.open-meteo.com/v1/forecast?latitude=13.77&longitude=109.22&current_weather=true",
+        method: "GET",
+        isCors: false,
+        errorHelp: "Mất kết nối DNS quốc tế: Hạ tầng CDN của Open-Meteo hoặc cáp quang mạng đang gián đoạn.",
+        remedy: "Open-Meteo là máy chủ công cộng miễn phí. Khi mất sóng ngầm, Locket tự giữ nhãn dán nhiệt độ gần nhất trong Cache, chỉ cần chờ nhà mạng khôi phục."
+      },
+      {
+        id: "ip_radar",
+        name: "📍 Cảm Biến Định Vị Radar IP (FreeIPAPI / IPInfo)",
+        desc: "Dò tìm vị trí thực tế, tỉnh thành và bảo mật đường truyền người dùng Locket",
+        url: "https://freeipapi.com/api/json/",
+        method: "GET",
+        isCors: true,
+        errorHelp: "Bị phong tỏa đường truyền: Trình duyệt đang bật 'Trình chặn quảng cáo / Quyền riêng tư' (AdBlock / Brave / Edge Privacy / Tracking Protection) cản lệnh gọi IP.",
+        remedy: "Bấm vào biểu tượng Khiên (Shield/Lock) bên trái thanh URL trình duyệt -> Tắt 'Chặn Theo Dõi (Tracking Protection)' hoặc tắt AdBlock cho trang duchi.vercel.app để Cảm biến Radar hoạt động bình thường."
+      },
+      {
+        id: "media_proxy",
+        name: "🖼️ Trạm Xử Lý Media & Đám Mây Google Drive",
+        desc: "Nén video, chuyển đổi định dạng ảnh và truyền tải lưu trữ Drive tốc độ cao",
+        url: "https://media-service.locket-dio.com/convertImage",
+        method: "HEAD",
+        isCors: true,
+        errorHelp: "Lỗi proxy ảnh: Tên miền media-service tạm quá tải băng thông hoặc hạn chế chứng chỉ Cloudflare.",
+        remedy: "Khởi động lại Cloudflare Worker gắn với máy chủ ảnh, kiểm tra dung lượng trống trên Google Drive Backup để tránh tràn bộ nhớ."
+      },
+      {
+        id: "collab_api",
+        name: "🤝 Trạm Dịch Vụ Ghép Ảnh (Collab Kanade API)",
+        desc: "Hệ thống bổ trợ chế độ ghép đôi Collab và tạo khung hiệu ứng cực chất",
+        url: "https://api.captionkanade.site",
+        method: "HEAD",
+        isCors: true,
+        errorHelp: "Máy chủ cộng đồng bảo trì: Tên miền đối tác captionkanade.site tạm dừng máy chủ VPS.",
+        remedy: "Đây là API bổ trợ độc lập. Nếu gián đoạn, người dùng vẫn có thể ghép khung Locket mặc định không bị gián đoạn app."
+      },
+      {
+        id: "railway_core",
+        name: "⚡ Máy Chủ Xử Lý Trung Tâm (Railway Engine)",
+        desc: "Trực chiến 24/7 quản trị phiên làm việc, tường lửa WAF và kết nối SQL",
+        url: `${apiDomain}/health`,
+        method: "GET",
+        isCors: false,
+        errorHelp: "Ngừng tim (Offline/Error): Máy chủ Railway cạn kiệt CPU/RAM hoặc CSDL Neon ngắt kết nối do quá tải.",
+        remedy: "Kiểm tra ngay Dashboard Railway/Neon. Bấm 'Trigger Redeploy' trên Railway để dựng lại container mới 100% trong 2 phút."
+      }
     ];
 
     const results = [];
@@ -273,11 +338,11 @@ export default function AdminUsers() {
         const res = await fetch(t.url, fetchOpts);
         clearTimeout(timeoutId);
         const duration = Math.round(performance.now() - startTime);
-        const isLive = t.isCors ? true : (res.status < 500);
+        const isLive = t.isCors ? true : (res.status < 500 && res.status !== 404);
         results.push({ ...t, status: isLive ? "ONLINE" : "ERROR", ping: duration, httpStatus: t.isCors ? "OK (CORS Guard)" : `HTTP ${res.status}` });
       } catch (err) {
         const duration = Math.round(performance.now() - startTime);
-        results.push({ ...t, status: "OFFLINE", ping: duration, httpStatus: err.name === "AbortError" ? "Timeout (> 6000ms)" : "Mất kết nối / Offline" });
+        results.push({ ...t, status: "OFFLINE", ping: duration, httpStatus: err.name === "AbortError" ? "Timeout (> 6000ms)" : "Mất kết nối / Blocked" });
       }
     }
     setApiStatuses(results);
@@ -1989,7 +2054,7 @@ export default function AdminUsers() {
                         className={`rounded-3xl p-5 border-2 transition-all duration-300 flex flex-col justify-between shadow-xl ${
                           isOnline
                             ? "bg-slate-900/90 border-emerald-500/40 hover:border-emerald-400/80 hover:shadow-emerald-500/10"
-                            : "bg-slate-900/90 border-rose-500/60 hover:border-rose-400 shadow-rose-500/10"
+                            : "bg-slate-900/95 border-rose-500 shadow-rose-500/20 ring-2 ring-rose-500/30 animate-fade-in"
                         }`}
                       >
                         <div>
@@ -1999,13 +2064,38 @@ export default function AdminUsers() {
                               className={`badge badge-sm font-black px-2.5 py-2.5 rounded-xl shrink-0 shadow-sm ${
                                 isOnline
                                   ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                                  : "bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse"
+                                  : "bg-rose-500/20 text-rose-300 border border-rose-500 animate-pulse"
                               }`}
                             >
-                              {isOnline ? "🟢 ONLINE" : "🔴 OFFLINE"}
+                              {isOnline ? "🟢 ONLINE" : "🔴 OFFLINE / LỖI"}
                             </span>
                           </div>
-                          <p className="text-xs text-slate-300/80 line-clamp-2 leading-relaxed mb-4">{item.desc}</p>
+                          <p className="text-xs text-slate-300/80 line-clamp-2 leading-relaxed mb-3">{item.desc}</p>
+
+                          {/* AUTOMATED DIAGNOSIS & REMEDY GUIDE */}
+                          <div className={`rounded-2xl p-3 mb-4 border transition-all ${
+                            isOnline
+                              ? "bg-slate-950/60 border-white/5 text-slate-300"
+                              : "bg-rose-950/50 border-rose-500/60 text-rose-100 shadow-inner"
+                          }`}>
+                            <div className="flex items-center gap-1.5 text-xs font-black mb-1.5">
+                              <span>{isOnline ? "💡" : "🚨"}</span>
+                              <span className={isOnline ? "text-teal-300 uppercase tracking-wide text-[11px]" : "text-amber-300 uppercase tracking-wide text-xs underline decoration-rose-500 decoration-2"}>
+                                {isOnline ? "Hướng dẫn bảo trì dự phòng:" : "Chẩn đoán Lỗi & Cách xử lý ngay:"}
+                              </span>
+                            </div>
+                            <p className="text-[11px] leading-relaxed mb-2 text-slate-200">
+                              <strong className={isOnline ? "text-teal-400" : "text-rose-300"}>Nguyên nhân: </strong> 
+                              {item.errorHelp}
+                            </p>
+                            <div className="text-[11px] font-bold text-amber-200 bg-black/40 p-2.5 rounded-xl border border-white/10 leading-relaxed flex items-start gap-1.5 shadow-sm">
+                              <span className="text-sm shrink-0">🛠️</span>
+                              <div>
+                                <span className="text-amber-300 font-extrabold underline">Giải pháp: </span>
+                                <span>{item.remedy}</span>
+                              </div>
+                            </div>
+                          </div>
                         </div>
 
                         <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs font-mono">
@@ -2015,7 +2105,9 @@ export default function AdminUsers() {
                               {item.ping} ms
                             </span>
                           </span>
-                          <span className="text-white/60 font-semibold bg-white/5 px-2 py-0.5 rounded-lg border border-white/10">
+                          <span className={`font-black px-2 py-0.5 rounded-lg border ${
+                            isOnline ? "text-white/80 bg-white/5 border-white/10" : "text-rose-200 bg-rose-500/20 border-rose-500/50"
+                          }`}>
                             {item.httpStatus}
                           </span>
                         </div>
