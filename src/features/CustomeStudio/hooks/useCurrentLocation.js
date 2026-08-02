@@ -21,6 +21,7 @@ export function useCurrentLocation() {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
+        try { localStorage.setItem("HUY_LOCKET_GPS_CONSENT", "granted"); } catch {}
         setLocation({ lat: latitude, lon: longitude });
 
         try {

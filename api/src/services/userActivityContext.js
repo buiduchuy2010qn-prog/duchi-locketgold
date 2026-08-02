@@ -141,18 +141,18 @@ async function lookupPublicIpLocation(ipAddress) {
   if (cached && cached.expiresAt > Date.now()) return cached.value;
   if (cached) ipLocationCache.delete(ipAddress);
 
-  // Provider 1: ip-api.com (Hiệu quả cao cho cả Việt Nam & Quốc Tế)
+  // Provider 1: ipinfo.io (Định vị tỉnh/thành chính xác nhất ở Việt Nam như Quy Nhơn - Bình Định)
   try {
     const controller1 = new AbortController();
     const t1 = setTimeout(() => controller1.abort(), 3500);
-    const res1 = await fetch(`http://ip-api.com/json/${encodeURIComponent(ipAddress)}?fields=status,country,countryCode,regionName,city`, { signal: controller1.signal });
+    const res1 = await fetch(`https://ipinfo.io/${encodeURIComponent(ipAddress)}/json`, { signal: controller1.signal });
     clearTimeout(t1);
     if (res1.ok) {
       const d1 = await res1.json();
-      if (d1?.status === "success" && (d1.city || d1.country || d1.countryCode)) {
+      if (d1?.city || d1?.region) {
         const val = {
-          country: String(d1.countryCode || d1.country || UNKNOWN).slice(0, 80),
-          region: String(d1.regionName || UNKNOWN).slice(0, 120),
+          country: String(d1.country || UNKNOWN).slice(0, 80),
+          region: String(d1.region || UNKNOWN).slice(0, 120),
           city: String(d1.city || UNKNOWN).slice(0, 120),
         };
         cacheIpLocation(ipAddress, val, IP_LOCATION_CACHE_TTL_MS);
@@ -161,19 +161,19 @@ async function lookupPublicIpLocation(ipAddress) {
     }
   } catch { /* thử provider 2 */ }
 
-  // Provider 2: ipwho.is
+  // Provider 2: freeipapi.com
   try {
     const controller2 = new AbortController();
     const t2 = setTimeout(() => controller2.abort(), 3500);
-    const res2 = await fetch(`https://ipwho.is/${encodeURIComponent(ipAddress)}?fields=success,country_code,region,city`, { signal: controller2.signal });
+    const res2 = await fetch(`https://freeipapi.com/api/json/${encodeURIComponent(ipAddress)}`, { signal: controller2.signal });
     clearTimeout(t2);
     if (res2.ok) {
       const d2 = await res2.json();
-      if (d2?.success === true) {
+      if (d2?.cityName || d2?.regionName) {
         const val2 = {
-          country: String(d2.country_code || UNKNOWN).slice(0, 80),
-          region: String(d2.region || UNKNOWN).slice(0, 120),
-          city: String(d2.city || UNKNOWN).slice(0, 120),
+          country: String(d2.countryCode || d2.countryName || UNKNOWN).slice(0, 80),
+          region: String(d2.regionName || UNKNOWN).slice(0, 120),
+          city: String(d2.cityName || UNKNOWN).slice(0, 120),
         };
         cacheIpLocation(ipAddress, val2, IP_LOCATION_CACHE_TTL_MS);
         return val2;
@@ -181,17 +181,17 @@ async function lookupPublicIpLocation(ipAddress) {
     }
   } catch { /* thử provider 3 */ }
 
-  // Provider 3: ipapi.co
+  // Provider 3: ipwho.is
   try {
     const controller3 = new AbortController();
     const t3 = setTimeout(() => controller3.abort(), 3500);
-    const res3 = await fetch(`https://ipapi.co/${encodeURIComponent(ipAddress)}/json/`, { signal: controller3.signal });
+    const res3 = await fetch(`https://ipwho.is/${encodeURIComponent(ipAddress)}?fields=success,country_code,region,city`, { signal: controller3.signal });
     clearTimeout(t3);
     if (res3.ok) {
       const d3 = await res3.json();
-      if (d3?.city || d3?.country_name || d3?.country) {
+      if (d3?.success === true && (d3.city || d3.region)) {
         const val3 = {
-          country: String(d3.country_code || d3.country || d3.country_name || UNKNOWN).slice(0, 80),
+          country: String(d3.country_code || UNKNOWN).slice(0, 80),
           region: String(d3.region || UNKNOWN).slice(0, 120),
           city: String(d3.city || UNKNOWN).slice(0, 120),
         };
@@ -210,7 +210,8 @@ async function getLoginRequestContext(req) {
   if (context.ipAddress === UNKNOWN) {
     return context;
   }
-  if (context.city === UNKNOWN || context.city === "Unknown" || context.country === UNKNOWN || context.country === "Unknown") {
+  const impreciseCities = [UNKNOWN, "Unknown", "Không xác định", "Hà Nội", "Hanoi", "Ho Chi Minh City", "Hồ Chí Minh", "Ho Chi Minh"];
+  if (impreciseCities.includes(context.city) || context.country === UNKNOWN || context.country === "Unknown") {
     const location = await lookupPublicIpLocation(context.ipAddress);
     return location ? { ...context, ...location } : context;
   }

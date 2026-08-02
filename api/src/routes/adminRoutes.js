@@ -305,10 +305,11 @@ router.get("/users", requireActivityDatabase, async (req, res) => {
       };
     });
 
+    const imprecise = ['Không xác định', '', 'Unknown', 'Hanoi', 'Hà Nội', 'Ho Chi Minh City', 'Hồ Chí Minh', 'Ho Chi Minh'];
     await Promise.all(users.map(async (u) => {
       const data = u.latestLoginData;
       if (data && data.ip_address && data.ip_address !== "Không xác định" && data.ip_address !== "Unknown") {
-        if (!data.city || data.city === "Không xác định" || data.city === "Unknown" || !data.country || data.country === "Không xác định") {
+        if (!data.city || imprecise.includes(data.city) || !data.country || data.country === "Không xác định") {
           try {
             const loc = await lookupPublicIpLocation(data.ip_address);
             if (loc && (loc.city !== "Không xác định" || loc.country !== "Không xác định")) {
@@ -369,9 +370,10 @@ router.get("/users/:uid/login-history", requireActivityDatabase, async (req, res
       ? Math.min(Math.max(requestedLimit, 1), 200)
       : 100;
     const history = await getLoginHistory(req.params.uid, limit);
+    const imprecise = ['Không xác định', '', 'Unknown', 'Hanoi', 'Hà Nội', 'Ho Chi Minh City', 'Hồ Chí Minh', 'Ho Chi Minh'];
     await Promise.all(history.map(async (item) => {
       if (item.ip_address && item.ip_address !== "Không xác định" && item.ip_address !== "Unknown") {
-        if (!item.city || item.city === "Không xác định" || item.city === "Unknown") {
+        if (!item.city || imprecise.includes(item.city)) {
           try {
             const loc = await lookupPublicIpLocation(item.ip_address);
             if (loc && (loc.city !== "Không xác định" || loc.country !== "Không xác định")) {

@@ -1026,15 +1026,16 @@ async function healIpLocationInDb(ipAddress, { city, region, country }) {
   const sql = getSql();
   if (!sql) return;
   try {
+    const imprecise = ['Không xác định', '', 'Unknown', 'Hanoi', 'Hà Nội', 'Ho Chi Minh City', 'Hồ Chí Minh', 'Ho Chi Minh'];
     await sql`
       UPDATE login_history
       SET city = ${city}, region = ${region}, country = ${country}
-      WHERE ip_address = ${ipAddress} AND (city = 'Không xác định' OR city IS NULL OR city = '' OR city = 'Unknown')
+      WHERE ip_address = ${ipAddress} AND (city IS NULL OR city = ANY(${imprecise}))
     `;
     await sql`
       UPDATE user_sessions
       SET city = ${city}, region = ${region}, country = ${country}
-      WHERE ip_address = ${ipAddress} AND (city = 'Không xác định' OR city IS NULL OR city = '' OR city = 'Unknown')
+      WHERE ip_address = ${ipAddress} AND (city IS NULL OR city = ANY(${imprecise}))
     `;
   } catch (e) {
     console.warn("Failed healing IP location in DB:", e?.message || e);

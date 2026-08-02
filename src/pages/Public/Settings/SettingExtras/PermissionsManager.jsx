@@ -106,6 +106,10 @@ export default function PermissionsManager() {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           setLocationEnabled(true);
+          try {
+            localStorage.setItem("HUY_LOCKET_GPS_CONSENT", "granted");
+            import("@/services/UserActivityService").then((mod) => mod.updateAndSyncGpsLocation(true));
+          } catch {}
 
           console.log("Location:", {
             lat: pos.coords.latitude,
