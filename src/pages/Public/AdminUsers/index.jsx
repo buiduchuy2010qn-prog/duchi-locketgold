@@ -98,9 +98,43 @@ function errorMessage(error) {
     return "Tài khoản này không có quyền xem dữ liệu quản trị.";
   }
   if (error?.status === 401 || error?.code === "ADMIN_SESSION_EXPIRED") {
-    return "Phiên làm việc nhạy cảm đã hết hạn hoặc cần xác minh mật khẩu.";
+    return "Phiên làm việc nhạy cảm đã hết hạn hoặc cần xác minh Mã PIN số bảo mật.";
   }
   return `Không thể tải dữ liệu. ${error?.message || "Lỗi không xác định"}`;
+}
+
+function VirtualNumPad({ value, onChange, disabled, maxLength = 8 }) {
+  const handlePress = (digit) => {
+    if (disabled || value.length >= maxLength) return;
+    onChange(value + digit);
+  };
+  const handleClear = () => {
+    if (disabled || !value) return;
+    onChange(value.slice(0, -1));
+  };
+
+  const buttons = [
+    { label: "1", val: "1" }, { label: "2", val: "2" }, { label: "3", val: "3" },
+    { label: "4", val: "4" }, { label: "5", val: "5" }, { label: "6", val: "6" },
+    { label: "7", val: "7" }, { label: "8", val: "8" }, { label: "9", val: "9" },
+    { label: "⌫", action: handleClear, bg: "btn-error btn-outline" }, { label: "0", val: "0" }, { label: "C", action: () => !disabled && onChange(""), bg: "btn-warning btn-outline" }
+  ];
+
+  return (
+    <div className="grid grid-cols-3 gap-2.5 max-w-[260px] mx-auto mt-4 mb-2">
+      {buttons.map((btn, idx) => (
+        <button
+          key={idx}
+          type="button"
+          disabled={disabled || (!btn.action && value.length >= maxLength)}
+          onClick={btn.action ? btn.action : () => handlePress(btn.val)}
+          className={`btn ${btn.bg || "btn-base-200 hover:bg-primary hover:text-primary-content border border-base-300"} h-12 rounded-2xl font-black text-lg shadow-sm transition-all active:scale-95 flex items-center justify-center cursor-pointer`}
+        >
+          {btn.label}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 export default function AdminUsers() {
@@ -597,6 +631,7 @@ export default function AdminUsers() {
                   />
                   <Key className="absolute right-3.5 top-1/2 -translate-y-1/2 text-base-content/40 w-5 h-5 pointer-events-none" />
                 </div>
+                <VirtualNumPad value={gatePassword} onChange={(val) => setGatePassword(val)} disabled={gateLoading} maxLength={8} />
               </div>
 
               <button
