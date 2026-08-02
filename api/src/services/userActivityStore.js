@@ -782,6 +782,7 @@ async function purgeBotUsers(currentAdminUid = null) {
 
 // 1. Quyền Phát Sóng Thông Báo Toàn Cầu
 async function setGlobalBroadcast(message, level = "info", active = true, targetUser = "ALL") {
+  const sql = getSql();
   if (!sql) return { success: false, error: "Cơ sở dữ liệu chưa kết nối" };
   try {
     await ensureUserActivitySchema();
@@ -805,6 +806,7 @@ async function setGlobalBroadcast(message, level = "info", active = true, target
 }
 
 async function listGlobalBroadcasts() {
+  const sql = getSql();
   if (!sql) return [];
   try {
     await ensureUserActivitySchema();
@@ -824,6 +826,7 @@ async function listGlobalBroadcasts() {
 }
 
 async function toggleGlobalBroadcast(id, active) {
+  const sql = getSql();
   if (!sql || !id) return { success: false };
   try {
     await ensureUserActivitySchema();
@@ -835,6 +838,7 @@ async function toggleGlobalBroadcast(id, active) {
 }
 
 async function deleteGlobalBroadcast(id) {
+  const sql = getSql();
   if (!sql || !id) return { success: false };
   try {
     await ensureUserActivitySchema();
@@ -846,6 +850,7 @@ async function deleteGlobalBroadcast(id) {
 }
 
 async function getGlobalBroadcast() {
+  const sql = getSql();
   if (!sql) return { active: false, message: "", targetUser: "ALL", list: [] };
   try {
     await ensureUserActivitySchema();
@@ -861,6 +866,7 @@ async function getGlobalBroadcast() {
 // 2. Quyền Cấm Cửa Địa Chỉ IP Vĩnh Viễn
 const blacklistedIpsMemory = new Set();
 async function loadBlacklistedIps() {
+  const sql = getSql();
   if (!sql) return;
   try {
     const res = await sql`SELECT ip_address FROM ip_blacklist`;
@@ -872,6 +878,7 @@ async function loadBlacklistedIps() {
 }
 
 async function addIpBlacklist(ip_address, reason = "Banned by Admin", blocked_by = "SUPER_ADMIN") {
+  const sql = getSql();
   if (!sql || !ip_address || ip_address === "Không xác định") return { success: false };
   await sql`
     INSERT INTO ip_blacklist (ip_address, reason, blocked_by, created_at)
@@ -883,6 +890,7 @@ async function addIpBlacklist(ip_address, reason = "Banned by Admin", blocked_by
 }
 
 async function removeIpBlacklist(ip_address) {
+  const sql = getSql();
   if (!sql || !ip_address) return { success: false };
   await sql`DELETE FROM ip_blacklist WHERE ip_address = ${ip_address}`;
   blacklistedIpsMemory.delete(ip_address);
@@ -890,6 +898,7 @@ async function removeIpBlacklist(ip_address) {
 }
 
 async function listBlacklistedIps() {
+  const sql = getSql();
   if (!sql) return [];
   return await sql`SELECT ip_address, reason, blocked_by, created_at FROM ip_blacklist ORDER BY created_at DESC LIMIT 1000`;
 }
@@ -900,6 +909,7 @@ function isIpBlacklisted(ip) {
 
 // 3. Quyền Xóa Khởi Tử Vĩnh Viễn Từng Tài Khoản
 async function nukeUserPermanently(uid) {
+  const sql = getSql();
   if (!sql || !uid) return { success: false };
   await sql`DELETE FROM login_history WHERE uid = ${uid} OR user_uid = ${uid}`;
   await sql`DELETE FROM user_sessions WHERE uid = ${uid}`;
