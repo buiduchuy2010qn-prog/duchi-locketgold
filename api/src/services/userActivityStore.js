@@ -721,7 +721,7 @@ async function purgeBotUsers(currentAdminUid = null) {
       COALESCE(ro.role, 'user') AS role,
       COALESCE(latest.ip_address, u.ip_address) AS ip_address,
       COALESCE(latest.browser, u.browser) AS browser,
-      COALESCE(latest.device, u.device_type, '') AS device
+      COALESCE(latest.device, u.os, '') AS device
     FROM web_users u
     LEFT JOIN LATERAL (
       SELECT r.role FROM admin_roles r WHERE r.uid = u.uid LIMIT 1
@@ -747,9 +747,9 @@ async function purgeBotUsers(currentAdminUid = null) {
 
     const isCloudIp = /^(54\.|3\.|18\.|13\.|52\.|50\.|23\.)/.test(ip);
     const isUnknownBrowser = !browser || browser.includes("không xác định") || browser === "unknown";
-    const isSuspiciousEmail = normEmail.startsWith("tiendai") || normEmail.includes("clone");
+    const isSuspiciousEmail = normEmail.startsWith("tiendai") || normEmail.includes("clone") || normEmail.includes("bot");
 
-    if (isCloudIp || (isUnknownBrowser && (device.includes("không xác định") || device === "" || !device)) || isSuspiciousEmail) {
+    if (isCloudIp || isUnknownBrowser || isSuspiciousEmail) {
       await setAccountStatus(u.uid, "locked");
       await revokeUserSessions(u.uid);
       purgedList.push({ uid: u.uid, email: u.email, displayName: u.display_name, ip, reason: "Phát hiện Bot/Tool/VPS tự động" });

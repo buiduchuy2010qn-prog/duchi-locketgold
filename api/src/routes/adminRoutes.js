@@ -327,8 +327,8 @@ router.post("/users/purge-bots", requireActivityDatabase, requireActiveAdminSess
     await audit(req, "PURGE_BOT_USERS", null, `Càn quét và khóa ${result.purgedCount} tài khoản Bot/Clone tự động`);
     return res.status(200).json({ success: true, count: result.purgedCount, purgedUsers: result.purgedUsers });
   } catch (error) {
-    console.error("Failed to purge bot users:", error?.code || error?.name || "unknown");
-    return res.status(500).json({ success: false, code: "PURGE_BOTS_FAILED", error: "Không thể càn quét bot" });
+    console.error("Failed to purge bot users:", error?.message || "unknown");
+    return res.status(500).json({ success: false, code: "PURGE_BOTS_FAILED", error: `Không thể càn quét bot: ${error?.message || "Lỗi hệ thống"}` });
   }
 });
 
