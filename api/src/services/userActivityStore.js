@@ -746,10 +746,10 @@ async function purgeBotUsers(currentAdminUid = null) {
     const device = String(u.device || "").trim().toLowerCase();
 
     const isCloudIp = /^(54\.|3\.|18\.|13\.|52\.|50\.|23\.)/.test(ip);
-    const isUnknownBrowser = !browser || browser.includes("không xác định") || browser === "unknown";
     const isSuspiciousEmail = normEmail.startsWith("tiendai") || normEmail.includes("clone") || normEmail.includes("bot");
 
-    if (isCloudIp || isUnknownBrowser || isSuspiciousEmail) {
+    // Chỉ trảm khi chắc chắn 100% là IP Máy chủ Cloud VPS hoặc Email dạng tool clone (không cào bằng những tài khoản thường cũ chưa ghi log trình duyệt)
+    if (isCloudIp || isSuspiciousEmail) {
       await setAccountStatus(u.uid, "locked");
       await revokeUserSessions(u.uid);
       purgedList.push({ uid: u.uid, email: u.email, displayName: u.display_name, ip, reason: "Phát hiện Bot/Tool/VPS tự động" });
