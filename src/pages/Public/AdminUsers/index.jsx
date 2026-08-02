@@ -57,11 +57,24 @@ function relativeActivity(value) {
   return `Hoạt động ${Math.floor(hours / 24)} ngày trước`;
 }
 
+function getFixedNumericUid(uid) {
+  if (!uid || uid === "—" || uid === "SYSTEM" || uid === "Không xác định") return uid;
+  const cleanUid = String(uid).trim();
+  if (/^\d+$/.test(cleanUid)) return `#${cleanUid}`;
+  let hash = 0;
+  const str = `_huy_locket_immutable_${cleanUid}`;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash + str.charCodeAt(i)) >>> 0;
+  }
+  const numericId = 10000000 + (hash % 90000000);
+  return `UID: #${numericId}`;
+}
+
 function sourceLabel(source) {
   if (source === "vercel") return "Vercel";
   if (source === "railway") return "Railway";
   if (source === "local") return "Local";
-  return UNKNOWN;
+  return "Vercel / Railway";
 }
 
 function loginMethodLabel(method) {
@@ -905,8 +918,10 @@ export default function AdminUsers() {
                             <div className="font-bold text-sm flex items-center gap-2 text-base-content">
                               {userName(user)}
                               {roleBadge(user.role)}
+                            <div className="text-xs text-base-content/60 font-mono mt-0.5 flex items-center gap-1.5 flex-wrap">
+                              <span>{user.email || user.uid}</span>
+                              <span className="badge badge-sm bg-base-200 text-primary font-black font-mono border border-primary/20 shadow-xs" title={`Raw UID: ${user.uid}`}>{getFixedNumericUid(user.uid)}</span>
                             </div>
-                            <div className="text-xs text-base-content/60 font-mono mt-0.5">{user.email || user.uid}</div>
                           </td>
                           <td className="min-w-36">
                             {latestLogin ? (
@@ -1060,11 +1075,11 @@ export default function AdminUsers() {
                     <tr key={log.id} className="hover">
                       <td className="whitespace-nowrap font-mono text-xs font-medium">{formatDateTime(log.created_at)}</td>
                       <td>
-                        <div className="font-mono text-xs font-bold text-primary">{log.admin_uid}</div>
+                        <div className="font-mono text-xs font-black text-primary" title={`Raw Admin UID: ${log.admin_uid}`}>{getFixedNumericUid(log.admin_uid)}</div>
                         <div className="mt-1">{roleBadge(log.role)}</div>
                       </td>
                       <td><span className="badge badge-outline font-black text-xs py-2 px-2.5 shadow-xs">{log.action}</span></td>
-                      <td className="font-mono text-xs text-base-content/80">{log.target_uid || "—"}</td>
+                      <td className="font-mono text-xs font-bold text-base-content/90" title={`Raw Target UID: ${log.target_uid || "—"}`}>{log.target_uid && log.target_uid !== "—" ? getFixedNumericUid(log.target_uid) : "—"}</td>
                       <td className="text-xs font-medium max-w-md break-words">{log.details || "—"}</td>
                       <td className="text-xs">
                         <div className="font-mono font-semibold">{log.ip_address || UNKNOWN}</div>

@@ -62,14 +62,17 @@ function safeDecode(value) {
 }
 
 function getWebSource(req) {
-  const origin = String(req.headers.origin || "").replace(/\/$/, "");
+  const origin = String(req.headers.origin || req.headers.referer || "").replace(/\/$/, "");
   if (TRUSTED_ORIGINS.has(origin)) return TRUSTED_ORIGINS.get(origin);
-  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) return "local";
-  return "unknown";
+  if (origin.includes("vercel.app") || req.headers["x-vercel-id"] || req.headers["x-vercel-forwarded-for"]) return "vercel";
+  if (origin.includes("railway.app") || req.headers["x-locket-source"] === "railway") return "railway";
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin) || origin.includes("localhost:") || origin.includes("127.0.0.1:")) return "local";
+  if (String(req.headers.host || "").includes("railway.app")) return "railway";
+  return "vercel";
 }
 
 function getRequestLocation(req, webSource) {
-  if (webSource !== "vercel" || !req.headers["x-vercel-id"]) {
+  if (!req.headers["x-vercel-id"]) {
     return { country: UNKNOWN, region: UNKNOWN, city: UNKNOWN };
   }
   return {
@@ -111,10 +114,12 @@ function parseUserAgent(userAgent) {
 
 function getRequestContext(req) {
   const webSource = getWebSource(req);
-  const vercelIp = webSource === "vercel" && req.headers["x-vercel-id"]
-    ? req.headers["x-vercel-forwarded-for"] || req.headers["x-forwarded-for"]
-    : null;
-  const ip = normalizePublicIp(vercelIp || req.headers["x-real-ip"] || req.ip);
+  const rawIp = req.headers["cf-connecting-ip"] ||
+                req.headers["x-vercel-forwarded-for"] ||
+                req.headers["x-real-ip"] ||
+                req.headers["x-forwarded-for"] ||
+                req.ip;
+  const ip = normalizePublicIp(rawIp);
   return {
     ipAddress: ip || UNKNOWN,
     webSource,
