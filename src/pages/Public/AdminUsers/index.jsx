@@ -248,7 +248,19 @@ export default function AdminUsers() {
     let connectionType = "WiFi / Băng thông rộng";
     let downlinkMbps = "Tối đa";
     if (navigator.connection) {
-      if (navigator.connection.effectiveType) connectionType = `${navigator.connection.effectiveType.toUpperCase()} Network`;
+      const type = navigator.connection.type;
+      const eff = navigator.connection.effectiveType;
+      if (type && type !== "unknown" && type !== "other") {
+        const mapType = { wifi: "WiFi Băng thông rộng", ethernet: "Cáp quang / LAN Ethernet", cellular: "Mạng Di Động (4G/5G)", wimax: "WiMAX" };
+        connectionType = mapType[type] || type.toUpperCase();
+      } else if (eff) {
+        // W3C effectiveType '4g' means broadband speed (WiFi/LAN/Fiber > 5Mbps), not necessarily cellular data!
+        if (eff === "4g") {
+          connectionType = "WiFi / Cáp quang Băng thông rộng";
+        } else {
+          connectionType = `Tốc độ mạng di động / tín hiệu yếu (${eff.toUpperCase()})`;
+        }
+      }
       if (navigator.connection.downlink) downlinkMbps = `${navigator.connection.downlink} Mbps`;
       if (!pingMs && navigator.connection.rtt) pingMs = navigator.connection.rtt;
     }
@@ -279,9 +291,19 @@ export default function AdminUsers() {
 
     let userAgentBrand = "Web Browser";
     if (navigator.userAgentData?.brands?.length) {
-      userAgentBrand = navigator.userAgentData.brands.map((b) => b.brand).join(", ");
-    } else if (navigator.userAgent.includes("Chrome") || navigator.userAgent.includes("Edg")) {
-      userAgentBrand = "Google Chrome / Chromium Edge";
+      // Filter out W3C Chromium anti-fingerprinting noise (e.g., "Not;A=Brand", "Chromium")
+      const validBrands = navigator.userAgentData.brands.filter(
+        (b) => !b.brand.includes("Not") && !b.brand.includes("Brand") && !b.brand.includes("Chromium")
+      );
+      if (validBrands.length > 0) {
+        userAgentBrand = validBrands.map((b) => `${b.brand} v${b.version || ""}`).join(", ");
+      } else {
+        userAgentBrand = "Google Chrome / Chromium";
+      }
+    } else if (navigator.userAgent.includes("Edg")) {
+      userAgentBrand = "Microsoft Edge";
+    } else if (navigator.userAgent.includes("Chrome")) {
+      userAgentBrand = "Google Chrome";
     } else if (navigator.userAgent.includes("Safari")) {
       userAgentBrand = "Apple Safari / iOS";
     } else if (navigator.userAgent.includes("Firefox")) {
