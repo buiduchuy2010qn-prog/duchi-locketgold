@@ -1488,60 +1488,69 @@ export default function AdminUsers() {
 
       {/* TAB 4: ADVANCED SUPER ADMIN POWER SUITE */}
       {activeTab === "advanced" && (
-        <div className="space-y-6 animate-fade-in">
-          {/* SUB-NAVIGATOR FOR SUPREME POWER SUITE - HIGH-DEF 4-COLUMN CARDS */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 bg-slate-950/90 p-3 sm:p-4 rounded-3xl shadow-2xl border border-slate-800/80 backdrop-blur-md">
+        <div className="space-y-7 animate-fade-in">
+          {/* SUB-NAVIGATOR FOR SUPREME POWER SUITE - OBSIDIAN CYBER DOCK */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 bg-slate-950/95 p-3.5 sm:p-4 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.4)] border border-white/10 backdrop-blur-2xl">
             <button
               type="button"
               onClick={() => setAdvancedSubTab("telemetry")}
-              className={`flex items-center gap-3.5 p-3.5 rounded-2xl transition-all duration-300 cursor-pointer text-left shadow-lg border-2 ${
+              className={`flex items-center gap-3.5 p-4 rounded-2xl transition-all duration-300 cursor-pointer text-left shadow-lg border relative overflow-hidden ${
                 advancedSubTab === "telemetry"
-                  ? "bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white border-indigo-400 shadow-indigo-500/30 scale-[1.02]"
-                  : "bg-slate-900/90 text-slate-300 border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800 hover:text-white"
+                  ? "bg-gradient-to-r from-cyan-600 via-indigo-600 to-purple-700 text-white border-cyan-400/60 shadow-[0_0_25px_-5px_rgba(56,189,248,0.4)] scale-[1.01]"
+                  : "bg-slate-900/80 text-slate-300 border-white/5 hover:border-cyan-500/40 hover:bg-slate-800/80 hover:text-white"
               }`}
             >
-              <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${advancedSubTab === "telemetry" ? "bg-white/20 text-white shadow-md" : "bg-indigo-500/20 text-indigo-400"}`}>
-                <Activity size={22} className={advancedSubTab === "telemetry" ? "animate-pulse" : ""} />
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 ${advancedSubTab === "telemetry" ? "bg-white/20 text-cyan-200 shadow-md scale-105" : "bg-cyan-500/15 text-cyan-400"}`}>
+                <Activity size={24} className={advancedSubTab === "telemetry" ? "animate-pulse" : ""} />
               </div>
               <div className="overflow-hidden">
-                <div className="text-[11px] font-extrabold uppercase tracking-wider opacity-70">Hạ tầng Cloud</div>
-                <div className="text-sm font-black truncate text-white">📈 Cảm Biến Telemetry</div>
+                <div className="text-[10px] font-extrabold uppercase tracking-widest text-cyan-300/80 mb-0.5 flex items-center gap-1">
+                  <span>HẠ TẦNG CLOUD</span>
+                  {advancedSubTab === "telemetry" && <span className="w-1.5 h-1.5 rounded-full bg-cyan-300 animate-ping" />}
+                </div>
+                <div className="text-sm font-black truncate text-white">Cảm Biến Telemetry</div>
               </div>
             </button>
 
             <button
               type="button"
               onClick={() => setAdvancedSubTab("broadcast")}
-              className={`flex items-center gap-3.5 p-3.5 rounded-2xl transition-all duration-300 cursor-pointer text-left shadow-lg border-2 ${
+              className={`flex items-center gap-3.5 p-4 rounded-2xl transition-all duration-300 cursor-pointer text-left shadow-lg border relative overflow-hidden ${
                 advancedSubTab === "broadcast"
-                  ? "bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 text-white border-cyan-300 shadow-cyan-500/30 scale-[1.02]"
-                  : "bg-slate-900/90 text-slate-300 border-slate-800 hover:border-cyan-500/50 hover:bg-slate-800 hover:text-white"
+                  ? "bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white border-blue-400/60 shadow-[0_0_25px_-5px_rgba(59,130,246,0.4)] scale-[1.01]"
+                  : "bg-slate-900/80 text-slate-300 border-white/5 hover:border-blue-500/40 hover:bg-slate-800/80 hover:text-white"
               }`}
             >
-              <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${advancedSubTab === "broadcast" ? "bg-white/20 text-yellow-200 shadow-md" : "bg-cyan-500/20 text-cyan-400"}`}>
-                <Volume2 size={22} className={advancedSubTab === "broadcast" ? "animate-bounce" : ""} />
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 ${advancedSubTab === "broadcast" ? "bg-white/20 text-yellow-200 shadow-md scale-105" : "bg-blue-500/15 text-blue-400"}`}>
+                <Volume2 size={24} className={advancedSubTab === "broadcast" ? "animate-bounce" : ""} />
               </div>
               <div className="overflow-hidden">
-                <div className="text-[11px] font-extrabold uppercase tracking-wider opacity-70">Hệ thống còi hú</div>
-                <div className="text-sm font-black truncate text-white">📢 Phát Loa Broadcast</div>
+                <div className="text-[10px] font-extrabold uppercase tracking-widest text-blue-300/80 mb-0.5 flex items-center gap-1">
+                  <span>TRUYỀN THÔNG BÁO</span>
+                  {advancedSubTab === "broadcast" && <span className="w-1.5 h-1.5 rounded-full bg-blue-300 animate-ping" />}
+                </div>
+                <div className="text-sm font-black truncate text-white">Phát Loa Broadcast</div>
               </div>
             </button>
 
             <button
               type="button"
               onClick={() => setAdvancedSubTab("blacklist")}
-              className={`flex items-center gap-3.5 p-3.5 rounded-2xl transition-all duration-300 cursor-pointer text-left shadow-lg border-2 ${
+              className={`flex items-center gap-3.5 p-4 rounded-2xl transition-all duration-300 cursor-pointer text-left shadow-lg border relative overflow-hidden ${
                 advancedSubTab === "blacklist"
-                  ? "bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white border-rose-400 shadow-red-500/30 scale-[1.02]"
-                  : "bg-slate-900/90 text-slate-300 border-slate-800 hover:border-rose-500/50 hover:bg-slate-800 hover:text-white"
+                  ? "bg-gradient-to-r from-rose-600 via-red-600 to-amber-700 text-white border-rose-400/60 shadow-[0_0_25px_-5px_rgba(244,63,94,0.4)] scale-[1.01]"
+                  : "bg-slate-900/80 text-slate-300 border-white/5 hover:border-rose-500/40 hover:bg-slate-800/80 hover:text-white"
               }`}
             >
-              <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${advancedSubTab === "blacklist" ? "bg-white/20 text-yellow-300 shadow-md" : "bg-rose-500/20 text-rose-400"}`}>
-                <ShieldAlert size={22} className={advancedSubTab === "blacklist" ? "animate-pulse" : ""} />
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 ${advancedSubTab === "blacklist" ? "bg-white/20 text-yellow-200 shadow-md scale-105" : "bg-rose-500/15 text-rose-400"}`}>
+                <ShieldAlert size={24} className={advancedSubTab === "blacklist" ? "animate-pulse" : ""} />
               </div>
               <div className="overflow-hidden">
-                <div className="text-[11px] font-extrabold uppercase tracking-wider opacity-70">Tường lửa WAF</div>
-                <div className="text-sm font-black truncate text-white">🚫 Cấm Cửa IP Vĩnh Viễn</div>
+                <div className="text-[10px] font-extrabold uppercase tracking-widest text-rose-300/80 mb-0.5 flex items-center gap-1">
+                  <span>TƯỜNG LỬA WAF</span>
+                  {advancedSubTab === "blacklist" && <span className="w-1.5 h-1.5 rounded-full bg-rose-300 animate-ping" />}
+                </div>
+                <div className="text-sm font-black truncate text-white">Cấm Cửa IP Vĩnh Viễn</div>
               </div>
             </button>
 
@@ -1551,502 +1560,653 @@ export default function AdminUsers() {
                 setAdvancedSubTab("heartbeat");
                 if (apiStatuses.length === 0) runApiHealthCheck();
               }}
-              className={`flex items-center gap-3.5 p-3.5 rounded-2xl transition-all duration-300 cursor-pointer text-left shadow-lg border-2 ${
+              className={`flex items-center gap-3.5 p-4 rounded-2xl transition-all duration-300 cursor-pointer text-left shadow-lg border relative overflow-hidden ${
                 advancedSubTab === "heartbeat"
-                  ? "bg-gradient-to-r from-emerald-500 via-teal-600 to-cyan-600 text-white border-emerald-300 shadow-emerald-500/30 scale-[1.02]"
-                  : "bg-slate-900/90 text-slate-300 border-slate-800 hover:border-emerald-500/50 hover:bg-slate-800 hover:text-white"
+                  ? "bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 text-white border-emerald-400/60 shadow-[0_0_25px_-5px_rgba(16,185,129,0.4)] scale-[1.01]"
+                  : "bg-slate-900/80 text-slate-300 border-white/5 hover:border-emerald-500/40 hover:bg-slate-800/80 hover:text-white"
               }`}
             >
-              <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${advancedSubTab === "heartbeat" ? "bg-white/20 text-yellow-300 shadow-md" : "bg-emerald-500/20 text-emerald-400"}`}>
-                <Zap size={22} className={advancedSubTab === "heartbeat" ? "animate-bounce" : ""} />
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 ${advancedSubTab === "heartbeat" ? "bg-white/20 text-emerald-200 shadow-md scale-105" : "bg-emerald-500/15 text-emerald-400"}`}>
+                <Zap size={24} className={advancedSubTab === "heartbeat" ? "animate-bounce" : ""} />
               </div>
               <div className="overflow-hidden">
-                <div className="text-[11px] font-extrabold uppercase tracking-wider opacity-70">Đường truyền Live</div>
-                <div className="text-sm font-black truncate text-white">📡 Giám Sát Sóng API</div>
+                <div className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-300/80 mb-0.5 flex items-center gap-1">
+                  <span>RADAR NHỊP SỐNG</span>
+                  {advancedSubTab === "heartbeat" && <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping" />}
+                </div>
+                <div className="text-sm font-black truncate text-white">Giám Sát Sóng API</div>
               </div>
             </button>
           </div>
 
           {/* Section 1: Dual-Cloud Health Dashboard: Vercel & Railway */}
           {advancedSubTab === "telemetry" && (
-            <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 text-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-indigo-500/30 animate-fade-in">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
-              <div>
-                <h2 className="text-xl font-black flex items-center gap-2 text-indigo-300">
-                  <Activity size={22} className="text-emerald-400 animate-pulse shrink-0" />
-                  Cảm Biến Giám Sát Hạ Tầng Vercel & Railway (Dual-Cloud Shield V3.0)
-                </h2>
-                <p className="text-xs text-indigo-200/70 mt-1">Hệ thống đo tải tài nguyên thực tế (Real Telemetry): Giao diện Edge (Vercel CDN), Máy chủ trung tâm (Railway API) & CSDL (Neon Cloud).</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => fetchAdvancedData(true)}
-                disabled={refreshingTelemetry}
-                className="btn btn-sm sm:btn-md bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-extrabold border-0 shadow-md transition-all duration-300 shrink-0 rounded-2xl px-5 active:scale-95 cursor-pointer"
-              >
-                {refreshingTelemetry ? (
-                  <>
-                    <span className="loading loading-spinner loading-sm text-cyan-300" />
-                    <span>Đang đo sóng Railway...</span>
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw size={16} className="text-cyan-300" />
-                    <span>🔄 Làm mới Cảm biến</span>
-                  </>
-                )}
-              </button>
-            </div>
+            <div className="bg-slate-950 text-white rounded-3xl p-6 sm:p-9 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] border border-slate-800/80 relative overflow-hidden animate-fade-in">
+              {/* Decorative Ambient Mesh Lighting */}
+              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none -mt-32 -mr-32" />
+              <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[120px] pointer-events-none -mb-32 -ml-32" />
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-              {/* 1. Vercel Frontend Edge Shield & Client Telemetry */}
-              <div className="bg-gradient-to-b from-slate-800/90 to-slate-950 border-2 border-purple-500/40 hover:border-purple-400/80 transition-all duration-300 rounded-3xl p-5 shadow-2xl relative overflow-hidden flex flex-col justify-between">
-                <div className="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl pointer-events-none" />
+              <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4 pb-6 border-b border-white/10">
                 <div>
-                  <div className="flex items-center justify-between mb-4 pb-3 border-b border-purple-500/20">
-                    <span className="font-black text-sm text-purple-300 flex items-center gap-2">
-                      🌐 TRẠM GIAO DIỆN VERCEL & EDGE CDN
-                    </span>
-                    <span className="badge badge-success badge-sm font-black text-[10px] animate-pulse py-2 px-2 shadow-sm">EDGE ACTIVE</span>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-xs font-black mb-2 shadow-inner">
+                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+                    <span>DUAL-CLOUD SHIELD V3.0 · OBSERVABILITY ENGINE</span>
                   </div>
-                  <div className="space-y-2.5 text-xs">
-                    <div className="bg-white/[0.04] p-3 rounded-2xl border border-white/10 hover:bg-white/[0.07] transition-colors">
-                      <span className="text-purple-300 font-bold block mb-1 text-[11px]">Độ trễ phản hồi máy chủ (Real RTT Ping)</span>
-                      <div className="flex flex-col gap-1">
-                        <span className={`font-black text-sm font-mono tracking-tight flex items-center gap-1.5 ${
-                          !clientTelemetry?.pingVal || clientTelemetry.pingVal < 350
-                            ? "text-emerald-400"
-                            : clientTelemetry.pingVal < 800
-                              ? "text-amber-300"
-                              : "text-amber-400"
-                        }`}>
-                          <span className={`inline-block w-2 h-2 rounded-full animate-ping ${
-                            !clientTelemetry?.pingVal || clientTelemetry.pingVal < 350 ? "bg-emerald-400" : "bg-amber-400"
-                          }`} />
-                          {clientTelemetry?.pingMs || "Đang đo..."}
-                          <span className="text-[11px] text-white/70 font-normal">({clientTelemetry?.connectionType || "Online"})</span>
-                        </span>
-                        {clientTelemetry?.pingVal > 800 && (
-                          <span className="text-[10px] text-amber-300/90 font-medium bg-amber-500/10 p-2 rounded-xl border border-amber-500/20 block leading-tight">
-                            ℹ️ <strong>Vì sao ping cao?</strong> Máy chủ Railway đặt tại Mỹ (US) & CSDL Neon vừa khôi phục sau chế độ ngủ ngầm (Cold Start). Bấm làm mới lần nữa sẽ tụt xuống dưới 350ms!
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="bg-white/[0.04] p-3 rounded-2xl border border-white/10 hover:bg-white/[0.07] transition-colors">
-                      <span className="text-purple-300 font-bold block mb-1 text-[11px]">Bảo mật Tường lửa WAF & Giao thức Edge</span>
-                      <span className="text-white font-black text-xs font-mono block">
-                        🛡️ Chống DDoS · {clientTelemetry?.protocol || "HTTPS (TLS 1.3)"}
-                      </span>
-                    </div>
-                    <div className="bg-white/[0.04] p-3 rounded-2xl border border-white/10 hover:bg-white/[0.07] transition-colors">
-                      <span className="text-purple-300 font-bold block mb-1 text-[11px]">Tối ưu hóa tĩnh (Workbox PWA & Cache)</span>
-                      <span className="text-amber-300 font-bold text-xs font-mono block">
-                        ⚡ {clientTelemetry?.cachedItemsCount || "0"} Assets trong máy · Lưu trữ: {clientTelemetry?.localStorageBytes || "0"} KB
-                      </span>
-                    </div>
-                    <div className="bg-white/[0.04] p-3 rounded-2xl border border-white/10 hover:bg-white/[0.07] transition-colors">
-                      <span className="text-purple-300 font-bold block mb-1 text-[11px]">Thiết bị Admin & Trình duyệt thực</span>
-                      <span className="text-cyan-300 font-bold text-[11px] font-mono block truncate">
-                        💻 {clientTelemetry?.cpuThreads || "8 Lõi"} · {clientTelemetry?.deviceRAM || "RAM"} · {clientTelemetry?.userAgentBrand || "Web"}
-                      </span>
-                    </div>
-                  </div>
+                  <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-slate-300 flex items-center gap-2.5">
+                    Cảm Biến Giám Sát Hạ Tầng Vercel & Railway
+                  </h2>
+                  <p className="text-sm text-slate-400 font-medium mt-1 max-w-3xl leading-relaxed">
+                    Hệ thống đo tải tài nguyên thực tế 100% không qua bộ đệm ảo: Phân chia chính xác giữa Giao diện Edge (Vercel CDN), Máy chủ Backend (Railway Node Engine) & Cơ sở dữ liệu (Neon PostgreSQL).
+                  </p>
                 </div>
-              </div>
-
-              {/* 2. Railway Backend API Server */}
-              <div className="bg-gradient-to-b from-slate-900/90 to-indigo-950 border-2 border-indigo-500/40 hover:border-indigo-400/80 transition-all duration-300 rounded-3xl p-5 shadow-2xl relative overflow-hidden flex flex-col justify-between">
-                <div className="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 bg-indigo-500/15 rounded-full blur-2xl pointer-events-none" />
-                <div>
-                  <div className="flex items-center justify-between mb-4 pb-3 border-b border-indigo-500/20">
-                    <span className="font-black text-sm text-indigo-300 flex items-center gap-2">
-                      ⚡ TRẠM XỬ LÝ RAILWAY (NODE ENGINE)
-                    </span>
-                    <span className="badge badge-primary badge-sm font-black text-[10px] animate-pulse py-2 px-2 shadow-sm">API SHIELD</span>
-                  </div>
-                  {serverHealth ? (
-                    <div className="space-y-2.5 text-xs">
-                      <div className="bg-white/[0.04] p-3 rounded-2xl border border-white/10 hover:bg-white/[0.07] transition-colors">
-                        <span className="text-indigo-300 font-bold block mb-1 text-[11px]">Trạng thái & Tiến trình (PID)</span>
-                        <span className="text-emerald-400 font-black text-xs block truncate">
-                          🟢 {serverHealth.status} {serverHealth.pid ? `(PID #${serverHealth.pid})` : ""}
-                        </span>
-                      </div>
-                      <div className="bg-white/[0.04] p-3 rounded-2xl border border-white/10 hover:bg-white/[0.07] transition-colors">
-                        <span className="text-indigo-300 font-bold block mb-1 text-[11px]">Thời gian liên tiếp hoạt động (Uptime)</span>
-                        <span className="text-white font-black text-sm font-mono block">
-                          ⏳ API: {Math.floor(serverHealth.uptimeSeconds / 3600)}h {Math.floor((serverHealth.uptimeSeconds % 3600) / 60)}p
-                          {serverHealth.osUptimeSeconds ? ` | Server OS: ${Math.floor(serverHealth.osUptimeSeconds / 3600)}h ${Math.floor((serverHealth.osUptimeSeconds % 3600) / 60)}p` : ""}
-                        </span>
-                      </div>
-                      <div className="bg-white/[0.04] p-3 rounded-2xl border border-white/10 hover:bg-white/[0.07] transition-colors">
-                        <span className="text-indigo-300 font-bold block mb-1 text-[11px]">Bộ nhớ RAM Máy chủ (App RSS / V8 Heap)</span>
-                        <span className="text-amber-300 font-black text-sm font-mono block">
-                          🧠 {serverHealth.memoryRssMb} MB (RSS) / {serverHealth.memoryHeapUsedMb} MB (Heap)
-                          {serverHealth.totalOsRamMb ? <span className="text-[11px] text-white/60 block mt-0.5 font-normal">Tổng RAM hệ thống: {serverHealth.totalOsRamMb} MB</span> : null}
-                        </span>
-                      </div>
-                      <div className="bg-white/[0.04] p-3 rounded-2xl border border-white/10 hover:bg-white/[0.07] transition-colors">
-                        <span className="text-indigo-300 font-bold block mb-1 text-[11px]">Phần cứng CPU & Hệ điều hành</span>
-                        <span className="text-slate-300 font-bold text-xs font-mono block truncate" title={serverHealth.cpuModel}>
-                          🖥️ {serverHealth.cpuModel || "Cloud vCPU"} ({serverHealth.cpuCores || 1} Cores)
-                          <span className="block text-[11px] text-indigo-300/80 mt-0.5">{serverHealth.platform} · {serverHealth.nodeVersion}</span>
-                        </span>
-                      </div>
-                    </div>
+                <button
+                  type="button"
+                  onClick={() => fetchAdvancedData(true)}
+                  disabled={refreshingTelemetry}
+                  className="btn btn-md bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-extrabold border-0 shadow-[0_0_25px_-5px_rgba(56,189,248,0.4)] transition-all duration-300 shrink-0 rounded-2xl px-6 h-12 active:scale-95 cursor-pointer"
+                >
+                  {refreshingTelemetry ? (
+                    <>
+                      <span className="loading loading-spinner loading-sm text-cyan-200" />
+                      <span>Đang đo sóng Railway...</span>
+                    </>
                   ) : (
-                    <div className="py-12 text-center text-indigo-300 flex flex-col items-center gap-3">
-                      <span className="loading loading-bars loading-md text-primary"></span>
-                      <span>Đang đo ngầm tài nguyên thực từ máy chủ Railway...</span>
-                    </div>
+                    <>
+                      <RefreshCw size={18} className="text-cyan-300" />
+                      <span>🔄 Làm mới Cảm biến Real-Time</span>
+                    </>
                   )}
-                </div>
+                </button>
               </div>
 
-              {/* 3. Neon PostgreSQL Cloud DB Telemetry */}
-              <div className="bg-gradient-to-b from-slate-900/90 to-emerald-950/80 border-2 border-emerald-500/40 hover:border-emerald-400/80 transition-all duration-300 rounded-3xl p-5 shadow-2xl relative overflow-hidden flex flex-col justify-between">
-                <div className="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 bg-emerald-500/15 rounded-full blur-2xl pointer-events-none" />
-                <div>
-                  <div className="flex items-center justify-between mb-4 pb-3 border-b border-emerald-500/20">
-                    <span className="font-black text-sm text-emerald-300 flex items-center gap-2">
-                      🗄️ TRẠM CSDL NEON (POSTGRES CLOUD)
-                    </span>
-                    <span className="badge badge-accent badge-sm font-black text-[10px] animate-pulse py-2 px-2 shadow-sm text-slate-900">DB ONLINE</span>
-                  </div>
-                  {serverHealth && serverHealth.db ? (
-                    <div className="space-y-2.5 text-xs">
-                      <div className="bg-white/[0.04] p-3 rounded-2xl border border-white/10 hover:bg-white/[0.07] transition-colors">
-                        <span className="text-emerald-300 font-bold block mb-1 text-[11px]">Engine CSDL & Tốc độ truy xuất (DB Latency)</span>
-                        <span className="text-emerald-400 font-black text-xs block truncate">
-                          ⚡ {serverHealth.db.latencyMs ? `${serverHealth.db.latencyMs}ms (Truy xuất trực tiếp)` : "Siêu nhạy"} · {serverHealth.db.status}
-                        </span>
+              <div className="relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* 1. Vercel Frontend Edge Shield & Client Telemetry */}
+                <div className="bg-slate-900/70 backdrop-blur-xl border border-cyan-500/30 hover:border-cyan-400/60 transition-all duration-300 rounded-3xl p-6 shadow-[0_10px_30px_-10px_rgba(6,182,212,0.15)] flex flex-col justify-between group">
+                  <div>
+                    <div className="flex items-center justify-between mb-5 pb-4 border-b border-cyan-500/20">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-lg font-bold shadow-inner group-hover:scale-110 transition-transform">
+                          🌐
+                        </div>
+                        <div>
+                          <div className="text-[10px] font-black uppercase tracking-wider text-cyan-400/80">FRONTEND LAYER</div>
+                          <span className="font-black text-sm text-white">TRẠM GIAO DIỆN VERCEL</span>
+                        </div>
                       </div>
-                      <div className="bg-white/[0.04] p-3 rounded-2xl border border-white/10 hover:bg-white/[0.07] transition-colors">
-                        <span className="text-emerald-300 font-bold block mb-1 text-[11px]">Dung lượng Thực tế & Quy mô CSDL</span>
-                        <span className="text-white font-black text-sm font-mono block">
-                          💾 {serverHealth.db.size} <span className="text-xs text-white/70 font-normal">(Gồm {serverHealth.db.tables} Bảng dữ liệu thực)</span>
+                      <span className="badge bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-black text-[10px] animate-pulse px-3 py-2.5 rounded-xl shadow-sm">
+                        EDGE ACTIVE
+                      </span>
+                    </div>
+                    
+                    <div className="space-y-3.5">
+                      <div className="bg-slate-950/80 p-4 rounded-2xl border border-white/5 hover:border-cyan-500/20 transition-all shadow-inner">
+                        <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
+                          Độ trễ phản hồi máy chủ (Real RTT Ping)
                         </span>
+                        <div className="flex flex-col gap-2">
+                          <div className={`font-black text-lg font-mono tracking-tight flex items-center gap-2 ${
+                            !clientTelemetry?.pingVal || clientTelemetry.pingVal < 350
+                              ? "text-emerald-400"
+                              : clientTelemetry.pingVal < 800
+                                ? "text-amber-300"
+                                : "text-amber-400"
+                          }`}>
+                            <span className={`inline-block w-2.5 h-2.5 rounded-full animate-ping ${
+                              !clientTelemetry?.pingVal || clientTelemetry.pingVal < 350 ? "bg-emerald-400" : "bg-amber-400"
+                            }`} />
+                            <span>{clientTelemetry?.pingMs || "Đang đo..."}</span>
+                            <span className="text-xs text-slate-400 font-semibold font-sans px-2 py-0.5 rounded-md bg-white/5 border border-white/5">
+                              {clientTelemetry?.connectionType || "Online"}
+                            </span>
+                          </div>
+                          {clientTelemetry?.pingVal > 800 && (
+                            <div className="text-xs text-amber-200 font-semibold bg-amber-500/10 p-3 rounded-xl border border-amber-500/30 leading-relaxed shadow-sm flex items-start gap-2">
+                              <span className="text-base shrink-0">⚡</span>
+                              <div>
+                                <strong className="text-amber-300 font-extrabold uppercase text-[11px] block">Vì sao ping cao?</strong>
+                                Máy chủ Railway đặt tại Mỹ (US-West) & CSDL Neon vừa khôi phục sau chế độ ngủ ngầm (Cold Start). Bấm làm mới lần nữa sẽ tụt xuống dưới 350ms!
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="bg-white/[0.04] p-3 rounded-2xl border border-white/10 hover:bg-white/[0.07] transition-colors">
-                        <span className="text-emerald-300 font-bold block mb-1 text-[11px]">Bể kết nối SQL (Active Connection Pool)</span>
-                        <span className="text-amber-300 font-black text-sm font-mono block">
-                          🔌 {serverHealth.db.connections?.active || 1} / {serverHealth.db.connections?.total || 1} kết nối đang kích hoạt
+
+                      <div className="bg-slate-950/80 p-4 rounded-2xl border border-white/5 hover:border-cyan-500/20 transition-all shadow-inner">
+                        <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
+                          Tường lửa WAF & Giao thức Edge
                         </span>
+                        <div className="flex items-center gap-2 text-white font-black text-xs font-mono">
+                          <span className="badge badge-sm bg-emerald-500/20 text-emerald-300 border-emerald-500/30 font-bold px-2">DDoS Protected</span>
+                          <span className="text-cyan-300">{clientTelemetry?.protocol || "HTTPS (TLS 1.3)"}</span>
+                        </div>
                       </div>
-                      <div className="bg-white/[0.04] p-3 rounded-2xl border border-white/10 hover:bg-white/[0.07] transition-colors">
-                        <span className="text-emerald-300 font-bold block mb-1 text-[11px]">Thống kê Bản ghi thực tế trong Hệ thống</span>
-                        <div className="grid grid-cols-2 gap-1.5 mt-1 text-[11px] font-mono">
-                          <div className="bg-emerald-500/10 text-emerald-300 px-2 py-1 rounded-md border border-emerald-500/20">
-                            👥 {serverHealth.db.records?.users || 0} Tài khoản
-                          </div>
-                          <div className="bg-cyan-500/10 text-cyan-300 px-2 py-1 rounded-md border border-cyan-500/20">
-                            🔐 {serverHealth.db.records?.sessions || 0} Phiên login
-                          </div>
-                          <div className="bg-purple-500/10 text-purple-300 px-2 py-1 rounded-md border border-purple-500/20">
-                            🛡️ {serverHealth.db.records?.audit || 0} Nhật ký
-                          </div>
-                          <div className="bg-rose-500/10 text-rose-300 px-2 py-1 rounded-md border border-rose-500/20">
-                            🚫 {serverHealth.db.records?.blacklistedIps || 0} IP Bị Cấm
-                          </div>
+
+                      <div className="bg-slate-950/80 p-4 rounded-2xl border border-white/5 hover:border-cyan-500/20 transition-all shadow-inner">
+                        <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
+                          Tối ưu hóa tĩnh (Workbox PWA & Cache)
+                        </span>
+                        <div className="text-amber-300 font-bold text-xs font-mono flex items-center justify-between">
+                          <span>⚡ {clientTelemetry?.cachedItemsCount || "0"} Assets trong máy</span>
+                          <span className="text-slate-400">Lưu trữ: {clientTelemetry?.localStorageBytes || "0"} KB</span>
+                        </div>
+                      </div>
+
+                      <div className="bg-slate-950/80 p-4 rounded-2xl border border-white/5 hover:border-cyan-500/20 transition-all shadow-inner">
+                        <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
+                          Thiết bị Admin & Trình duyệt thực
+                        </span>
+                        <div className="text-cyan-300 font-bold text-xs font-mono truncate bg-cyan-500/10 px-3 py-2 rounded-xl border border-cyan-500/20">
+                          💻 {clientTelemetry?.cpuThreads || "8 Lõi"} · {clientTelemetry?.deviceRAM || "RAM"} · {clientTelemetry?.userAgentBrand || "Web"}
                         </div>
                       </div>
                     </div>
-                  ) : (
-                    <div className="py-12 text-center text-emerald-300 flex flex-col items-center gap-3">
-                      <span className="loading loading-spinner loading-md text-accent"></span>
-                      <span>Đang trích xuất dữ liệu từ Neon Postgres...</span>
+                  </div>
+                </div>
+
+                {/* 2. Railway Backend API Server */}
+                <div className="bg-slate-900/70 backdrop-blur-xl border border-purple-500/30 hover:border-purple-400/60 transition-all duration-300 rounded-3xl p-6 shadow-[0_10px_30px_-10px_rgba(168,85,247,0.15)] flex flex-col justify-between group">
+                  <div>
+                    <div className="flex items-center justify-between mb-5 pb-4 border-b border-purple-500/20">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 text-lg font-bold shadow-inner group-hover:scale-110 transition-transform">
+                          ⚡
+                        </div>
+                        <div>
+                          <div className="text-[10px] font-black uppercase tracking-wider text-purple-400/80">BACKEND ENGINE</div>
+                          <span className="font-black text-sm text-white">TRẠM XỬ LÝ RAILWAY</span>
+                        </div>
+                      </div>
+                      <span className="badge bg-purple-500/20 text-purple-300 border border-purple-500/40 font-black text-[10px] animate-pulse px-3 py-2.5 rounded-xl shadow-sm">
+                        NODE ENGINE
+                      </span>
                     </div>
-                  )}
+
+                    {serverHealth ? (
+                      <div className="space-y-3.5">
+                        <div className="bg-slate-950/80 p-4 rounded-2xl border border-white/5 hover:border-purple-500/20 transition-all shadow-inner">
+                          <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
+                            Trạng thái & Tiến trình (PID)
+                          </span>
+                          <div className="text-emerald-400 font-black text-sm font-mono flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping shrink-0" />
+                            <span>{serverHealth.status}</span>
+                            {serverHealth.pid && <span className="badge badge-sm bg-emerald-500/20 text-emerald-300 border-emerald-500/30 font-mono font-bold">PID #{serverHealth.pid}</span>}
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-950/80 p-4 rounded-2xl border border-white/5 hover:border-purple-500/20 transition-all shadow-inner">
+                          <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
+                            Thời gian liên tiếp hoạt động (Uptime)
+                          </span>
+                          <div className="text-white font-black text-sm font-mono bg-purple-500/10 px-3.5 py-2.5 rounded-xl border border-purple-500/20 flex flex-wrap gap-2 items-center justify-between">
+                            <span>⏳ API: <span className="text-purple-300 font-bold">{Math.floor(serverHealth.uptimeSeconds / 3600)}h {Math.floor((serverHealth.uptimeSeconds % 3600) / 60)}p</span></span>
+                            {serverHealth.osUptimeSeconds && <span className="text-xs text-slate-400">OS: {Math.floor(serverHealth.osUptimeSeconds / 3600)}h {Math.floor((serverHealth.osUptimeSeconds % 3600) / 60)}p</span>}
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-950/80 p-4 rounded-2xl border border-white/5 hover:border-purple-500/20 transition-all shadow-inner">
+                          <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
+                            Bộ nhớ RAM Máy chủ (App RSS / V8 Heap)
+                          </span>
+                          <div className="text-amber-300 font-black text-sm font-mono">
+                            <div className="flex items-center justify-between mb-1">
+                              <span>🧠 {serverHealth.memoryRssMb} MB <span className="text-xs font-normal text-slate-400">(RSS)</span></span>
+                              <span>{serverHealth.memoryHeapUsedMb} MB <span className="text-xs font-normal text-slate-400">(Heap)</span></span>
+                            </div>
+                            {serverHealth.totalOsRamMb && <div className="text-xs text-slate-400 font-normal border-t border-white/5 pt-1 mt-1">Tổng RAM hạ tầng Cloud: <strong className="text-white">{serverHealth.totalOsRamMb} MB</strong></div>}
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-950/80 p-4 rounded-2xl border border-white/5 hover:border-purple-500/20 transition-all shadow-inner">
+                          <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
+                            Phần cứng CPU & Hệ điều hành
+                          </span>
+                          <div className="text-slate-200 font-bold text-xs font-mono">
+                            <div className="truncate mb-1 text-purple-300" title={serverHealth.cpuModel}>
+                              🖥️ {serverHealth.cpuModel || "Cloud vCPU"} ({serverHealth.cpuCores || 1} Cores)
+                            </div>
+                            <div className="text-[11px] text-slate-400 flex items-center justify-between border-t border-white/5 pt-1.5">
+                              <span>Platform: <strong className="text-white font-mono">{serverHealth.platform}</strong></span>
+                              <span>Node: <strong className="text-white font-mono">{serverHealth.nodeVersion}</strong></span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="py-16 text-center text-purple-300 flex flex-col items-center gap-3.5">
+                        <span className="loading loading-bars loading-md text-purple-400"></span>
+                        <span className="font-bold text-xs uppercase tracking-wide text-slate-400">Đang đo ngầm tài nguyên thực từ Railway...</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 3. Neon PostgreSQL Cloud DB Telemetry */}
+                <div className="bg-slate-900/70 backdrop-blur-xl border border-emerald-500/30 hover:border-emerald-400/60 transition-all duration-300 rounded-3xl p-6 shadow-[0_10px_30px_-10px_rgba(16,185,129,0.15)] flex flex-col justify-between group">
+                  <div>
+                    <div className="flex items-center justify-between mb-5 pb-4 border-b border-emerald-500/20">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-lg font-bold shadow-inner group-hover:scale-110 transition-transform">
+                          🗄️
+                        </div>
+                        <div>
+                          <div className="text-[10px] font-black uppercase tracking-wider text-emerald-400/80">DATABASE LAYER</div>
+                          <span className="font-black text-sm text-white">TRẠM CSDL NEON CLOUD</span>
+                        </div>
+                      </div>
+                      <span className="badge bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-black text-[10px] animate-pulse px-3 py-2.5 rounded-xl shadow-sm">
+                        SQL ONLINE
+                      </span>
+                    </div>
+
+                    {serverHealth && serverHealth.db ? (
+                      <div className="space-y-3.5">
+                        <div className="bg-slate-950/80 p-4 rounded-2xl border border-white/5 hover:border-emerald-500/20 transition-all shadow-inner">
+                          <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
+                            Engine CSDL & Tốc độ truy xuất (DB Latency)
+                          </span>
+                          <div className="text-emerald-400 font-black text-sm font-mono flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                            <span>{serverHealth.db.latencyMs ? `${serverHealth.db.latencyMs}ms` : "Siêu nhạy"}</span>
+                            <span className="text-xs text-slate-300 font-semibold px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/20">
+                              {serverHealth.db.status}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-950/80 p-4 rounded-2xl border border-white/5 hover:border-emerald-500/20 transition-all shadow-inner">
+                          <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
+                            Dung lượng Thực tế & Quy mô CSDL
+                          </span>
+                          <div className="text-white font-black text-sm font-mono flex items-center justify-between bg-emerald-500/10 px-3.5 py-2.5 rounded-xl border border-emerald-500/20">
+                            <span>💾 {serverHealth.db.size}</span>
+                            <span className="text-xs text-emerald-300 font-semibold">Gồm {serverHealth.db.tables} Bảng dữ liệu thực</span>
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-950/80 p-4 rounded-2xl border border-white/5 hover:border-emerald-500/20 transition-all shadow-inner">
+                          <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
+                            Bể kết nối SQL (Active Connection Pool)
+                          </span>
+                          <div className="text-amber-300 font-black text-sm font-mono flex items-center justify-between">
+                            <span>🔌 {serverHealth.db.connections?.active || 1} / {serverHealth.db.connections?.total || 1} kết nối kích hoạt</span>
+                            <span className="badge badge-sm bg-amber-500/20 text-amber-300 border-amber-500/30">Pool Active</span>
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-950/80 p-4 rounded-2xl border border-white/5 hover:border-emerald-500/20 transition-all shadow-inner">
+                          <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-2">
+                            Thống kê Bản ghi thực tế trong Hệ thống
+                          </span>
+                          <div className="grid grid-cols-2 gap-2 text-xs font-mono font-bold">
+                            <div className="bg-emerald-500/10 text-emerald-300 p-2.5 rounded-xl border border-emerald-500/20 flex items-center justify-between shadow-sm">
+                              <span>👥 Accounts:</span>
+                              <span className="text-white font-black">{serverHealth.db.records?.users || 0}</span>
+                            </div>
+                            <div className="bg-cyan-500/10 text-cyan-300 p-2.5 rounded-xl border border-cyan-500/20 flex items-center justify-between shadow-sm">
+                              <span>🔐 Sessions:</span>
+                              <span className="text-white font-black">{serverHealth.db.records?.sessions || 0}</span>
+                            </div>
+                            <div className="bg-purple-500/10 text-purple-300 p-2.5 rounded-xl border border-purple-500/20 flex items-center justify-between shadow-sm">
+                              <span>🛡️ Audit Log:</span>
+                              <span className="text-white font-black">{serverHealth.db.records?.audit || 0}</span>
+                            </div>
+                            <div className="bg-rose-500/10 text-rose-300 p-2.5 rounded-xl border border-rose-500/20 flex items-center justify-between shadow-sm">
+                              <span>🚫 Banned IPs:</span>
+                              <span className="text-white font-black">{serverHealth.db.records?.blacklistedIps || 0}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="py-16 text-center text-emerald-300 flex flex-col items-center gap-3.5">
+                        <span className="loading loading-spinner loading-md text-emerald-400"></span>
+                        <span className="font-bold text-xs uppercase tracking-wide text-slate-400">Đang trích xuất dữ liệu từ Neon Postgres...</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
             </div>
           )}
 
           {/* Section 2: Global / Targeted Broadcast Banner */}
           {advancedSubTab === "broadcast" && (
-            <div className="bg-base-100 rounded-3xl p-6 sm:p-8 shadow-sm border border-base-200 animate-fade-in">
-            <h3 className="text-lg font-black flex items-center gap-2 mb-2 text-primary">
-              📢 Phát Loa Thông Báo (Global & Targeted Broadcast)
-            </h3>
-            <p className="text-xs text-base-content/70 mb-5">
-              Chọn phát loa tới toàn bộ người dùng hoặc riêng cho một tài khoản nhất định. Banner sẽ xuất hiện nổi bật trên giao diện người được nhận ngay lập tức!
-            </p>
+            <div className="bg-slate-950 text-white rounded-3xl p-6 sm:p-9 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] border border-slate-800/80 relative overflow-hidden animate-fade-in">
+              <div className="absolute top-0 right-0 w-[450px] h-[450px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none -mt-32 -mr-32" />
 
-            <div className="mb-4">
-              <label className="label text-xs font-bold uppercase text-base-content/80 pb-1">
-                🎯 Chọn Đối Tượng Nhận Thông Báo:
-              </label>
-              <select
-                value={broadcastTarget}
-                onChange={(e) => setBroadcastTarget(e.target.value)}
-                className="select select-bordered w-full rounded-xl font-bold text-sm bg-base-200/50"
-              >
-                <option value="ALL">🌐 Toàn bộ hệ thống (Tất cả người dùng trên Server)</option>
-                {users.map((u) => {
-                  const label = u.displayName ? `${u.displayName} (${u.email || u.uid})` : (u.email || u.uid);
-                  return (
-                    <option key={u.uid || u.email} value={u.email || u.uid}>
-                      👤 Cá nhân: {label}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
+              <div className="relative z-10 mb-8 pb-6 border-b border-white/10">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs font-black mb-2 shadow-inner">
+                  <span>📢 GLOBAL & TARGETED BROADCAST HUB</span>
+                </div>
+                <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-blue-200">
+                  Phát Loa Thông Báo Toàn Hệ Thống
+                </h3>
+                <p className="text-sm text-slate-400 font-medium mt-1 max-w-3xl leading-relaxed">
+                  Phát thông báo nổi bật tới toàn bộ người dùng đang trực tuyến hoặc chỉ định rõ một tài khoản nhất định. Banner thông báo sẽ tự động nổi lên trên giao diện ứng dụng của người nhận theo thời gian thực!
+                </p>
+              </div>
 
-            <div className="flex flex-col sm:flex-row gap-3">
-              <input
-                type="text"
-                placeholder="Nhập nội dung thông báo (ví dụ: Bảo trì lúc 23h50, vui lòng lưu trữ bài đăng...)"
-                value={broadcastMsg}
-                onChange={(e) => setBroadcastMsg(e.target.value)}
-                className="input input-bordered flex-1 font-medium rounded-xl h-11"
-              />
-              <button
-                type="button"
-                onClick={async () => {
-                  if (!broadcastMsg.trim()) {
-                    SonnerWarning("Vui lòng nhập nội dung thông báo trước khi phát sóng!");
-                    return;
-                  }
-                  const action = async () => {
-                    await adminRequest("/broadcast", {
-                      method: "POST",
-                      body: JSON.stringify({ message: broadcastMsg, active: true, targetUser: broadcastTarget }),
-                    });
-                    setBroadcastMsg("");
-                    setBroadcastActive(true);
-                    window.dispatchEvent(new Event("locket_broadcast_updated"));
-                    const targetText = broadcastTarget === "ALL" ? "Toàn Server" : `riêng cho ${broadcastTarget}`;
-                    SonnerSuccess(`🎉 Đã ĐĂNG và PHÁT SÓNG thông báo tới: ${targetText}!`);
-                    fetchAdvancedData();
-                  };
-                  handleActionWithSessionCheck(action);
-                }}
-                className="btn btn-primary font-black px-6 rounded-xl h-11"
-              >
-                🟢 Đăng & Phát Sóng Ngay
-              </button>
-            </div>
-
-            {/* Danh Sách Các Thông Báo Đã Đăng */}
-            <div className="mt-8 pt-6 border-t border-base-200">
-              <h4 className="text-sm font-black uppercase text-base-content/80 flex items-center gap-2 mb-4">
-                📋 Quản Lý Danh Sách Thông Báo Đã Đăng (Broadcast History)
-              </h4>
-              <div className="overflow-x-auto border border-base-200 rounded-2xl bg-base-100/50 max-h-80 overflow-y-auto">
-                <table className="table w-full text-sm font-medium">
-                  <thead className="bg-base-200/60 font-bold sticky top-0 z-10">
-                    <tr>
-                      <th className="py-3">Trạng Thái</th>
-                      <th>Nội Dung</th>
-                      <th>Đối Tượng</th>
-                      <th>Thời Gian Đăng</th>
-                      <th className="text-right">Hành Động</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-base-200/50">
-                    {broadcastList.length === 0 ? (
-                      <tr>
-                        <td colSpan="5" className="text-center py-8 text-base-content/50 font-medium">
-                          Chưa có thông báo nào được đăng trong cơ sở dữ liệu.
-                        </td>
-                      </tr>
-                    ) : (
-                      broadcastList.map((bItem) => {
-                        const isAll = bItem.targetUser === "ALL" || bItem.targetUser === "*";
+              <div className="relative z-10 space-y-6 max-w-4xl">
+                <div className="bg-slate-900/80 p-6 rounded-3xl border border-white/10 shadow-2xl space-y-5">
+                  <div>
+                    <label className="label text-xs font-black uppercase text-blue-300 tracking-wider pb-2">
+                      🎯 Chọn Đối Tượng Nhận Thông Báo (Mục Tiêu Phát Sóng):
+                    </label>
+                    <select
+                      value={broadcastTarget}
+                      onChange={(e) => setBroadcastTarget(e.target.value)}
+                      className="select select-bordered w-full rounded-2xl font-bold text-sm bg-slate-950 text-white border-white/20 focus:border-blue-500 h-12 shadow-inner"
+                    >
+                      <option value="ALL">🌐 Toàn bộ hệ thống (Tất cả người dùng trên Server)</option>
+                      {users.map((u) => {
+                        const label = u.displayName ? `${u.displayName} (${u.email || u.uid})` : (u.email || u.uid);
                         return (
-                          <tr key={bItem.id || bItem.updatedAt} className="hover:bg-base-200/30 transition-colors">
-                            <td className="py-3 font-bold">
-                              {bItem.active ? (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-black bg-success/15 text-success border border-success/30 animate-pulse">
-                                  <span className="w-2 h-2 rounded-full bg-success"></span> Đang Phát
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-base-300/60 text-base-content/60">
-                                  ⚪ Đã Tắt
-                                </span>
-                              )}
-                            </td>
-                            <td className="font-bold max-w-xs truncate" title={bItem.message}>
-                              {bItem.message}
-                            </td>
-                            <td>
-                              <span className={`px-2 py-0.5 rounded-md text-xs font-bold font-mono ${
-                                isAll ? "bg-info/10 text-info border border-info/20" : "bg-purple-500/10 text-purple-600 dark:text-purple-300 border border-purple-500/20"
-                              }`}>
-                                {isAll ? "🌐 Toàn Server" : `👤 ${bItem.targetUser}`}
-                              </span>
-                            </td>
-                            <td className="text-xs text-base-content/70 font-mono">
-                              {bItem.updatedAt ? new Date(bItem.updatedAt).toLocaleString("vi-VN") : "N/A"}
-                            </td>
-                            <td className="text-right whitespace-nowrap">
-                              <div className="flex items-center justify-end gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const action = async () => {
-                                      await adminRequest("/broadcast", {
-                                        method: "POST",
-                                        body: JSON.stringify({ action: "toggle", id: bItem.id, active: !bItem.active }),
-                                      });
-                                      SonnerInfo(bItem.active ? "Đã tắt loa thông báo!" : "Đã bật lại loa thông báo!");
-                                      window.dispatchEvent(new Event("locket_broadcast_updated"));
-                                      fetchAdvancedData();
-                                    };
-                                    handleActionWithSessionCheck(action);
-                                  }}
-                                  className={`btn btn-xs font-bold rounded-lg ${
-                                    bItem.active ? "btn-warning" : "btn-success text-white"
-                                  }`}
-                                >
-                                  {bItem.active ? "🚫 Tắt Loa" : "🟢 Phát Lại"}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const action = async () => {
-                                      await adminRequest(`/broadcast/${bItem.id}`, { method: "DELETE" });
-                                      SonnerInfo("Đã xóa thông báo khỏi danh sách!");
-                                      window.dispatchEvent(new Event("locket_broadcast_updated"));
-                                      fetchAdvancedData();
-                                    };
-                                    handleActionWithSessionCheck(action);
-                                  }}
-                                  className="btn btn-xs btn-error text-white font-bold rounded-lg flex items-center gap-1"
-                                  title="Xóa thông báo"
-                                >
-                                  <Trash2 className="w-3 h-3" /> Xóa
-                                </button>
-                              </div>
+                          <option key={u.uid || u.email} value={u.email || u.uid}>
+                            👤 Cá nhân: {label}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="label text-xs font-black uppercase text-blue-300 tracking-wider pb-2">
+                      💬 Nội Dung Bản Tin Phát Loa:
+                    </label>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <input
+                        type="text"
+                        placeholder="Nhập nội dung thông báo (ví dụ: Bảo trì hệ thống lúc 23h50, vui lòng lưu giữ bài đăng...)"
+                        value={broadcastMsg}
+                        onChange={(e) => setBroadcastMsg(e.target.value)}
+                        className="input input-bordered flex-1 font-semibold rounded-2xl h-13 bg-slate-950 text-white placeholder:text-slate-500 border-white/20 focus:border-blue-500 shadow-inner px-4 text-base"
+                      />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!broadcastMsg.trim()) {
+                            SonnerWarning("Vui lòng nhập nội dung thông báo trước khi phát sóng!");
+                            return;
+                          }
+                          const action = async () => {
+                            await adminRequest("/broadcast", {
+                              method: "POST",
+                              body: JSON.stringify({ message: broadcastMsg, active: true, targetUser: broadcastTarget }),
+                            });
+                            setBroadcastMsg("");
+                            setBroadcastActive(true);
+                            window.dispatchEvent(new Event("locket_broadcast_updated"));
+                            const targetText = broadcastTarget === "ALL" ? "Toàn Server" : `riêng cho ${broadcastTarget}`;
+                            SonnerSuccess(`🎉 Đã ĐĂNG và PHÁT SÓNG thông báo tới: ${targetText}!`);
+                            fetchAdvancedData();
+                          };
+                          handleActionWithSessionCheck(action);
+                        }}
+                        className="btn bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 hover:from-emerald-400 hover:to-cyan-500 text-slate-950 font-black px-8 rounded-2xl h-13 border-0 shadow-[0_0_25px_-5px_rgba(16,185,129,0.5)] transition-all active:scale-95 text-sm"
+                      >
+                        🟢 Đăng & Phát Sóng Ngay
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Danh Sách Các Thông Báo Đã Đăng */}
+                <div className="pt-6 border-t border-white/10">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-sm font-black uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                      📋 Lịch Sử Thông Báo Đã Đăng (Broadcast Archive)
+                    </h4>
+                    <span className="badge badge-neutral badge-sm font-bold">{broadcastList.length} Bản tin</span>
+                  </div>
+
+                  <div className="overflow-x-auto border border-white/10 rounded-2xl bg-slate-900/50 shadow-inner max-h-96 overflow-y-auto">
+                    <table className="table w-full text-sm font-medium">
+                      <thead className="bg-slate-900 font-extrabold text-slate-300 uppercase text-xs tracking-wider sticky top-0 z-10 border-b border-white/10">
+                        <tr>
+                          <th className="py-3.5">Trang Thái</th>
+                          <th>Nội Dung</th>
+                          <th>Đối Tượng</th>
+                          <th>Thời Gian Đăng</th>
+                          <th className="text-right">Hành Động</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5 text-slate-200">
+                        {broadcastList.length === 0 ? (
+                          <tr>
+                            <td colSpan="5" className="text-center py-12 text-slate-500 font-semibold">
+                              Chưa có thông báo nào được ghi nhận trong cơ sở dữ liệu.
                             </td>
                           </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
+                        ) : (
+                          broadcastList.map((bItem) => {
+                            const isAll = bItem.targetUser === "ALL" || bItem.targetUser === "*";
+                            return (
+                              <tr key={bItem.id || bItem.updatedAt} className="hover:bg-white/[0.04] transition-colors">
+                                <td className="py-3.5 font-bold">
+                                  {bItem.active ? (
+                                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-xl text-xs font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm animate-pulse">
+                                      <span className="w-2 h-2 rounded-full bg-emerald-400"></span> Đang Phát
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-white/10 text-slate-400 border border-white/10">
+                                      ⚪ Đã Tắt
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="font-bold max-w-xs truncate text-white" title={bItem.message}>
+                                  {bItem.message}
+                                </td>
+                                <td>
+                                  <span className={`px-2.5 py-1 rounded-xl text-xs font-bold font-mono border shadow-sm ${
+                                    isAll ? "bg-cyan-500/15 text-cyan-300 border-cyan-500/30" : "bg-purple-500/15 text-purple-300 border-purple-500/30"
+                                  }`}>
+                                    {isAll ? "🌐 Toàn Server" : `👤 ${bItem.targetUser}`}
+                                  </span>
+                                </td>
+                                <td className="text-xs text-slate-400 font-mono">
+                                  {bItem.updatedAt ? new Date(bItem.updatedAt).toLocaleString("vi-VN") : "N/A"}
+                                </td>
+                                <td className="text-right whitespace-nowrap">
+                                  <div className="flex items-center justify-end gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const action = async () => {
+                                          await adminRequest("/broadcast", {
+                                            method: "POST",
+                                            body: JSON.stringify({ action: "toggle", id: bItem.id, active: !bItem.active }),
+                                          });
+                                          SonnerInfo(bItem.active ? "Đã tắt loa thông báo!" : "Đã bật lại loa thông báo!");
+                                          window.dispatchEvent(new Event("locket_broadcast_updated"));
+                                          fetchAdvancedData();
+                                        };
+                                        handleActionWithSessionCheck(action);
+                                      }}
+                                      className={`btn btn-xs font-extrabold rounded-xl h-8 px-3 transition-all ${
+                                        bItem.active ? "bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border border-amber-500/40" : "bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 border border-emerald-500/40"
+                                      }`}
+                                    >
+                                      {bItem.active ? "🚫 Tắt Loa" : "🟢 Phát Lại"}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const action = async () => {
+                                          await adminRequest(`/broadcast/${bItem.id}`, { method: "DELETE" });
+                                          SonnerInfo("Đã xóa thông báo khỏi danh sách!");
+                                          window.dispatchEvent(new Event("locket_broadcast_updated"));
+                                          fetchAdvancedData();
+                                        };
+                                        handleActionWithSessionCheck(action);
+                                      }}
+                                      className="btn btn-xs bg-rose-500/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/40 font-bold rounded-xl h-8 px-3 flex items-center gap-1 transition-all"
+                                      title="Xóa thông báo"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" /> Xóa
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
-            </div>
             </div>
           )}
 
           {/* Section 3: Permanent IP Blacklist */}
           {advancedSubTab === "blacklist" && (
-            <div className="bg-base-100 rounded-3xl p-6 sm:p-8 shadow-sm border border-base-200 animate-fade-in">
-            <h3 className="text-lg font-black flex items-center gap-2 mb-2 text-error">
-              🚫 Cấm Cửa Địa Chỉ IP Vĩnh Viễn (Permanent IP Blacklist)
-            </h3>
-            <p className="text-xs text-base-content/70 mb-5">Những địa chỉ IP trong danh sách này sẽ bị Tường Lửa Thép Huy Locket từ chối kết nối trước khi chạm vào máy chủ, không thể dùng bất kỳ tài khoản nào để truy cập.</p>
+            <div className="bg-slate-950 text-white rounded-3xl p-6 sm:p-9 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] border border-slate-800/80 relative overflow-hidden animate-fade-in">
+              <div className="absolute top-0 right-0 w-[450px] h-[450px] bg-rose-500/10 rounded-full blur-[120px] pointer-events-none -mt-32 -mr-32" />
 
-            <div className="flex flex-col sm:flex-row gap-3 mb-6">
-              <input
-                type="text"
-                placeholder="Nhập địa chỉ IP cần phong tỏa (VD: 54.196.219.221)..."
-                value={banIpInput}
-                onChange={(e) => setBanIpInput(e.target.value)}
-                className="input input-bordered w-full sm:w-72 font-mono text-sm rounded-xl h-11"
-              />
-              <input
-                type="text"
-                placeholder="Lý do cấm (VD: Dội bot VPS / Phát tán rác)..."
-                value={banReasonInput}
-                onChange={(e) => setBanReasonInput(e.target.value)}
-                className="input input-bordered flex-1 text-sm rounded-xl h-11"
-              />
-              <button
-                type="button"
-                onClick={async () => {
-                  if (!banIpInput.trim()) return SonnerInfo("Vui lòng nhập số IP hợp lệ");
-                  const action = async () => {
-                    await adminRequest("/ip-blacklist", {
-                      method: "POST",
-                      body: JSON.stringify({ ip_address: banIpInput.trim(), reason: banReasonInput.trim() || "Cấm bởi Quản Trị Viên" }),
-                    });
-                    SonnerInfo(`🛑 Đã cấm vĩnh viễn IP: ${banIpInput.trim()}`);
-                    setBanIpInput(""); setBanReasonInput("");
-                    fetchAdvancedData();
-                  };
-                  handleActionWithSessionCheck(action);
-                }}
-                className="btn btn-error font-black text-white px-6 rounded-xl h-11"
-              >
-                🔒 Phong Tỏa IP
-              </button>
-            </div>
+              <div className="relative z-10 mb-8 pb-6 border-b border-white/10">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs font-black mb-2 shadow-inner">
+                  <span>🚫 WAF FIREWALL · PERMANENT LOCKOUT</span>
+                </div>
+                <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-rose-100 to-amber-200">
+                  Cấm Cửa Địa Chỉ IP Vĩnh Viễn
+                </h3>
+                <p className="text-sm text-slate-400 font-medium mt-1 max-w-3xl leading-relaxed">
+                  Những địa chỉ IP nằm trong danh sách đen này sẽ bị Tường Lửa Thép Huy Locket từ chối kết nối ngay tại tầng giao thức trước khi chạm vào máy chủ Node.js, vô hiệu hóa hoàn toàn mọi truy cập của tin tặc hay spammer.
+                </p>
+              </div>
 
-            <div className="overflow-x-auto border border-base-200 rounded-2xl">
-              <table className="table table-sm table-zebra w-full">
-                <thead className="bg-base-200/60 font-bold">
-                  <tr>
-                    <th>Địa chỉ IP</th>
-                    <th>Lý do Cấm Cửa</th>
-                    <th>Người thao tác</th>
-                    <th>Thời gian phong tỏa</th>
-                    <th className="text-right">Hành động</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {blacklistedIps.length === 0 ? (
-                    <tr><td colSpan="5" className="text-center py-8 text-base-content/50 font-medium">Chưa có IP nào bị phong tỏa trong cơ sở dữ liệu.</td></tr>
-                  ) : blacklistedIps.map((b) => (
-                    <tr key={b.ip_address} className="hover">
-                      <td className="font-mono font-bold text-error text-sm">{b.ip_address}</td>
-                      <td className="text-xs font-semibold">{b.reason || "—"}</td>
-                      <td className="font-mono text-xs text-primary">{b.blocked_by || "SUPER_ADMIN"}</td>
-                      <td className="font-mono text-xs text-base-content/70">{formatDateTime(b.created_at)}</td>
-                      <td className="text-right">
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            const action = async () => {
-                              await adminRequest(`/ip-blacklist/${encodeURIComponent(b.ip_address)}`, { method: "DELETE" });
-                              SonnerInfo(`Đã mở cửa IP: ${b.ip_address}`);
-                              fetchAdvancedData();
-                            };
-                            handleActionWithSessionCheck(action);
-                          }}
-                          className="btn btn-xs btn-outline btn-success font-bold rounded-lg h-7 px-3"
-                        >
-                          Mở khóa IP
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+              <div className="relative z-10 space-y-6">
+                <div className="bg-slate-900/80 p-6 rounded-3xl border border-rose-500/20 shadow-2xl max-w-4xl">
+                  <label className="label text-xs font-black uppercase tracking-wider text-rose-300 pb-2">
+                    🔒 Phong Tỏa IP Khả Nghi Vào Danh Sách Đen:
+                  </label>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <input
+                      type="text"
+                      placeholder="Nhập địa chỉ IP (VD: 54.196.219.221)..."
+                      value={banIpInput}
+                      onChange={(e) => setBanIpInput(e.target.value)}
+                      className="input input-bordered w-full sm:w-72 font-mono text-sm rounded-2xl h-12 bg-slate-950 text-white placeholder:text-slate-500 border-white/20 focus:border-rose-500 shadow-inner"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Lý do phong tỏa (VD: Dội bot VPS / Tấn công dò rỉ)..."
+                      value={banReasonInput}
+                      onChange={(e) => setBanReasonInput(e.target.value)}
+                      className="input input-bordered flex-1 text-sm rounded-2xl h-12 bg-slate-950 text-white placeholder:text-slate-500 border-white/20 focus:border-rose-500 shadow-inner"
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!banIpInput.trim()) return SonnerInfo("Vui lòng nhập số IP hợp lệ");
+                        const action = async () => {
+                          await adminRequest("/ip-blacklist", {
+                            method: "POST",
+                            body: JSON.stringify({ ip_address: banIpInput.trim(), reason: banReasonInput.trim() || "Cấm bởi Quản Trị Viên" }),
+                          });
+                          SonnerInfo(`🛑 Đã cấm vĩnh viễn IP: ${banIpInput.trim()}`);
+                          setBanIpInput(""); setBanReasonInput("");
+                          fetchAdvancedData();
+                        };
+                        handleActionWithSessionCheck(action);
+                      }}
+                      className="btn bg-gradient-to-r from-rose-600 via-red-600 to-amber-700 hover:from-rose-500 hover:to-amber-600 text-white font-black px-8 rounded-2xl h-12 border-0 shadow-[0_0_25px_-5px_rgba(244,63,94,0.5)] transition-all active:scale-95 text-sm"
+                    >
+                      🔒 Phong Tỏa Ngay
+                    </button>
+                  </div>
+                </div>
+
+                <div className="pt-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-sm font-black uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                      📋 Lịch Sử Phong Tỏa Cấm Cửa (Active Blocklist)
+                    </h4>
+                    <span className="badge badge-error badge-sm font-black text-white">{blacklistedIps.length} IP Bị Cấm</span>
+                  </div>
+
+                  <div className="overflow-x-auto border border-white/10 rounded-2xl bg-slate-900/50 shadow-inner max-h-96 overflow-y-auto">
+                    <table className="table table-zebra w-full text-sm font-medium">
+                      <thead className="bg-slate-900 font-extrabold text-slate-300 uppercase text-xs tracking-wider sticky top-0 z-10 border-b border-white/10">
+                        <tr>
+                          <th className="py-3.5">Địa chỉ IP</th>
+                          <th>Lý do Cấm Cửa</th>
+                          <th>Người thao tác</th>
+                          <th>Thời gian phong tỏa</th>
+                          <th className="text-right">Hành động</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5 text-slate-200">
+                        {blacklistedIps.length === 0 ? (
+                          <tr>
+                            <td colSpan="5" className="text-center py-12 text-slate-500 font-semibold">
+                              Chưa có IP nào bị phong tỏa trong cơ sở dữ liệu. Môi trường mạng đang sạch.
+                            </td>
+                          </tr>
+                        ) : blacklistedIps.map((b) => (
+                          <tr key={b.ip_address} className="hover:bg-white/[0.04] transition-colors">
+                            <td className="font-mono font-black text-rose-400 text-sm py-3.5">
+                              🚫 {b.ip_address}
+                            </td>
+                            <td className="text-xs font-bold text-slate-200">{b.reason || "—"}</td>
+                            <td className="font-mono text-xs text-cyan-300 font-bold">{b.blocked_by || "SUPER_ADMIN"}</td>
+                            <td className="font-mono text-xs text-slate-400">{formatDateTime(b.created_at)}</td>
+                            <td className="text-right">
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  const action = async () => {
+                                    await adminRequest(`/ip-blacklist/${encodeURIComponent(b.ip_address)}`, { method: "DELETE" });
+                                    SonnerInfo(`Đã mở cửa IP: ${b.ip_address}`);
+                                    fetchAdvancedData();
+                                  };
+                                  handleActionWithSessionCheck(action);
+                                }}
+                                className="btn btn-xs bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 border border-emerald-500/40 font-extrabold rounded-xl h-8 px-4 transition-all"
+                              >
+                                🔓 Mở Khóa IP
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
           {/* Section 4: Live API & Integration Heartbeat Monitor */}
           {advancedSubTab === "heartbeat" && (
-            <div className="bg-gradient-to-br from-slate-900 via-slate-950 to-teal-950 text-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-teal-500/30 animate-fade-in">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3 pb-4 border-b border-teal-500/20">
+            <div className="bg-slate-950 text-white rounded-3xl p-6 sm:p-9 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] border border-slate-800/80 relative overflow-hidden animate-fade-in">
+              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none -mt-32 -mr-32" />
+              <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-[120px] pointer-events-none -mb-32 -ml-32" />
+
+              <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4 pb-6 border-b border-white/10">
                 <div>
-                  <h2 className="text-xl font-black flex items-center gap-2.5 text-teal-300 tracking-wide">
-                    <span className="relative flex h-3 w-3">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                    </span>
-                    Trạm Giám Sát Nhịp Sống & Liên Kết API (Real-time API Heartbeat)
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-black mb-2 shadow-inner">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                    <span>REAL-TIME API RADAR · LIVE PROBE</span>
+                  </div>
+                  <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-teal-100 to-emerald-200 flex items-center gap-2.5">
+                    Trạm Giám Sát Nhịp Sống & Liên Kết API
                   </h2>
-                  <p className="text-xs text-teal-200/70 mt-1.5">
-                    Tự động búng lệnh thử nghiệm (Live Probe & RTT Ping) tới toàn bộ các Cổng API âm nhạc, thời tiết, định vị và máy chủ xử lý của Huy Locket để xác nhận trạng thái Sống/Chết.
+                  <p className="text-sm text-slate-400 font-medium mt-1 max-w-3xl leading-relaxed">
+                    Tự động phóng các xung tín hiệu trực tiếp (Live Ping Probe) tới toàn bộ các Cổng API âm nhạc, thời tiết, định vị và máy chủ trung tâm để chẩn đoán trạng thái Sống/Chết kèm giải pháp sửa chữa tức thì.
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={runApiHealthCheck}
                   disabled={testingApis}
-                  className="btn btn-sm sm:btn-md bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 hover:from-emerald-400 hover:to-cyan-500 text-slate-950 font-black border-0 shadow-lg shadow-emerald-500/20 rounded-2xl px-5 shrink-0 transition-all active:scale-95 cursor-pointer"
+                  className="btn btn-md bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 hover:from-emerald-400 hover:to-cyan-500 text-slate-950 font-black border-0 shadow-[0_0_25px_-5px_rgba(16,185,129,0.5)] rounded-2xl px-6 h-12 shrink-0 transition-all active:scale-95 cursor-pointer text-sm"
                 >
                   {testingApis ? (
                     <>
                       <span className="loading loading-spinner loading-sm text-slate-950" />
-                      <span>Đang dò sóng API...</span>
+                      <span>Đang rà soát nhịp sống...</span>
                     </>
                   ) : (
                     <>
@@ -2058,88 +2218,97 @@ export default function AdminUsers() {
               </div>
 
               {/* Heartbeat Status Grid */}
-              {apiStatuses.length === 0 ? (
-                <div className="py-16 text-center flex flex-col items-center justify-center gap-4">
-                  <span className="loading loading-bars loading-lg text-emerald-400"></span>
-                  <p className="text-sm font-extrabold text-teal-300/80">Đang thực hiện cuộc rà soát Sóng liên kết lần đầu...</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {apiStatuses.map((item) => {
-                    const isOnline = item.status === "ONLINE";
-                    return (
-                      <div
-                        key={item.id}
-                        className={`rounded-3xl p-5 border-2 transition-all duration-300 flex flex-col justify-between shadow-xl ${
-                          isOnline
-                            ? "bg-slate-900/90 border-emerald-500/40 hover:border-emerald-400/80 hover:shadow-emerald-500/10"
-                            : "bg-slate-900/95 border-rose-500 shadow-rose-500/20 ring-2 ring-rose-500/30 animate-fade-in"
-                        }`}
-                      >
-                        <div>
-                          <div className="flex items-start justify-between gap-2 mb-3">
-                            <h3 className="font-black text-sm text-white leading-snug">{item.name}</h3>
-                            <span
-                              className={`badge badge-sm font-black px-2.5 py-2.5 rounded-xl shrink-0 shadow-sm ${
-                                isOnline
-                                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                                  : "bg-rose-500/20 text-rose-300 border border-rose-500 animate-pulse"
-                              }`}
-                            >
-                              {isOnline ? "🟢 ONLINE" : "🔴 OFFLINE / LỖI"}
-                            </span>
-                          </div>
-                          <p className="text-xs text-slate-300/80 line-clamp-2 leading-relaxed mb-3">{item.desc}</p>
-
-                          {/* AUTOMATED DIAGNOSIS & REMEDY GUIDE */}
-                          <div className={`rounded-2xl p-3 mb-4 border transition-all ${
+              <div className="relative z-10">
+                {apiStatuses.length === 0 ? (
+                  <div className="py-20 text-center flex flex-col items-center justify-center gap-4">
+                    <span className="loading loading-bars loading-lg text-emerald-400"></span>
+                    <p className="text-sm font-extrabold text-emerald-300/80 uppercase tracking-widest">Đang thực hiện cuộc rà soát Sóng liên kết lần đầu...</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {apiStatuses.map((item) => {
+                      const isOnline = item.status === "ONLINE";
+                      return (
+                        <div
+                          key={item.id}
+                          className={`rounded-3xl p-6 border transition-all duration-300 flex flex-col justify-between shadow-2xl relative overflow-hidden group ${
                             isOnline
-                              ? "bg-slate-950/60 border-white/5 text-slate-300"
-                              : "bg-rose-950/50 border-rose-500/60 text-rose-100 shadow-inner"
-                          }`}>
-                            <div className="flex items-center gap-1.5 text-xs font-black mb-1.5">
-                              <span>{isOnline ? "💡" : "🚨"}</span>
-                              <span className={isOnline ? "text-teal-300 uppercase tracking-wide text-[11px]" : "text-amber-300 uppercase tracking-wide text-xs underline decoration-rose-500 decoration-2"}>
-                                {isOnline ? "Hướng dẫn bảo trì dự phòng:" : "Chẩn đoán Lỗi & Cách xử lý ngay:"}
+                              ? "bg-slate-900/80 backdrop-blur-xl border-emerald-500/30 hover:border-emerald-400/60 shadow-[0_10px_30px_-10px_rgba(16,185,129,0.15)]"
+                              : "bg-gradient-to-b from-rose-950/90 to-slate-950 border-rose-500 shadow-[0_10px_35px_-10px_rgba(244,63,94,0.4)] ring-2 ring-rose-500/30 animate-fade-in"
+                          }`}
+                        >
+                          <div>
+                            <div className="flex items-start justify-between gap-2 mb-3">
+                              <h3 className="font-black text-base text-white leading-snug tracking-tight flex items-center gap-2">
+                                <span>{item.name}</span>
+                              </h3>
+                              <span
+                                className={`badge font-black px-3 py-3 rounded-xl shrink-0 text-xs shadow-sm ${
+                                  isOnline
+                                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                                    : "bg-rose-500/30 text-rose-300 border border-rose-500 animate-pulse"
+                                }`}
+                              >
+                                {isOnline ? "🟢 ONLINE" : "🔴 OFFLINE / LỖI"}
                               </span>
                             </div>
-                            <p className="text-[11px] leading-relaxed mb-2 text-slate-200">
-                              <strong className={isOnline ? "text-teal-400" : "text-rose-300"}>Nguyên nhân: </strong> 
-                              {item.errorHelp}
-                            </p>
-                            <div className="text-[11px] font-bold text-amber-200 bg-black/40 p-2.5 rounded-xl border border-white/10 leading-relaxed flex items-start gap-1.5 shadow-sm">
-                              <span className="text-sm shrink-0">🛠️</span>
-                              <div>
-                                <span className="text-amber-300 font-extrabold underline">Giải pháp: </span>
-                                <span>{item.remedy}</span>
+                            <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed mb-4 font-medium">{item.desc}</p>
+
+                            {/* AUTOMATED DIAGNOSIS & REMEDY GUIDE */}
+                            <div className={`rounded-2xl p-4 mb-5 border transition-all shadow-inner ${
+                              isOnline
+                                ? "bg-slate-950/80 border-white/5 text-slate-300 hover:border-white/10"
+                                : "bg-black/60 border-rose-500/50 text-rose-100"
+                            }`}>
+                              <div className="flex items-center gap-2 text-xs font-black mb-2">
+                                <span className="text-base">{isOnline ? "💡" : "🚨"}</span>
+                                <span className={isOnline ? "text-cyan-300 uppercase tracking-wider text-[11px]" : "text-amber-300 uppercase tracking-wider text-xs underline decoration-rose-500 decoration-2"}>
+                                  {isOnline ? "Hướng dẫn bảo trì dự phòng:" : "Chẩn đoán Lỗi & Cách xử lý ngay:"}
+                                </span>
+                              </div>
+                              <p className="text-xs leading-relaxed mb-3 text-slate-300 font-medium">
+                                <strong className={isOnline ? "text-teal-400 font-black uppercase text-[11px]" : "text-rose-300 font-black uppercase text-[11px]"}>Nguyên nhân: </strong> 
+                                {item.errorHelp}
+                              </p>
+                              <div className="text-xs font-bold text-amber-200 bg-slate-900/90 p-3 rounded-xl border border-amber-500/20 leading-relaxed flex items-start gap-2 shadow-sm">
+                                <span className="text-base shrink-0">🛠️</span>
+                                <div>
+                                  <strong className="text-amber-300 font-black uppercase text-[11px] block underline mb-0.5">Giải pháp chẩn đoán:</strong>
+                                  <span className="text-slate-200 font-normal">{item.remedy}</span>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
 
-                        <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs font-mono">
-                          <span className="flex items-center gap-1.5 text-cyan-300 font-bold">
-                            <span>⏱️ RTT:</span>
-                            <span className={item.ping < 300 ? "text-emerald-400 font-black" : "text-amber-400 font-black"}>
-                              {item.ping} ms
+                          <div className="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono font-bold">
+                            <span className="flex items-center gap-2 text-slate-300">
+                              <span>⏱️ RTT Latency:</span>
+                              <span className={`px-2 py-1 rounded-lg border ${
+                                item.ping < 300 
+                                  ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30 font-black" 
+                                  : "bg-amber-500/15 text-amber-300 border-amber-500/30 font-black"
+                              }`}>
+                                {item.ping} ms
+                              </span>
                             </span>
-                          </span>
-                          <span className={`font-black px-2 py-0.5 rounded-lg border ${
-                            isOnline ? "text-white/80 bg-white/5 border-white/10" : "text-rose-200 bg-rose-500/20 border-rose-500/50"
-                          }`}>
-                            {item.httpStatus}
-                          </span>
+                            <span className={`font-black px-2.5 py-1 rounded-xl border font-mono ${
+                              isOnline ? "text-slate-300 bg-white/5 border-white/10" : "text-rose-200 bg-rose-500/20 border-rose-500/50"
+                            }`}>
+                              {item.httpStatus}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
 
-              <div className="mt-6 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 text-xs text-emerald-200 flex items-center gap-3 font-medium">
-                <span className="text-xl">🛡️</span>
-                <span>
-                  <strong>Huy Locket API Guard Note:</strong> Các dịch vụ có nhãn <code className="bg-emerald-500/20 px-1.5 py-0.5 rounded text-white font-mono">CORS Guard</code> hoặc trả về HTTP Status (&lt; 500) đều đồng nghĩa máy chủ đầu xa đang mở cổng kết nối và phản hồi các tiến trình Locket một cách bình thường.
+              <div className="relative z-10 mt-8 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10 border border-emerald-500/30 rounded-2xl p-4 text-xs text-emerald-200 flex items-center gap-3.5 font-medium shadow-lg backdrop-blur-md">
+                <span className="text-2xl shrink-0">🛡️</span>
+                <span className="leading-relaxed">
+                  <strong className="text-white font-black uppercase text-[11px] tracking-wider block mb-0.5">Huy Locket API Guard Note:</strong> 
+                  Các dịch vụ có nhãn <code className="bg-emerald-500/20 px-2 py-0.5 rounded-lg text-white font-mono font-bold border border-emerald-500/30">CORS Guard</code> hoặc trả về HTTP Status (&lt; 500) đều đồng nghĩa máy chủ đầu xa đang mở cổng kết nối và phản hồi các tiến trình Locket một cách hoàn toàn bình thường theo đúng chuẩn bảo mật trình duyệt.
                 </span>
               </div>
             </div>
