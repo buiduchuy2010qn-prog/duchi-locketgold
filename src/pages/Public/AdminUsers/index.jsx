@@ -1374,6 +1374,7 @@ export default function AdminUsers() {
                       body: JSON.stringify({ message: broadcastMsg, active: !broadcastActive, targetUser: broadcastTarget }),
                     });
                     setBroadcastActive(!broadcastActive);
+                    window.dispatchEvent(new Event("locket_broadcast_updated"));
                     const targetText = broadcastTarget === "ALL" ? "Toàn Server" : `riêng cho ${broadcastTarget}`;
                     SonnerInfo(!broadcastActive ? `🚨 Đã BẬT phát loa thông báo tới: ${targetText}!` : "Đã TẮT thông báo!");
                   };
