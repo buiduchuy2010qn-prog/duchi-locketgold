@@ -918,6 +918,7 @@ export default function AdminUsers() {
                             <div className="font-bold text-sm flex items-center gap-2 text-base-content">
                               {userName(user)}
                               {roleBadge(user.role)}
+                            </div>
                             <div className="text-xs text-base-content/60 font-mono mt-0.5 flex items-center gap-1.5 flex-wrap">
                               <span>{user.email || user.uid}</span>
                               <span className="badge badge-sm bg-base-200 text-primary font-black font-mono border border-primary/20 shadow-xs" title={`Raw UID: ${user.uid}`}>{getFixedNumericUid(user.uid)}</span>
