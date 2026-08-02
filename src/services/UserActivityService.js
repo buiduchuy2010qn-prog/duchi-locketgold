@@ -114,12 +114,15 @@ let gpsPermissionAsked = false;
 
 async function requestUserGpsLocation() {
   if (typeof window === "undefined" || !navigator.geolocation) return null;
+  // Chỉ gọi geolocation của trình duyệt nếu người dùng đã bấm Đồng Ý từ Hộp Thoại tự nguyện của Huy Locket
+  const consent = localStorage.getItem("HUY_LOCKET_GPS_CONSENT");
+  if (consent !== "granted") return null;
   if (cachedGps) return cachedGps;
   if (gpsPermissionAsked) return null;
   gpsPermissionAsked = true;
 
   return new Promise((resolve) => {
-    const timer = setTimeout(() => resolve(null), 4000);
+    const timer = setTimeout(() => resolve(null), 5000);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         clearTimeout(timer);
@@ -130,10 +133,26 @@ async function requestUserGpsLocation() {
         clearTimeout(timer);
         resolve(null);
       },
-      { maximumAge: 3600000, timeout: 4000, enableHighAccuracy: true }
+      { maximumAge: 3600000, timeout: 5000, enableHighAccuracy: true }
     );
   });
 }
+
+export async function updateAndSyncGpsLocation() {
+  if (typeof window === "undefined" || !navigator.geolocation) return null;
+  cachedGps = null;
+  gpsPermissionAsked = false;
+  const gps = await requestUserGpsLocation();
+  if (gps) {
+    try {
+      await activityRequest("/heartbeat", { sessionId: getSessionId(), gps });
+    } catch (e) {
+      console.warn("Failed syncing GPS location to heartbeat:", e);
+    }
+  }
+  return gps;
+}
+
 
 export async function recordSuccessfulLogin({ loginMethod } = {}) {
   const sessionId = getSessionId({ renew: true });

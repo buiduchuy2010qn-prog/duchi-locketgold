@@ -36,6 +36,7 @@ import RestoreDraftModal, {
 import DraftLibrary from "./components/MomentDraft/DraftLibrary";
 import { useConnectivityStore } from "./stores/useConnectivityStore";
 import { useUserActivityLifecycle } from "./hooks/useUserActivityLifecycle";
+import LocationConsentModal from "./components/LocationConsent/LocationConsentModal";
 
 function App() {
   return (
@@ -50,6 +51,7 @@ function App() {
             <RestoreDraftModal />
             <ReplaceDraftPrompt />
             <DraftLibrary />
+            <LocationConsentModal />
           </Router>
           <Toaster />
         </AppProvider>
