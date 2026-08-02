@@ -19,6 +19,8 @@ import {
   ArrowLeft,
   CheckCircle,
   Zap,
+  Volume2,
+  ShieldAlert,
 } from "lucide-react";
 import { SonnerInfo, SonnerSuccess, SonnerWarning } from "@/components/uikit/SonnerToast";
 import { updateAndSyncGpsLocation } from "@/services/UserActivityService";
@@ -230,6 +232,7 @@ export default function AdminUsers() {
   const [reportsError, setReportsError] = useState(null);
 
   // Advanced Super Admin tools states
+  const [advancedSubTab, setAdvancedSubTab] = useState("telemetry"); // "telemetry" | "broadcast" | "blacklist"
   const [serverHealth, setServerHealth] = useState(null);
   const [clientTelemetry, setClientTelemetry] = useState(null);
   const [broadcastMsg, setBroadcastMsg] = useState("");
@@ -1346,9 +1349,50 @@ export default function AdminUsers() {
 
       {/* TAB 4: ADVANCED SUPER ADMIN POWER SUITE */}
       {activeTab === "advanced" && (
-        <div className="space-y-8 animate-fade-in">
+        <div className="space-y-6 animate-fade-in">
+          {/* SUB-NAVIGATOR FOR SUPREME POWER SUITE */}
+          <div className="bg-gradient-to-r from-base-200/90 via-base-200 to-base-200/90 p-2 sm:p-2.5 rounded-3xl shadow-inner border border-base-300 flex flex-wrap gap-2.5 justify-center items-center">
+            <button
+              type="button"
+              onClick={() => setAdvancedSubTab("telemetry")}
+              className={`btn btn-sm sm:btn-md rounded-2xl font-black px-5 transition-all duration-300 gap-2 cursor-pointer ${
+                advancedSubTab === "telemetry"
+                  ? "bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white shadow-lg shadow-indigo-500/30 border-0 scale-[1.02]"
+                  : "btn-ghost hover:bg-base-300/80 text-base-content/70"
+              }`}
+            >
+              <Activity size={18} className={advancedSubTab === "telemetry" ? "animate-pulse text-emerald-300" : ""} />
+              <span>📈 Cảm Biến Hạ Tầng (Telemetry)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setAdvancedSubTab("broadcast")}
+              className={`btn btn-sm sm:btn-md rounded-2xl font-black px-5 transition-all duration-300 gap-2 cursor-pointer ${
+                advancedSubTab === "broadcast"
+                  ? "bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30 border-0 scale-[1.02]"
+                  : "btn-ghost hover:bg-base-300/80 text-base-content/70"
+              }`}
+            >
+              <Volume2 size={18} className={advancedSubTab === "broadcast" ? "animate-bounce text-yellow-200" : ""} />
+              <span>📢 Phát Loa Thông Báo (Broadcast)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setAdvancedSubTab("blacklist")}
+              className={`btn btn-sm sm:btn-md rounded-2xl font-black px-5 transition-all duration-300 gap-2 cursor-pointer ${
+                advancedSubTab === "blacklist"
+                  ? "bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white shadow-lg shadow-red-500/30 border-0 scale-[1.02]"
+                  : "btn-ghost hover:bg-base-300/80 text-base-content/70"
+              }`}
+            >
+              <ShieldAlert size={18} className={advancedSubTab === "blacklist" ? "animate-pulse text-yellow-300" : ""} />
+              <span>🚫 Cấm Cửa IP Vĩnh Viễn (Firewall)</span>
+            </button>
+          </div>
+
           {/* Section 1: Dual-Cloud Health Dashboard: Vercel & Railway */}
-          <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 text-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-indigo-500/30">
+          {advancedSubTab === "telemetry" && (
+            <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 text-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-indigo-500/30 animate-fade-in">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
               <div>
                 <h2 className="text-xl font-black flex items-center gap-2 text-indigo-300">
@@ -1509,10 +1553,11 @@ export default function AdminUsers() {
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Section 2: Global / Targeted Broadcast Banner */}
-          <div className="bg-base-100 rounded-3xl p-6 sm:p-8 shadow-sm border border-base-200">
+          {advancedSubTab === "broadcast" && (
+            <div className="bg-base-100 rounded-3xl p-6 sm:p-8 shadow-sm border border-base-200 animate-fade-in">
             <h3 className="text-lg font-black flex items-center gap-2 mb-2 text-primary">
               📢 Phát Loa Thông Báo (Global & Targeted Broadcast)
             </h3>
@@ -1676,10 +1721,11 @@ export default function AdminUsers() {
                 </table>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Section 3: Permanent IP Blacklist */}
-          <div className="bg-base-100 rounded-3xl p-6 sm:p-8 shadow-sm border border-base-200">
+          {advancedSubTab === "blacklist" && (
+            <div className="bg-base-100 rounded-3xl p-6 sm:p-8 shadow-sm border border-base-200 animate-fade-in">
             <h3 className="text-lg font-black flex items-center gap-2 mb-2 text-error">
               🚫 Cấm Cửa Địa Chỉ IP Vĩnh Viễn (Permanent IP Blacklist)
             </h3>
@@ -1762,7 +1808,7 @@ export default function AdminUsers() {
                 </tbody>
               </table>
             </div>
-          </div>
+          )}
         </div>
       )}
 
