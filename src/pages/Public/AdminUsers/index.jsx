@@ -2970,6 +2970,82 @@ export default function AdminUsers() {
                     )}
                   </div>
                 </div>
+
+                {/* 4. Cloudflare Media Layer */}
+                <div className="bg-slate-900/90 border-2 border-slate-800/80 hover:border-orange-500/50 transition-all duration-300 rounded-[2.2rem] p-6 shadow-xl hover:shadow-2xl flex flex-col justify-between group">
+                  <div>
+                    <div className="flex items-center justify-between mb-5 pb-4 border-b border-slate-800/80">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-10 h-10 rounded-2xl bg-orange-950 border border-orange-500/40 flex items-center justify-center text-orange-400 text-lg font-bold shadow-sm group-hover:scale-110 transition-transform">
+                          ☁️
+                        </div>
+                        <div>
+                          <div className="text-[10px] font-black uppercase tracking-wider text-orange-400">MEDIA LAYER</div>
+                          <span className="font-black text-sm text-white">TRẠM XỬ LÝ CLOUDFLARE</span>
+                        </div>
+                      </div>
+                      <span className="badge bg-orange-950 text-orange-300 border border-orange-500/40 font-black text-[10px] px-3 py-2.5 rounded-xl shadow-sm">
+                        WORKER ACTIVE
+                      </span>
+                    </div>
+
+                    <div className="space-y-3.5">
+                      <div className="bg-slate-950/90 p-4 rounded-2xl border border-slate-800/80 hover:border-orange-500/40 transition-all shadow-inner">
+                        <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
+                          Trạng thái & Mạng lưới phân phối
+                        </span>
+                        <div className="flex flex-col gap-2">
+                          <div className="font-black text-sm font-mono tracking-tight text-emerald-400 flex items-center gap-2">
+                            <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping shrink-0" />
+                            ONLINE (Global Anycast)
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-slate-950/90 p-4 rounded-2xl border border-slate-800/80 hover:border-orange-500/40 transition-all shadow-inner">
+                        <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
+                          Tài nguyên V8 Isolate (Worker Limits)
+                        </span>
+                        <div className="text-white font-bold text-xs font-mono">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-orange-300">⚡ CPU Time:</span>
+                            <span>{"< 10ms (Free Tier)"}</span>
+                          </div>
+                          <div className="text-[11px] text-slate-400 border-t border-slate-800/80 pt-1.5 flex items-center justify-between">
+                            <span>RAM Giới hạn:</span>
+                            <strong className="text-white">128 MB / Request</strong>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-slate-950/90 p-4 rounded-2xl border border-slate-800/80 hover:border-orange-500/40 transition-all shadow-inner">
+                        <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
+                          Lưu trữ R2 & Băng thông
+                        </span>
+                        <div className="text-white font-bold text-xs font-mono">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-orange-300">🗄️ Storage:</span>
+                            <span>S3-Compatible (R2)</span>
+                          </div>
+                          <div className="text-[11px] text-slate-400 border-t border-slate-800/80 pt-1.5 flex items-center justify-between">
+                            <span>Bandwidth:</span>
+                            <strong className="text-emerald-400 font-extrabold">Unmetered (Max)</strong>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-slate-950/90 p-4 rounded-2xl border border-slate-800/80 hover:border-orange-500/40 transition-all shadow-inner">
+                        <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
+                          Tính khả dụng & Vị trí Edge
+                        </span>
+                        <div className="text-orange-200 font-bold text-xs font-mono flex items-center justify-between bg-slate-900 px-3 py-2 rounded-xl border border-slate-800 shadow-sm">
+                          <span>🌍 300+ Cities</span>
+                          <span className="text-slate-400">Tier 1 Network</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
