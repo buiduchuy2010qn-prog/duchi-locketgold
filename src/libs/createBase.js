@@ -90,7 +90,7 @@ export const createHttpClient = (baseURL) => {
     withCredentials: true,
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": CONFIG.keys.apiKey,
+      "x-api-key": CONFIG.keys.apiKey, ...APP_META,
     },
   });
 
@@ -109,7 +109,7 @@ export const createUploadClient = (baseURL) => {
     withCredentials: true,
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": CONFIG.keys.apiKey,
+      "x-api-key": CONFIG.keys.apiKey, ...APP_META,
     },
   });
 
@@ -117,3 +117,5 @@ export const createUploadClient = (baseURL) => {
   attachGatewayRetry(instance);
   return instance;
 };
+
+
