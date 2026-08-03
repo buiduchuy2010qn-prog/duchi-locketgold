@@ -515,10 +515,49 @@ function wafSecurityShield(req, res, next) {
 // ═══════════════════════════════════════════════════════════════════
 // [TẦNG 7] DDoS Rate Limiter
 // ═══════════════════════════════════════════════════════════════════
-const globalDDoSShield = (req, res, next) => next();
+const globalDDoSShield = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 800, // Tăng lên 800 req/phút để không chặn nhầm người dùng tải lại trang
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.method === "OPTIONS" || isExemptPath(req.path) || isAdminRequest(req),
+  handler: (req, res, next, options) => {
+    const ip = getRequestIp(req);
+    // Thay vì instant ban (cấm vĩnh viễn), chỉ ghi nhận vi phạm (instantBan = false)
+    handleThreatDetected(req, ip, "DDOS_RATE_FLOOD", "HIGH",
+      "Vượt ngưỡng tường lửa (>800 req/phút)",
+      null, false
+    );
+    res.status(429).json(options.message);
+  },
+  message: {
+    success: false,
+    code: "DDOS_SHIELD_TRIGGERED",
+    error: "Bạn đang gửi quá nhiều yêu cầu. Vui lòng chậm lại một chút.",
+  },
+});
 
 // Rate limit cực kỳ nghiêm ngặt cho API nhạy cảm (broadcast, admin, auth)
-const sensitiveApiShield = (req, res, next) => next();
+const sensitiveApiShield = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 100, // Tăng lên 100 req/phút để an toàn hơn cho người dùng thật
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => getRequestIp(req),
+  skip: (req) => req.method === "OPTIONS" || isAdminRequest(req),
+  handler: (req, res) => {
+    const ip = getRequestIp(req);
+    handleThreatDetected(req, ip, "SENSITIVE_API_FLOOD", "HIGH",
+      `Gửi quá nhiều request đến endpoint nhạy cảm ${req.originalUrl} (>100/phút)`,
+      null, false // instantBan = false để không khóa nhầm vĩnh viễn
+    );
+    res.status(429).json({
+      success: false,
+      code: "API_RATE_LIMITED",
+      error: "Quá nhiều yêu cầu đến API bảo mật. Vui lòng thử lại sau.",
+    });
+  }
+});
 
 module.exports = {
   antiBotMiddleware,
