@@ -15,6 +15,7 @@
  */
 const rateLimit = require("express-rate-limit");
 const { isIpBlacklisted, addIpBlacklist, recordSecurityThreat } = require("../services/userActivityStore");
+const { extractBestPublicIp } = require("../services/userActivityContext");
 
 // ═══════════════════════════════════════════════════════════════════
 // [TẦNG 3] Bot User-Agent Keywords — mở rộng toàn diện
@@ -221,7 +222,7 @@ function isExemptPath(path = "") {
 }
 
 function getRequestIp(req) {
-  return req.headers["cf-connecting-ip"] || req.headers["x-real-ip"] || (req.headers["x-forwarded-for"] ? String(req.headers["x-forwarded-for"]).split(",")[0].trim() : null) || req.socket?.remoteAddress || "unknown";
+  return extractBestPublicIp(req) || req.ip || "unknown";
 }
 
 // ═══════════════════════════════════════════════════════════════════
