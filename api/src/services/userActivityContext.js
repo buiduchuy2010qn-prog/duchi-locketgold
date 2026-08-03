@@ -10,47 +10,63 @@ const TRUSTED_ORIGINS = new Map([
   ["https://huy-locket-production.up.railway.app", "railway"],
 ]);
 
-function firstHeaderValue(value) {
-  return String(value || "").split(",")[0].trim();
-}
+function extractBestPublicIp(req) {
+  const headersToCheck = [
+    req.headers["cf-connecting-ip"],
+    req.headers["x-vercel-forwarded-for"],
+    req.headers["x-forwarded-for"],
+    req.headers["x-real-ip"],
+    req.ip
+  ];
 
-function normalizePublicIp(value) {
-  let candidate = firstHeaderValue(value);
-  if (!candidate) return null;
+  for (const headerValue of headersToCheck) {
+    if (!headerValue) continue;
+    
+    const candidates = String(headerValue).split(",").map(s => s.trim());
+    
+    for (let candidate of candidates) {
+      if (!candidate) continue;
 
-  if (candidate.startsWith("[") && candidate.includes("]")) {
-    candidate = candidate.slice(1, candidate.indexOf("]"));
-  } else if (/^\d{1,3}(?:\.\d{1,3}){3}:\d+$/.test(candidate)) {
-    candidate = candidate.slice(0, candidate.lastIndexOf(":"));
-  }
-  if (candidate.toLowerCase().startsWith("::ffff:")) {
-    candidate = candidate.slice(7);
-  }
+      if (candidate.startsWith("[") && candidate.includes("]")) {
+        candidate = candidate.slice(1, candidate.indexOf("]"));
+      } else if (/^\d{1,3}(?:\.\d{1,3}){3}:\d+$/.test(candidate)) {
+        candidate = candidate.slice(0, candidate.lastIndexOf(":"));
+      }
+      
+      if (candidate.toLowerCase().startsWith("::ffff:")) {
+        candidate = candidate.slice(7);
+      }
 
-  const version = net.isIP(candidate);
-  if (!version) return null;
-  if (version === 4) {
-    const octets = candidate.split(".").map(Number);
-    const [a, b] = octets;
-    const privateIp = a === 0
-      || a === 10
-      || a === 127
-      || (a === 169 && b === 254)
-      || (a === 172 && b >= 16 && b <= 31)
-      || (a === 192 && b === 168)
-      || (a === 100 && b >= 64 && b <= 127)
-      || a >= 224;
-    return privateIp ? null : candidate;
-  }
+      const version = net.isIP(candidate);
+      if (!version) continue;
 
-  const lower = candidate.toLowerCase();
-  if (lower === "::" || lower === "::1" || lower.startsWith("fc")
-    || lower.startsWith("fd") || lower.startsWith("fe8")
-    || lower.startsWith("fe9") || lower.startsWith("fea")
-    || lower.startsWith("feb")) {
-    return null;
+      let isPrivate = false;
+      if (version === 4) {
+        const octets = candidate.split(".").map(Number);
+        const [a, b] = octets;
+        isPrivate = (a === 0)
+          || (a === 10)
+          || (a === 127)
+          || (a === 169 && b === 254)
+          || (a === 172 && b >= 16 && b <= 31)
+          || (a === 192 && b === 168)
+          || (a === 100 && b >= 64 && b <= 127)
+          || (a >= 224);
+      } else if (version === 6) {
+        const lower = candidate.toLowerCase();
+        isPrivate = (lower === "::" || lower === "::1" || lower.startsWith("fc")
+          || lower.startsWith("fd") || lower.startsWith("fe8")
+          || lower.startsWith("fe9") || lower.startsWith("fea")
+          || lower.startsWith("feb"));
+      }
+
+      if (!isPrivate) {
+        return candidate;
+      }
+    }
   }
-  return candidate;
+  
+  return null;
 }
 
 function safeDecode(value) {
@@ -114,12 +130,7 @@ function parseUserAgent(userAgent) {
 
 function getRequestContext(req) {
   const webSource = getWebSource(req);
-  const rawIp = req.headers["cf-connecting-ip"] ||
-                req.headers["x-vercel-forwarded-for"] ||
-                req.headers["x-real-ip"] ||
-                req.headers["x-forwarded-for"] ||
-                req.ip;
-  const ip = normalizePublicIp(rawIp);
+  const ip = extractBestPublicIp(req);
   return {
     ipAddress: ip || UNKNOWN,
     webSource,
@@ -224,7 +235,7 @@ module.exports = {
   getRequestContext,
   getWebSource,
   lookupPublicIpLocation,
-  normalizePublicIp,
+  extractBestPublicIp,
   parseUserAgent,
 };
 
