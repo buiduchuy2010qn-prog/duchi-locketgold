@@ -2734,11 +2734,11 @@ export default function AdminUsers() {
 
                       <div className="bg-slate-950/90 p-4 rounded-2xl border border-slate-800/80 hover:border-indigo-500/40 transition-all shadow-inner">
                         <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
-                          Tối ưu hóa tĩnh (Workbox PWA & Cache)
+                          Dung lượng Bộ nhớ đệm (Cache)
                         </span>
                         <div className="text-amber-300 font-bold text-xs font-mono flex items-center justify-between">
-                          <span>⚡ {clientTelemetry?.cachedItemsCount || "0"} Assets trong máy</span>
-                          <span className="text-slate-400">Lưu trữ: {clientTelemetry?.localStorageBytes || "0"} KB</span>
+                          <span>⚡ {clientTelemetry?.cachedItemsCount || "0"} Tệp lưu tạm</span>
+                          <span className="text-slate-400">Dung lượng: {clientTelemetry?.localStorageBytes || "0"} KB</span>
                         </div>
                       </div>
 
@@ -2807,14 +2807,14 @@ export default function AdminUsers() {
 
                         <div className="bg-slate-950/90 p-4 rounded-2xl border border-slate-800/80 hover:border-purple-500/40 transition-all shadow-inner">
                           <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
-                            Bộ nhớ RAM Máy chủ (App RSS / V8 Heap)
+                            Mức tiêu thụ RAM (Ứng dụng / Lõi)
                           </span>
                           <div className="text-amber-300 font-black text-sm font-mono">
                             <div className="flex items-center justify-between mb-1">
-                              <span>🧠 {serverHealth.memoryRssMb} MB <span className="text-xs font-normal text-slate-400">(RSS)</span></span>
-                              <span>{serverHealth.memoryHeapUsedMb} MB <span className="text-xs font-normal text-slate-400">(Heap)</span></span>
+                              <span>🧠 {serverHealth.memoryRssMb} MB <span className="text-xs font-normal text-slate-400">(Ứng dụng)</span></span>
+                              <span>{serverHealth.memoryHeapUsedMb} MB <span className="text-xs font-normal text-slate-400">(Lõi V8)</span></span>
                             </div>
-                            {serverHealth.totalOsRamMb && <div className="text-xs text-slate-400 font-normal border-t border-slate-800/80 pt-1 mt-1">Tổng RAM hạ tầng Cloud: <strong className="text-white">{serverHealth.totalOsRamMb} MB</strong></div>}
+                            {serverHealth.totalOsRamMb && <div className="text-xs text-slate-400 font-normal border-t border-slate-800/80 pt-1 mt-1">Tổng RAM hệ thống: <strong className="text-white">{serverHealth.totalOsRamMb} MB</strong></div>}
                           </div>
                         </div>
 
@@ -2835,11 +2835,14 @@ export default function AdminUsers() {
 
                         <div className="bg-slate-950/90 p-4 rounded-2xl border border-slate-800/80 hover:border-purple-500/40 transition-all shadow-inner">
                           <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
-                            Tải CPU trung bình (Load Average)
+                            Mức tải CPU (Load Average)
                           </span>
-                          <div className="text-cyan-300 font-black text-sm font-mono bg-slate-900 px-3.5 py-2.5 rounded-xl border border-slate-800 shadow-sm flex items-center justify-between">
-                            <span>📊 {serverHealth.loadAvg || "N/A"}</span>
-                            <span className="text-[10px] text-slate-400 font-semibold">1m / 5m / 15m</span>
+                          <div className="text-cyan-300 font-black text-sm font-mono bg-slate-900 px-3.5 py-2.5 rounded-xl border border-slate-800 shadow-sm flex flex-col gap-1.5">
+                            <div className="flex items-center justify-between">
+                              <span>📊 {serverHealth.loadAvg || "N/A"}</span>
+                              <span className="text-[10px] text-slate-400 font-semibold">1m / 5m / 15m</span>
+                            </div>
+                            <span className="text-[10px] text-slate-500 font-normal">*(Lý tưởng khi {"<"} Số Core)*</span>
                           </div>
                         </div>
 
@@ -2915,17 +2918,17 @@ export default function AdminUsers() {
 
                         <div className="bg-slate-950/90 p-4 rounded-2xl border border-slate-800/80 hover:border-emerald-500/40 transition-all shadow-inner">
                           <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
-                            Bể kết nối SQL (Active Connection Pool)
+                            Kết nối Mạng CSDL (Connection Pool)
                           </span>
                           <div className="text-amber-300 font-black text-sm font-mono flex items-center justify-between">
-                            <span>🔌 {serverHealth.db.connections?.active || 1} / {serverHealth.db.connections?.total || 1} kết nối kích hoạt</span>
+                            <span>🔌 {serverHealth.db.connections?.active || 1} / {serverHealth.db.connections?.total || 1} Đang dùng</span>
                             <span className="badge badge-sm bg-amber-950 text-amber-300 border-amber-500/40 px-2.5 py-3 rounded-xl shadow-sm">Pool Active</span>
                           </div>
                         </div>
 
                         <div className="bg-slate-950/90 p-4 rounded-2xl border border-slate-800/80 hover:border-emerald-500/40 transition-all shadow-inner">
                           <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-2">
-                            Thống kê Bản ghi thực tế trong Hệ thống
+                            Tổng quan Dữ liệu cốt lõi
                           </span>
                           <div className="grid grid-cols-2 gap-2 text-xs font-mono font-bold">
                             <div className="bg-emerald-950 text-emerald-300 p-2.5 rounded-xl border border-emerald-500/30 flex items-center justify-between shadow-sm">
@@ -2997,23 +3000,23 @@ export default function AdminUsers() {
                         <div className="flex flex-col gap-2">
                           <div className="font-black text-sm font-mono tracking-tight text-emerald-400 flex items-center gap-2">
                             <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping shrink-0" />
-                            ONLINE (Global Anycast)
+                            Đang hoạt động (Toàn cầu)
                           </div>
                         </div>
                       </div>
 
                       <div className="bg-slate-950/90 p-4 rounded-2xl border border-slate-800/80 hover:border-orange-500/40 transition-all shadow-inner">
                         <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
-                          Tài nguyên V8 Isolate (Worker Limits)
+                          Giới hạn Tài nguyên (Mỗi Lượt truy cập)
                         </span>
                         <div className="text-white font-bold text-xs font-mono">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-orange-300">⚡ CPU Time:</span>
-                            <span>{"< 10ms (Free Tier)"}</span>
+                            <span className="text-orange-300">⚡ Thời gian CPU:</span>
+                            <span>{"< 10ms (Rất thấp)"}</span>
                           </div>
                           <div className="text-[11px] text-slate-400 border-t border-slate-800/80 pt-1.5 flex items-center justify-between">
-                            <span>RAM Giới hạn:</span>
-                            <strong className="text-white">128 MB / Request</strong>
+                            <span>Giới hạn RAM:</span>
+                            <strong className="text-white">128 MB / Yêu cầu</strong>
                           </div>
                         </div>
                       </div>
@@ -3024,12 +3027,12 @@ export default function AdminUsers() {
                         </span>
                         <div className="text-white font-bold text-xs font-mono">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-orange-300">🗄️ Storage:</span>
+                            <span className="text-orange-300">🗄️ Chuẩn lưu trữ:</span>
                             <span>S3-Compatible (R2)</span>
                           </div>
                           <div className="text-[11px] text-slate-400 border-t border-slate-800/80 pt-1.5 flex items-center justify-between">
-                            <span>Bandwidth:</span>
-                            <strong className="text-emerald-400 font-extrabold">Unmetered (Max)</strong>
+                            <span>Băng thông:</span>
+                            <strong className="text-emerald-400 font-extrabold">Không giới hạn (Max)</strong>
                           </div>
                         </div>
                       </div>
@@ -3039,7 +3042,7 @@ export default function AdminUsers() {
                           Tính khả dụng & Vị trí Edge
                         </span>
                         <div className="text-orange-200 font-bold text-xs font-mono flex items-center justify-between bg-slate-900 px-3 py-2 rounded-xl border border-slate-800 shadow-sm">
-                          <span>🌍 300+ Cities</span>
+                          <span>🌍 Hơn 300+ Thành phố</span>
                           <span className="text-slate-400">Tier 1 Network</span>
                         </div>
                       </div>
