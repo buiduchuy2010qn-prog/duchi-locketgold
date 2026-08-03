@@ -2911,8 +2911,8 @@ export default function AdminUsers() {
                 </p>
               </div>
 
-              <div className="relative z-10 space-y-6 w-full">
-                <div className="bg-slate-900/90 p-6 rounded-3xl border border-slate-800/80 shadow-inner space-y-5">
+              <div className="relative z-10 space-y-6 w-full flex-1">
+                <div className="bg-slate-900/90 p-6 rounded-3xl border border-slate-800/80 shadow-inner space-y-5 w-full">
                   <div>
                     <label className="label text-xs font-black uppercase text-blue-300 tracking-wider pb-2">
                       🎯 Chọn Đối Tượng Nhận Thông Báo (Mục Tiêu Phát Sóng):
