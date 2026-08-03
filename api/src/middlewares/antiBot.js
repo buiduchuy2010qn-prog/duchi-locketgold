@@ -517,26 +517,7 @@ const globalDDoSShield = rateLimit({
 });
 
 // Rate limit cực kỳ nghiêm ngặt cho API nhạy cảm (broadcast, admin, auth)
-const sensitiveApiShield = rateLimit({
-  windowMs: 60 * 1000,
-  limit: 30, // Chỉ 30 req/phút cho các endpoint nhạy cảm
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: (req) => getRequestIp(req),
-  skip: (req) => req.method === "OPTIONS",
-  handler: (req, res) => {
-    const ip = getRequestIp(req);
-    handleThreatDetected(req, ip, "SENSITIVE_API_FLOOD", "HIGH",
-      `Gửi quá nhiều request đến endpoint nhạy cảm ${req.originalUrl} (>30/phút)`,
-      null, true
-    );
-    res.status(429).json({
-      success: false,
-      code: "API_RATE_LIMITED",
-      error: "Bạn đang gửi quá nhiều yêu cầu. Vui lòng chờ 1 phút.",
-    });
-  },
-});
+const sensitiveApiShield = (req, res, next) => next();
 
 module.exports = {
   antiBotMiddleware,
