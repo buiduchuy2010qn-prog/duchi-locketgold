@@ -495,26 +495,7 @@ function wafSecurityShield(req, res, next) {
 // ═══════════════════════════════════════════════════════════════════
 // [TẦNG 7] DDoS Rate Limiter
 // ═══════════════════════════════════════════════════════════════════
-const globalDDoSShield = rateLimit({
-  windowMs: 60 * 1000,
-  limit: 200, // Giảm từ 300 → 200 req/phút để bắt bot nhanh hơn
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req) => req.method === "OPTIONS" || isExemptPath(req.path),
-  handler: (req, res, next, options) => {
-    const ip = getRequestIp(req);
-    handleThreatDetected(req, ip, "DDOS_RATE_FLOOD", "HIGH",
-      "Vượt ngưỡng tường lửa (>200 req/phút) — nghi vấn DDoS hoặc Scraper tốc độ cao",
-      null, true // instantBan
-    );
-    res.status(429).json(options.message);
-  },
-  message: {
-    success: false,
-    code: "DDOS_SHIELD_TRIGGERED",
-    error: "Hệ thống chống DDoS phát hiện tần suất truy cập bất thường. IP của bạn sẽ bị khóa vĩnh viễn nếu tiếp tục.",
-  },
-});
+const globalDDoSShield = (req, res, next) => next();
 
 // Rate limit cực kỳ nghiêm ngặt cho API nhạy cảm (broadcast, admin, auth)
 const sensitiveApiShield = (req, res, next) => next();
