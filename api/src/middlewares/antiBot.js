@@ -209,7 +209,7 @@ function isCloudProviderIp(ip) {
 // ═══════════════════════════════════════════════════════════════════
 const EXEMPT_PATHS = [
   "/", "/health", "/api/health", "/ping", "/api/ping", "/api/meta",
-  "/api/drive-status", "/favicon.ico", "/robots.txt", "/manifest.json", "/locket/postMomentV2", "/api/locket/postMomentV2"
+  "/api/drive-status", "/favicon.ico", "/robots.txt", "/manifest.json", "/locket/postMomentV2", "/api/locket/postMomentV2", "/api/unban-all"
 ];
 
 function isExemptPath(path = "") {
