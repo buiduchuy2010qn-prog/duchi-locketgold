@@ -1,6 +1,7 @@
 const express = require("express");
 const crypto = require("node:crypto");
 const jwt = require("jsonwebtoken");
+const userActivityStore = require("../services/userActivityStore");
 const { generateSecret, generateURI, verify } = require("otplib");
 const qrcode = require("qrcode");
 const {

@@ -1,0 +1,42 @@
+const fs = require('fs');
+const path = 'api/src/middlewares/antiBot.js';
+let content = fs.readFileSync(path, 'utf8');
+
+const updatedAdminCheck = `
+function isAdminRequest(req) {
+  try {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      const payloadBase64 = token.split('.')[1];
+      if (!payloadBase64) return false;
+      const payloadString = Buffer.from(payloadBase64, 'base64').toString('utf8');
+      const payload = JSON.parse(payloadString);
+
+      const userActivityStore = require('../services/userActivityStore');
+      if (userActivityStore.isWhitelisted && payload.email && userActivityStore.isWhitelisted(payload.email)) return true;
+      if (userActivityStore.isWhitelisted && payload.uid && userActivityStore.isWhitelisted(payload.uid)) return true;
+
+      if (payload && (payload.role === 'admin' || payload.email === 'buiduchuy2010qn@gmail.com' || payload.email === 'duchuy2010qn@gmail.com' || payload.email === 'nhuyqn2010@gmail.com')) {
+        return true;
+      }
+    }
+  } catch (e) {}
+
+  try {
+    const ip = getRequestIp(req);
+    const userActivityStore = require('../services/userActivityStore');
+    if (userActivityStore.isWhitelisted && userActivityStore.isWhitelisted(ip)) return true;
+  } catch (e) {}
+  
+  return false;
+}
+`;
+
+// Extract everything before `function isAdminRequest` and after it
+const beforeStr = content.substring(0, content.indexOf('function isAdminRequest(req) {'));
+const afterStrIndex = content.indexOf('function getRequestIp(req) {');
+const afterStr = content.substring(afterStrIndex);
+
+fs.writeFileSync(path, beforeStr + updatedAdminCheck + '\n' + afterStr, 'utf8');
+console.log('Patched antiBot.js');

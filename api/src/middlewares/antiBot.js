@@ -222,6 +222,7 @@ function isExemptPath(path = "") {
 }
 
 
+
 function isAdminRequest(req) {
   try {
     const authHeader = req.headers.authorization;
@@ -231,13 +232,23 @@ function isAdminRequest(req) {
       if (!payloadBase64) return false;
       const payloadString = Buffer.from(payloadBase64, 'base64').toString('utf8');
       const payload = JSON.parse(payloadString);
+
+      const userActivityStore = require('../services/userActivityStore');
+      if (userActivityStore.isWhitelisted && payload.email && userActivityStore.isWhitelisted(payload.email)) return true;
+      if (userActivityStore.isWhitelisted && payload.uid && userActivityStore.isWhitelisted(payload.uid)) return true;
+
       if (payload && (payload.role === 'admin' || payload.email === 'buiduchuy2010qn@gmail.com' || payload.email === 'duchuy2010qn@gmail.com' || payload.email === 'nhuyqn2010@gmail.com')) {
         return true;
       }
     }
-  } catch (e) {
-    return false;
-  }
+  } catch (e) {}
+
+  try {
+    const ip = getRequestIp(req);
+    const userActivityStore = require('../services/userActivityStore');
+    if (userActivityStore.isWhitelisted && userActivityStore.isWhitelisted(ip)) return true;
+  } catch (e) {}
+  
   return false;
 }
 

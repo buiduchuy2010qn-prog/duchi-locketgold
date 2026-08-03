@@ -273,6 +273,9 @@ export default function AdminUsers() {
   const [broadcastActive, setBroadcastActive] = useState(false);
   const [broadcastTarget, setBroadcastTarget] = useState("ALL");
   const [broadcastList, setBroadcastList] = useState([]);
+  const [whitelistItems, setWhitelistItems] = useState([]);
+  const [whitelistInput, setWhitelistInput] = useState("");
+  const [whitelistType, setWhitelistType] = useState("email");
   const [blacklistedIps, setBlacklistedIps] = useState([]);
   const [banIpInput, setBanIpInput] = useState("");
   const [banReasonInput, setBanReasonInput] = useState("");
