@@ -3,6 +3,8 @@ import LoadingRing from "@/components/uikit/Loading/ring";
 import { getAllFriendDetails } from "@/cache/friendsDB";
 import { SonnerWarning } from "@/components/uikit/SonnerToast";
 
+import * as XLSX from "xlsx";
+
 export default function ExportDataTool() {
   const [exporting, setExporting] = useState(false);
   const [fetchProgress, setFetchProgress] = useState({
@@ -63,11 +65,14 @@ export default function ExportDataTool() {
       const csv = [header, ...rows].join("\n");
       blob = new Blob([csv], { type: "text/csv" });
     } else if (fileFormat === "xlsx") {
-      // simple CSV giả lập Excel (cần thư viện xlsx nếu muốn chuẩn)
-      const header = Object.keys(formattedData[0]).join("\t");
-      const rows = formattedData.map((row) => Object.values(row).join("\t"));
-      const tsv = [header, ...rows].join("\n");
-      blob = new Blob([tsv], { type: "application/vnd.ms-excel" });
+      // Create a real Excel file using xlsx library
+      const worksheet = XLSX.utils.json_to_sheet(formattedData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Friends");
+      const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+      blob = new Blob([excelBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
     }
 
     const url = URL.createObjectURL(blob);
