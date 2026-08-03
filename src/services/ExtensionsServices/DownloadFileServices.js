@@ -112,7 +112,7 @@ export async function fetchFileBlob(fileUrl) {
 
   // 2) Official Dio media-service (POST)
   try {
-    return await tryFetchBlob("https://media-service.locket-dio.com/download", {
+    return await tryFetchBlob("https://media-service.buiduchuy2010qn.workers.dev/download", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url: fileUrl }),

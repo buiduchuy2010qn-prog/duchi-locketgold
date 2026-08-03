@@ -335,7 +335,7 @@ export default function AdminUsers() {
         id: "media_proxy",
         name: "🖼️ Trạm Xử Lý Media & Đám Mây Google Drive",
         desc: "Nén video, chuyển đổi định dạng ảnh và truyền tải lưu trữ Drive tốc độ cao",
-        url: "https://media-service.locket-dio.com/convertImage",
+        url: "https://media-service.buiduchuy2010qn.workers.dev/convertImage",
         method: "HEAD",
         isCors: true,
         errorHelp: "Lỗi proxy ảnh: Tên miền media-service tạm quá tải băng thông hoặc hạn chế chứng chỉ Cloudflare.",

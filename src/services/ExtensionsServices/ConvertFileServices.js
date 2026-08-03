@@ -2,7 +2,7 @@ export async function convertImageToBlob(file) {
   const formData = new FormData();
   formData.append("file", file);
 
-  const res = await fetch("https://media-service.locket-dio.com/convertImage", {
+  const res = await fetch("https://media-service.buiduchuy2010qn.workers.dev/convertImage", {
     method: "POST",
     body: formData,
   });
