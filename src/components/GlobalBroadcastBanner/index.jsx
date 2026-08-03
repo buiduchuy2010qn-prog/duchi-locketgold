@@ -19,10 +19,8 @@ export default function GlobalBroadcastBanner() {
 
       const myEmail = String(user?.email || "").trim().toLowerCase();
       const myUid = String(user?.uid || user?.user_id || user?.localId || user?.local_id || "").trim().toLowerCase();
-      const isAdminPage = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
 
       let matchedItem = null;
-      let isAdminPre = false;
 
       for (const item of activeItems) {
         const target = String(item.targetUser || "ALL").trim().toLowerCase();
@@ -33,12 +31,7 @@ export default function GlobalBroadcastBanner() {
 
         if (isTargeted) {
           matchedItem = item;
-          isAdminPre = false;
           break;
-        }
-        if (isAdminPage && !matchedItem) {
-          matchedItem = item;
-          isAdminPre = true;
         }
       }
 
@@ -50,9 +43,9 @@ export default function GlobalBroadcastBanner() {
       const key = `${matchedItem.id || ""}_${matchedItem.message}_${matchedItem.updatedAt || Date.now()}`;
       if (forceShow) {
         setDismissedKey("");
-        setBroadcast({ ...matchedItem, key, isAdminPreview: isAdminPre });
+        setBroadcast({ ...matchedItem, key });
       } else if (key !== dismissedKey) {
-        setBroadcast({ ...matchedItem, key, isAdminPreview: isAdminPre });
+        setBroadcast({ ...matchedItem, key });
       }
     } catch (err) {
       // ignore silently
@@ -72,12 +65,12 @@ export default function GlobalBroadcastBanner() {
     };
   }, [checkBroadcast]);
 
-  if (!broadcast || (broadcast.key === dismissedKey && !broadcast.isAdminPreview)) return null;
+  if (!broadcast || (broadcast.key === dismissedKey)) return null;
 
   const isWarning = broadcast.level === "warning" || broadcast.level === "error" || broadcast.level === "danger";
 
   return (
-    <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[99999] w-[94%] max-w-3xl animate-in fade-in slide-in-from-top-4 duration-400">
+    <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[99999] w-max max-w-[94%] sm:max-w-3xl animate-in fade-in slide-in-from-top-4 duration-400">
       <div className={`relative flex items-center justify-between gap-3 sm:gap-4 px-4 sm:px-6 py-3.5 rounded-2xl shadow-2xl backdrop-blur-xl border ${
         isWarning 
           ? "bg-gradient-to-r from-red-950/95 via-orange-950/95 to-amber-950/95 border-red-500/50 text-red-100 shadow-red-900/30"
@@ -95,11 +88,7 @@ export default function GlobalBroadcastBanner() {
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider font-extrabold text-white/80">
               <span>📢 THÔNG BÁO HỆ THỐNG</span>
-              {broadcast.isAdminPreview ? (
-                <span className="bg-amber-400/20 text-amber-300 border border-amber-400/40 px-2 py-0.5 rounded-md text-[10px] uppercase font-mono font-black animate-pulse">
-                  🎯 ADMIN PREVIEW: GỬI RIÊNG CHO ({broadcast.targetUser})
-                </span>
-              ) : broadcast.targetUser && broadcast.targetUser !== "ALL" ? (
+              {broadcast.targetUser && broadcast.targetUser !== "ALL" ? (
                 <span className="bg-white/20 text-white px-1.5 py-0.5 rounded text-[10px] uppercase font-mono font-bold">
                   Riêng cho bạn
                 </span>
