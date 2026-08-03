@@ -2911,7 +2911,7 @@ export default function AdminUsers() {
                 </p>
               </div>
 
-              <div className="relative z-10 space-y-6 max-w-4xl">
+              <div className="relative z-10 space-y-6 w-full">
                 <div className="bg-slate-900/90 p-6 rounded-3xl border border-slate-800/80 shadow-inner space-y-5">
                   <div>
                     <label className="label text-xs font-black uppercase text-blue-300 tracking-wider pb-2">
