@@ -236,6 +236,12 @@ async function ensureUserActivitySchema() {
       ON CONFLICT (uid) DO NOTHING
     `;
     await loadBlacklistedIps().catch(() => {});
+    await sql`
+      DELETE FROM web_security_threats
+      WHERE target_endpoint IN ('/health', '/api/health', '/ping', '/api/ping', '/favicon.ico')
+         OR target_endpoint LIKE '%/health%'
+         OR (threat_type = 'AUTOMATED_SCRAPER_BOT' AND target_endpoint = '/health')
+    `.catch(() => {});
   })().catch((error) => {
     schemaPromise = null;
     throw error;
