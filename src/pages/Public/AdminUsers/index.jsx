@@ -3650,62 +3650,71 @@ export default function AdminUsers() {
                   <span className="text-xs font-bold text-slate-500">Đang sinh mã QR Code bảo mật từ máy chủ...</span>
                 </div>
               ) : setup2FAData ? (
-                <div className="space-y-4">
-                  <div className="flex flex-col items-center justify-center bg-slate-50 p-4 rounded-3xl border border-slate-200 shadow-inner">
-                    <span className="text-[11px] font-black tracking-widest text-indigo-900 uppercase mb-2">QUÉT MÃ QR BẰNG GOOGLE AUTHENTICATOR</span>
-                    {setup2FAData.qrCode ? (
-                      <img src={setup2FAData.qrCode} alt="2FA QR Code" className="w-48 h-48 rounded-2xl shadow-sm border bg-white p-2" />
-                    ) : null}
-                    <div className="mt-3 text-center">
-                      <span className="text-xs text-slate-500 font-bold block mb-1">Hoặc nhập thủ công khóa bí mật này:</span>
-                      <code className="bg-white px-3 py-1.5 rounded-xl border font-mono font-black text-indigo-700 text-sm tracking-wider select-all shadow-sm block">
-                        {setup2FAData.secret}
-                      </code>
-                    </div>
-                  </div>
-
-                  {is2FAEnabled && setup2FAData.is2FAEnabled ? (
-                    <div className="p-4 bg-emerald-100/70 border border-emerald-300 rounded-2xl text-emerald-900 text-xs font-bold flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="w-5 h-5 text-emerald-700 shrink-0" />
-                        <span>2FA đang ĐƯỢC KÍCH HOẠT trên tài khoản này.</span>
+                <section className="space-y-4">
+                  {(setup2FAData.is2FAEnabled || is2FAEnabled) ? (
+                    <article className="p-6 bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-400 rounded-3xl text-emerald-950 flex flex-col items-center justify-center gap-4 text-center shadow-sm">
+                      <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-700 flex items-center justify-center shadow-inner">
+                        <CheckCircle size={36} className="text-emerald-600 drop-shadow" />
                       </div>
+                      <header className="space-y-1">
+                        <h4 className="text-base font-black uppercase tracking-wider text-emerald-900">Bảo Mật 2FA Đang Hoạt Động</h4>
+                        <p className="text-xs text-emerald-800 font-medium max-w-sm">
+                          Tài khoản Quản Trị Viên của bạn đang được bảo vệ an toàn 100% bằng mã OTP từ <strong>Google Authenticator / Authy</strong>. Mã vạch QR đã được đóng phai bọc mật để đảm bảo an toàn.
+                        </p>
+                      </header>
                       <button
                         type="button"
                         onClick={handleDisable2FA}
-                        className="btn btn-xs bg-rose-600 hover:bg-rose-700 text-white border-0 rounded-xl px-3 font-extrabold"
+                        disabled={setup2FALoading}
+                        className="btn btn-sm bg-rose-600 hover:bg-rose-700 text-white border-0 rounded-2xl px-6 font-black tracking-wide shadow-md transition-transform active:scale-95 mt-2"
                       >
-                        Tắt 2FA
+                        Tắt Ký Quyền 2FA
                       </button>
-                    </div>
+                    </article>
                   ) : (
-                    <div className="space-y-3">
-                      <label className="label text-[11px] font-black text-slate-700 uppercase tracking-wider">
-                        NHẬP MÃ OTP 6 SỐ ĐỂ XÁC NHẬN VÀ KÍCH HOẠT
-                      </label>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          maxLength={6}
-                          placeholder="000000"
-                          className="input input-bordered flex-1 rounded-2xl text-center text-xl font-mono font-black tracking-[0.5em] bg-slate-50 text-indigo-950 border-slate-300 focus:border-emerald-600 focus:bg-white"
-                          value={setup2FAOtp}
-                          onChange={(e) => setSetup2FAOtp(e.target.value.replace(/[^0-9]/g, ""))}
-                        />
-                        <button
-                          type="button"
-                          onClick={handleConfirm2FA}
-                          className="btn bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black px-6 border-0 shadow-md"
-                          disabled={setup2FALoading || setup2FAOtp.length !== 6}
-                        >
-                          Xác Nhận Bật
-                        </button>
-                      </div>
-                    </div>
+                    <section className="space-y-4">
+                      <article className="flex flex-col items-center justify-center bg-slate-50 p-5 rounded-3xl border border-slate-200 shadow-inner">
+                        <header className="mb-3 text-center">
+                          <h4 className="text-[11px] font-black tracking-widest text-indigo-950 uppercase">1. QUÉT MÃ QR BẰNG GOOGLE AUTHENTICATOR</h4>
+                        </header>
+                        {setup2FAData.qrCode && (
+                          <img src={setup2FAData.qrCode} alt="2FA QR Code" className="w-48 h-48 rounded-2xl shadow-sm border bg-white p-2.5 hover:scale-105 transition-transform" />
+                        )}
+                        <footer className="mt-3 text-center w-full max-w-xs">
+                          <span className="text-xs text-slate-500 font-bold block mb-1">Hoặc nhập thủ công khóa bí mật này:</span>
+                          <code className="bg-white px-3 py-2 rounded-xl border font-mono font-black text-indigo-700 text-sm tracking-widest select-all shadow-sm block text-center truncate">
+                            {setup2FAData.secret}
+                          </code>
+                        </footer>
+                      </article>
+
+                      <form onSubmit={(e) => { e.preventDefault(); handleConfirm2FA(); }} className="space-y-2 bg-white p-4 rounded-3xl border border-slate-200 shadow-sm">
+                        <label className="label text-[11px] font-black text-slate-700 uppercase tracking-wider block">
+                          2. NHẬP MÃ OTP 6 SỐ TỪ ỨNG DỤNG ĐỂ KÍCH HOẠT:
+                        </label>
+                        <div className="flex gap-2.5">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            maxLength={6}
+                            placeholder="000000"
+                            className="input input-bordered flex-1 rounded-2xl text-center text-2xl font-mono font-black tracking-[0.4em] bg-slate-50 text-indigo-950 border-slate-300 focus:border-emerald-600 focus:bg-white h-12 shadow-inner"
+                            value={setup2FAOtp}
+                            onChange={(e) => setSetup2FAOtp(e.target.value.replace(/[^0-9]/g, ""))}
+                          />
+                          <button
+                            type="submit"
+                            className="btn bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black px-6 border-0 shadow-md h-12"
+                            disabled={setup2FALoading || setup2FAOtp.length !== 6}
+                          >
+                            Kích Hoạt Ngay
+                          </button>
+                        </div>
+                      </form>
+                    </section>
                   )}
-                </div>
+                </section>
               ) : null}
             </div>
 
