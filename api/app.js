@@ -90,6 +90,8 @@ const corsOptions = {
     "x-locketdio-member",
     "X-Local-Id",
     "X-User-Email",
+    "X-Admin-Session",
+    "X-Trust-Device-Token",
   ],
 };
 

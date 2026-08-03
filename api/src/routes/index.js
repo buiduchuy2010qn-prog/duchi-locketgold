@@ -13,6 +13,7 @@ const { healthController } = require("../controllers");
 const adminRoutes = require("./adminRoutes");
 const celebrityRoutes = require("./celebrityRoutes");
 const activityRoutes = require("./activityRoutes");
+const { sensitiveApiShield } = require("../middlewares/antiBot");
 
 module.exports = (app) => {
   app.get("/", (req, res) => {
@@ -42,11 +43,12 @@ module.exports = (app) => {
   // Account-synced moment drafts (metadata + private media on API disk)
   app.use("/api", draftRoutes);
 
-  // Admin routes
-  app.use("/api/admin", adminRoutes);
+  // Admin routes — bảo vệ bằng rate limit nghiêm ngặt (30 req/phút)
+  app.use("/api/admin", sensitiveApiShield, adminRoutes);
 
   // Verified Huy Locket website-user registry, login history and presence.
-  app.use("/api/activity", activityRoutes);
+  // Đây là endpoint bị bot cào nhiều nhất — áp dụng shield nghiêm ngặt
+  app.use("/api/activity", sensitiveApiShield, activityRoutes);
 
   // Authenticated user tool; deliberately separate from admin routes.
   app.use("/api/celebrities", celebrityRoutes);
