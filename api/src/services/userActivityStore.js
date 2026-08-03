@@ -69,6 +69,8 @@ async function ensureUserActivitySchema() {
     await sql`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS current_web_source TEXT`;
     await sql`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS gps_coordinates TEXT`;
     await sql`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()`;
+    await sql`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS two_factor_secret TEXT DEFAULT NULL`;
+    await sql`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS is_two_factor_enabled BOOLEAN DEFAULT FALSE`;
     await sql`UPDATE web_users SET
       internal_id = COALESCE(internal_id, gen_random_uuid()),
       auth_provider = COALESCE(auth_provider, provider, 'locket-firebase'),
@@ -1203,8 +1205,48 @@ async function clearSecurityThreats(id = null) {
   return true;
 }
 
+async function getAdmin2FAInfo(uid) {
+  await ensureUserActivitySchema();
+  const sql = getSql();
+  const rows = await sql`
+    SELECT two_factor_secret, is_two_factor_enabled
+    FROM web_users
+    WHERE uid = ${uid}
+    LIMIT 1
+  `;
+  return rows[0] || { two_factor_secret: null, is_two_factor_enabled: false };
+}
+
+async function setAdmin2FASecret(uid, secret, enabled = false) {
+  await ensureUserActivitySchema();
+  const sql = getSql();
+  await sql`
+    UPDATE web_users
+    SET two_factor_secret = ${secret},
+        is_two_factor_enabled = ${enabled},
+        updated_at = NOW()
+    WHERE uid = ${uid}
+  `;
+  return true;
+}
+
+async function setAdmin2FAEnabled(uid, enabled = true) {
+  await ensureUserActivitySchema();
+  const sql = getSql();
+  await sql`
+    UPDATE web_users
+    SET is_two_factor_enabled = ${enabled},
+        updated_at = NOW()
+    WHERE uid = ${uid}
+  `;
+  return true;
+}
+
 module.exports = {
   ONLINE_WINDOW_SECONDS,
+  getAdmin2FAInfo,
+  setAdmin2FASecret,
+  setAdmin2FAEnabled,
   addIpBlacklist,
   checkAdminPinSet,
   clearLoginHistory,

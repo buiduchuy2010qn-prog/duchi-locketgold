@@ -33,6 +33,7 @@ import {
   hasAdminSession,
   hasShortAdminSession,
   startShortAdminSession,
+  verifyAdmin2FAOTP,
 } from "@/services/AdminAuthService";
 
 const UNKNOWN = "Không xác định";
@@ -195,6 +196,16 @@ export default function AdminUsers() {
   const [gatePassword, setGatePassword] = useState("");
   const [gateLoading, setGateLoading] = useState(false);
   const [gateError, setGateError] = useState(null);
+
+  // 2FA Security states
+  const [is2FAEnabled, setIs2FAEnabled] = useState(false);
+  const [gate2FATempToken, setGate2FATempToken] = useState(null);
+  const [gate2FAOtp, setGate2FAOtp] = useState("");
+  const [setup2FAOpen, setSetup2FAOpen] = useState(false);
+  const [setup2FAData, setSetup2FAData] = useState(null);
+  const [setup2FAOtp, setSetup2FAOtp] = useState("");
+  const [setup2FALoading, setSetup2FALoading] = useState(false);
+  const [setup2FAError, setSetup2FAError] = useState(null);
 
   // Change PIN modal states
   const [changePinModalOpen, setChangePinModalOpen] = useState(false);
@@ -681,6 +692,7 @@ export default function AdminUsers() {
         setCurrentUserUid(info.uid || "");
         setCurrentEmail(info.email || localStorage.getItem("email") || "");
         setHasPin(info.hasPin || false);
+        setIs2FAEnabled(info.is2FAEnabled || false);
 
         // If already unlocked (valid session in last 30 mins), load users
         if (info.isAdmin && hasShortAdminSession()) {
@@ -1040,6 +1052,60 @@ export default function AdminUsers() {
               </div>
             )}
 
+            {gate2FATempToken ? (
+              <div className="w-full text-center">
+                <div className="text-xs text-indigo-900 bg-indigo-50/90 p-4 rounded-2xl border border-indigo-200 mb-6 leading-relaxed text-left shadow-inner flex items-start gap-3">
+                  <span className="text-xl shrink-0">🛡️</span>
+                  <div>
+                    <strong className="text-indigo-950 font-extrabold uppercase block mb-0.5">Xác Minh 2FA Google Authenticator:</strong> 
+                    Mã PIN hợp lệ! Tài khoản Quản trị của bạn được bảo vệ bởi lớp giáp 2FA. Vui lòng mở ứng dụng <strong>Google Authenticator</strong> hoặc <strong>Authy</strong> và nhập mã OTP 6 số để mở khóa.
+                  </div>
+                </div>
+
+                <form onSubmit={handleGate2FASubmit} className="w-full space-y-5">
+                  <div className="form-control w-full text-left">
+                    <label className="label text-[11px] font-black tracking-wider text-indigo-900 uppercase pb-2">
+                      MÃ OTP 6 CHỮ SỐ (GOOGLE AUTHENTICATOR)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={6}
+                        required
+                        placeholder="000000"
+                        className="input input-bordered w-full rounded-2xl pr-12 text-2xl h-16 bg-slate-50 text-indigo-950 border-slate-300 focus:border-indigo-600 focus:bg-white font-mono font-black tracking-[0.6em] text-center shadow-inner transition-all"
+                        value={gate2FAOtp}
+                        onChange={(e) => setGate2FAOtp(e.target.value.replace(/[^0-9]/g, ""))}
+                        disabled={gateLoading}
+                        autoFocus
+                      />
+                      <Shield className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-500 w-6 h-6 pointer-events-none animate-pulse" />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setGate2FATempToken(null); setGatePassword(""); setGate2FAOtp(""); }}
+                      className="btn btn-ghost rounded-2xl flex-1 font-bold h-13 border border-slate-300 text-slate-700"
+                      disabled={gateLoading}
+                    >
+                      Quay lại nhập PIN
+                    </button>
+                    <button
+                      type="submit"
+                      className={`btn bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white flex-1 rounded-2xl font-black h-13 shadow-[0_10px_25px_-5px_rgba(16,185,129,0.4)] text-sm gap-2 border-0 transition-all active:scale-95 ${gateLoading ? "loading" : ""}`}
+                      disabled={gateLoading || gate2FAOtp.length !== 6}
+                    >
+                      {!gateLoading && <CheckCircle size={18} className="text-emerald-200" />}
+                      {gateLoading ? "Đang kiểm duyệt..." : "🚀 Mở Khóa Ngay"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            ) : (
             <form onSubmit={handleGateSubmit} className="w-full space-y-5">
               <div className="form-control w-full text-left">
                 <label className="label text-[11px] font-black tracking-wider text-indigo-900 uppercase pb-2">
@@ -1075,6 +1141,7 @@ export default function AdminUsers() {
                 {gateLoading ? "Đang giải mã thẻ xác minh..." : (hasPin ? "🚀 Mở Khóa Trung Tâm Quản Trị" : "✨ Xác Nhận & Tạo Mã PIN Bảo Mật")}
               </button>
             </form>
+            )}
 
             <button
               type="button"
@@ -1122,6 +1189,15 @@ export default function AdminUsers() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <button
+              type="button"
+              onClick={handleOpenSetup2FA}
+              className={`btn btn-sm sm:btn-md ${is2FAEnabled ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300" : "bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-[0_5px_15px_-3px_rgba(245,158,11,0.4)]"} font-black rounded-2xl h-11 px-4 shadow-sm transition-all flex items-center gap-2 cursor-pointer active:scale-95`}
+              title="Cài đặt xác thực 2 yếu tố Google Authenticator cho Quản Trị Viên"
+            >
+              <Shield size={16} className={is2FAEnabled ? "text-emerald-600" : "text-amber-100"} /> 
+              <span>{is2FAEnabled ? "🛡️ 2FA: Đã Bật (Google Auth)" : "🔐 Bật 2FA (Google Auth)"}</span>
+            </button>
             <button
               type="button"
               onClick={() => {
@@ -3454,6 +3530,102 @@ export default function AdminUsers() {
             </div>
             <div className="modal-action">
               <button type="button" onClick={() => setPasswordStatusModal(null)} className="btn btn-primary rounded-xl font-bold px-6 w-full">Đã rõ</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CÀI ĐẶT 2FA GOOGLE AUTHENTICATOR FOR ADMIN */}
+      {setup2FAOpen && (
+        <div className="modal modal-open modal-bottom sm:modal-middle" onClick={() => setSetup2FAOpen(false)}>
+          <div className="modal-box max-w-lg rounded-3xl p-6 sm:p-7 border-2 border-emerald-500/40 shadow-2xl bg-white text-slate-800" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+              <h3 className="font-black text-lg text-emerald-700 flex items-center gap-2">
+                <Shield className="w-6 h-6 text-emerald-600" />
+                <span>Cài Đặt Xác Thực 2 Yếu Tố (2FA - Google Auth)</span>
+              </h3>
+              <button type="button" className="btn btn-sm btn-circle btn-ghost text-slate-500 hover:bg-slate-100" onClick={() => setSetup2FAOpen(false)}>✕</button>
+            </div>
+
+            <div className="py-4 space-y-4 text-sm">
+              <div className="text-xs bg-emerald-50/90 text-emerald-900 p-4 rounded-2xl border border-emerald-200 leading-relaxed font-semibold">
+                🛡️ <strong>Bảo vệ Quản Trị Viên:</strong> Tính năng này ĐỘC QUYỀN cho Admin Huy Locket. Khi bật 2FA, sau khi nhập mã PIN bạn sẽ cần nhập mã OTP 6 số trên ứng dụng <strong>Google Authenticator</strong> hoặc <strong>Authy</strong> thì mới mở được trang quản trị.
+              </div>
+
+              {setup2FAError && (
+                <div className="alert bg-rose-50 border border-rose-200 text-rose-800 text-xs py-2.5 px-3.5 rounded-xl font-bold flex items-center gap-2">
+                  <AlertTriangle size={16} className="shrink-0 text-rose-600" />
+                  <span>{setup2FAError}</span>
+                </div>
+              )}
+
+              {setup2FALoading ? (
+                <div className="py-12 flex flex-col items-center justify-center gap-3">
+                  <span className="loading loading-spinner loading-lg text-emerald-600" />
+                  <span className="text-xs font-bold text-slate-500">Đang sinh mã QR Code bảo mật từ máy chủ...</span>
+                </div>
+              ) : setup2FAData ? (
+                <div className="space-y-4">
+                  <div className="flex flex-col items-center justify-center bg-slate-50 p-4 rounded-3xl border border-slate-200 shadow-inner">
+                    <span className="text-[11px] font-black tracking-widest text-indigo-900 uppercase mb-2">QUÉT MÃ QR BẰNG GOOGLE AUTHENTICATOR</span>
+                    {setup2FAData.qrCode ? (
+                      <img src={setup2FAData.qrCode} alt="2FA QR Code" className="w-48 h-48 rounded-2xl shadow-sm border bg-white p-2" />
+                    ) : null}
+                    <div className="mt-3 text-center">
+                      <span className="text-xs text-slate-500 font-bold block mb-1">Hoặc nhập thủ công khóa bí mật này:</span>
+                      <code className="bg-white px-3 py-1.5 rounded-xl border font-mono font-black text-indigo-700 text-sm tracking-wider select-all shadow-sm block">
+                        {setup2FAData.secret}
+                      </code>
+                    </div>
+                  </div>
+
+                  {is2FAEnabled && setup2FAData.is2FAEnabled ? (
+                    <div className="p-4 bg-emerald-100/70 border border-emerald-300 rounded-2xl text-emerald-900 text-xs font-bold flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-5 h-5 text-emerald-700 shrink-0" />
+                        <span>2FA đang ĐƯỢC KÍCH HOẠT trên tài khoản này.</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleDisable2FA}
+                        className="btn btn-xs bg-rose-600 hover:bg-rose-700 text-white border-0 rounded-xl px-3 font-extrabold"
+                      >
+                        Tắt 2FA
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <label className="label text-[11px] font-black text-slate-700 uppercase tracking-wider">
+                        NHẬP MÃ OTP 6 SỐ ĐỂ XÁC NHẬN VÀ KÍCH HOẠT
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          maxLength={6}
+                          placeholder="000000"
+                          className="input input-bordered flex-1 rounded-2xl text-center text-xl font-mono font-black tracking-[0.5em] bg-slate-50 text-indigo-950 border-slate-300 focus:border-emerald-600 focus:bg-white"
+                          value={setup2FAOtp}
+                          onChange={(e) => setSetup2FAOtp(e.target.value.replace(/[^0-9]/g, ""))}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleConfirm2FA}
+                          className="btn bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black px-6 border-0 shadow-md"
+                          disabled={setup2FALoading || setup2FAOtp.length !== 6}
+                        >
+                          Xác Nhận Bật
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="modal-action border-t border-slate-200 pt-3">
+              <button type="button" onClick={() => setSetup2FAOpen(false)} className="btn btn-ghost text-slate-600 rounded-xl font-bold w-full">Đóng cửa sổ</button>
             </div>
           </div>
         </div>

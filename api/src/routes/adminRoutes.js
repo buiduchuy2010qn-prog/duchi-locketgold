@@ -1,5 +1,8 @@
 const express = require("express");
 const crypto = require("node:crypto");
+const jwt = require("jsonwebtoken");
+const { authenticator } = require("otplib");
+const qrcode = require("qrcode");
 const {
   ADMIN_FIREBASE_PROJECT_ID,
   getAdminAuth,
@@ -45,6 +48,9 @@ const {
   clearWebUserActions,
   listSecurityThreats,
   clearSecurityThreats,
+  getAdmin2FAInfo,
+  setAdmin2FASecret,
+  setAdmin2FAEnabled,
 } = require("../services/userActivityStore");
 const { getRequestContext, lookupPublicIpLocation } = require("../services/userActivityContext");
 
@@ -166,11 +172,14 @@ router.use(requireAdmin);
 router.get("/verify", async (req, res) => {
   res.setHeader("Cache-Control", "no-store, max-age=0");
   let hasPin = false;
+  let is2FAEnabled = false;
   if (hasActivityDatabase()) {
     try {
       hasPin = await checkAdminPinSet(req.adminUid);
+      const info2fa = await getAdmin2FAInfo(req.adminUid);
+      is2FAEnabled = Boolean(info2fa?.is_two_factor_enabled);
     } catch (e) {
-      console.warn("Failed to check admin PIN status:", e.message);
+      console.warn("Failed to check admin PIN / 2FA status:", e.message);
     }
   }
   return res.status(200).json({
@@ -180,6 +189,7 @@ router.get("/verify", async (req, res) => {
     role: req.adminRole,
     isAdmin: true,
     hasPin,
+    is2FAEnabled,
     projectId: ADMIN_FIREBASE_PROJECT_ID,
     activityDatabaseConfigured: hasActivityDatabase(),
   });
@@ -213,6 +223,21 @@ router.post("/session/create", requireActivityDatabase, async (req, res) => {
       }
     }
 
+    const info2fa = await getAdmin2FAInfo(req.adminUid);
+    if (info2fa?.is_two_factor_enabled && info2fa?.two_factor_secret) {
+      const tempToken = jwt.sign(
+        { uid: req.adminUid, purpose: "2FA_PENDING_AUTH", role: req.adminRole },
+        process.env.JWT_SECRET || "HUY_LOCKET_SECURE_KEY_2FA",
+        { expiresIn: "10m" }
+      );
+      return res.status(200).json({
+        success: true,
+        require2FA: true,
+        tempToken,
+        message: "Mã PIN chính xác! Vui lòng nhập mã OTP từ ứng dụng Google Authenticator.",
+      });
+    }
+
     const token = crypto.randomBytes(32).toString("hex");
     const hash = crypto.createHash("sha256").update(token).digest("hex");
     await createAdminSession(req.adminUid, hash, 30);
@@ -226,6 +251,115 @@ router.post("/session/create", requireActivityDatabase, async (req, res) => {
   } catch (error) {
     console.error("Failed to create admin session:", error?.message || "unknown");
     return res.status(500).json({ success: false, error: "Không thể tạo phiên quản trị" });
+  }
+});
+
+router.post("/session/verify-2fa", requireActivityDatabase, async (req, res) => {
+  res.setHeader("Cache-Control", "no-store, max-age=0");
+  try {
+    const { tempToken, otpCode } = req.body || {};
+    if (!tempToken || !otpCode || !/^\d{6}$/.test(String(otpCode).trim())) {
+      return res.status(400).json({ success: false, error: "Vui lòng nhập mã OTP gồm đúng 6 chữ số." });
+    }
+    let decoded;
+    try {
+      decoded = jwt.verify(tempToken, process.env.JWT_SECRET || "HUY_LOCKET_SECURE_KEY_2FA");
+    } catch (err) {
+      return res.status(401).json({ success: false, error: "Phiên xác thực 2FA tạm thời đã hết hạn. Vui lòng nhập lại PIN!" });
+    }
+    if (decoded.uid !== req.adminUid || decoded.purpose !== "2FA_PENDING_AUTH") {
+      return res.status(403).json({ success: false, error: "Token xác thực 2FA không hợp lệ." });
+    }
+    const info2fa = await getAdmin2FAInfo(req.adminUid);
+    if (!info2fa?.is_two_factor_enabled || !info2fa?.two_factor_secret) {
+      return res.status(400).json({ success: false, error: "Tài khoản chưa kích hoạt 2FA." });
+    }
+    const isValid = authenticator.verify({
+      token: String(otpCode).trim(),
+      secret: info2fa.two_factor_secret,
+    });
+    if (!isValid) {
+      await audit(req, "FAILED_ADMIN_2FA_OTP", req.adminUid, "Failed 2FA OTP code test", "failure");
+      return res.status(401).json({ success: false, error: "Mã OTP không chính xác hoặc đã hết hạn!" });
+    }
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const hash = crypto.createHash("sha256").update(token).digest("hex");
+    await createAdminSession(req.adminUid, hash, 30);
+    await audit(req, "CREATE_ADMIN_SESSION_2FA", req.adminUid, "Started privileged admin session via PIN + 2FA");
+    return res.status(200).json({
+      success: true,
+      adminSessionToken: token,
+      expiresAt: Date.now() + 30 * 60 * 1000,
+      role: req.adminRole,
+    });
+  } catch (error) {
+    console.error("Failed 2FA verification:", error?.message || "unknown");
+    return res.status(500).json({ success: false, error: "Lỗi xác minh mã 2FA" });
+  }
+});
+
+router.get("/setup-2fa", requireActivityDatabase, requireActiveAdminSession, async (req, res) => {
+  res.setHeader("Cache-Control", "no-store, max-age=0");
+  try {
+    const info2fa = await getAdmin2FAInfo(req.adminUid);
+    let secret = info2fa?.two_factor_secret;
+    if (!secret) {
+      secret = authenticator.generateSecret();
+      await setAdmin2FASecret(req.adminUid, secret, false);
+    }
+    const serviceName = "Huy Locket Admin";
+    const userLabel = req.adminEmail || req.adminUid;
+    const otpauth = authenticator.keyuri(userLabel, serviceName, secret);
+    const qrCodeBase64 = await qrcode.toDataURL(otpauth);
+    return res.status(200).json({
+      success: true,
+      qrCode: qrCodeBase64,
+      secret: secret,
+      is2FAEnabled: Boolean(info2fa?.is_two_factor_enabled),
+    });
+  } catch (error) {
+    console.error("Failed 2FA setup:", error?.message || "unknown");
+    return res.status(500).json({ success: false, error: "Lỗi khởi tạo bảo mật 2FA" });
+  }
+});
+
+router.post("/confirm-2fa", requireActivityDatabase, requireActiveAdminSession, async (req, res) => {
+  res.setHeader("Cache-Control", "no-store, max-age=0");
+  try {
+    const { otpCode } = req.body || {};
+    if (!otpCode || !/^\d{6}$/.test(String(otpCode).trim())) {
+      return res.status(400).json({ success: false, error: "Vui lòng nhập đúng mã OTP gồm 6 chữ số!" });
+    }
+    const info2fa = await getAdmin2FAInfo(req.adminUid);
+    if (!info2fa?.two_factor_secret) {
+      return res.status(400).json({ success: false, error: "Bạn chưa tạo mã QR nào trước đó." });
+    }
+    const isValid = authenticator.verify({
+      token: String(otpCode).trim(),
+      secret: info2fa.two_factor_secret,
+    });
+    if (!isValid) {
+      return res.status(401).json({ success: false, error: "Mã OTP không chính xác hoặc đã hết hạn!" });
+    }
+    await setAdmin2FAEnabled(req.adminUid, true);
+    await audit(req, "ENABLE_ADMIN_2FA", req.adminUid, "Enabled Google Authenticator 2FA for Admin");
+    return res.status(200).json({ success: true, message: "🎉 Kích hoạt Bảo Mật 2FA Google Authenticator thành công!" });
+  } catch (error) {
+    console.error("Failed confirm 2FA:", error?.message || "unknown");
+    return res.status(500).json({ success: false, error: "Lỗi kích hoạt 2FA" });
+  }
+});
+
+router.post("/disable-2fa", requireActivityDatabase, requireActiveAdminSession, async (req, res) => {
+  res.setHeader("Cache-Control", "no-store, max-age=0");
+  try {
+    await setAdmin2FAEnabled(req.adminUid, false);
+    await audit(req, "DISABLE_ADMIN_2FA", req.adminUid, "Disabled 2FA protection for Admin");
+    return res.status(200).json({ success: true, message: "Đã tắt xác thực 2FA." });
+  } catch (error) {
+    console.error("Failed disable 2FA:", error?.message || "unknown");
+    return res.status(500).json({ success: false, error: "Lỗi tắt 2FA" });
   }
 });
 

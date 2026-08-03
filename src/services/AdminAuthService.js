@@ -89,6 +89,7 @@ export async function getAdminRoleInfo() {
     uid: result.uid,
     email: result.email,
     hasPin: result.hasPin || false,
+    is2FAEnabled: result.is2FAEnabled || false,
   };
 }
 
@@ -96,6 +97,17 @@ export async function startShortAdminSession(pin) {
   const result = await adminRequest("/session/create", {
     method: "POST",
     body: JSON.stringify({ pin }),
+  });
+  if (result.adminSessionToken) {
+    setShortAdminSessionToken(result.adminSessionToken);
+  }
+  return result;
+}
+
+export async function verifyAdmin2FAOTP(tempToken, otpCode) {
+  const result = await adminRequest("/session/verify-2fa", {
+    method: "POST",
+    body: JSON.stringify({ tempToken, otpCode }),
   });
   if (result.adminSessionToken) {
     setShortAdminSessionToken(result.adminSessionToken);
