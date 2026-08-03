@@ -277,6 +277,13 @@ async function ensureUserActivitySchema() {
       UPDATE user_sessions SET web_source = 'vercel'
       WHERE web_source IN ('web-locket', 'https://locket-dio.com', 'https://www.locket-dio.com', 'locket-dio.com');
     `.catch(() => {});
+
+    await sql`
+      INSERT INTO celebrity_profiles (uid, username, display_name, avatar_url, locket_url, country_code, enabled, sort_order, created_at, updated_at)
+      SELECT uid, username, display_name, avatar_url, locket_url, country_code, enabled, sort_order, created_at, updated_at
+      FROM locket_idols
+      ON CONFLICT (uid) DO NOTHING;
+    `.catch(() => {});
   })().catch((error) => {
     schemaPromise = null;
     throw error;
