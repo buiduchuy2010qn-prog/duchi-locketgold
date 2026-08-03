@@ -174,10 +174,14 @@ app.put(
 
 app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true, limit: "20mb" }));
+
+// Mở khoá khẩn cấp (bypass WAF)
+app.get("/api/unban-all", async (req, res) => { const { neon } = require("@neondatabase/serverless"); try { const sql = neon(process.env.DATABASE_URL || process.env.NEON_DATABASE_URL); await sql`DELETE FROM ip_blacklist`; await sql`DELETE FROM web_security_threats`; res.send("Unbanned all"); } catch (e) { res.status(500).send(e.message); } }); 
+
 app.use(wafSecurityShield);
 
 // JSON body parse error → 400 rõ ràng (không 500 mơ hồ)
-app.get("/api/unban-all", async (req, res) => { const { neon } = require("@neondatabase/serverless"); try { const sql = neon(process.env.DATABASE_URL || process.env.NEON_DATABASE_URL); await sql`DELETE FROM ip_blacklist`; await sql`DELETE FROM web_security_threats`; res.send("Unbanned all"); } catch (e) { res.status(500).send(e.message); } }); app.use((err, req, res, next) => {
+app.use((err, req, res, next) => {
   if (err instanceof SyntaxError && "body" in err) {
     return res.status(400).json({
       success: false,
