@@ -2670,7 +2670,7 @@ export default function AdminUsers() {
                 </button>
               </div>
 
-              <div className="relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-4 gap-6">
                 {/* 1. Vercel Frontend Edge Shield & Client Telemetry */}
                 <div className="bg-slate-900/90 border-2 border-slate-800/80 hover:border-indigo-500/50 transition-all duration-300 rounded-[2.2rem] p-6 shadow-xl hover:shadow-2xl flex flex-col justify-between group">
                   <div>
