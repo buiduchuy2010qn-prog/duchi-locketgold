@@ -774,6 +774,14 @@ export default function AdminUsers() {
     return () => window.clearInterval(timer);
   }, [isAdmin, isGateUnlocked, activeTab, fetchSecurityThreats]);
 
+  useEffect(() => {
+    if (!isAdmin || !isGateUnlocked || activeTab !== "advanced") return undefined;
+    const timer = window.setInterval(() => {
+      if (!document.hidden) fetchAdvancedData(false);
+    }, 3_000);
+    return () => window.clearInterval(timer);
+  }, [isAdmin, isGateUnlocked, activeTab, fetchAdvancedData]);
+
   const { adminTeam, normalUsers } = useMemo(() => {
     const normalized = search.trim().toLowerCase();
     const list = !normalized ? users : users.filter((user) =>
