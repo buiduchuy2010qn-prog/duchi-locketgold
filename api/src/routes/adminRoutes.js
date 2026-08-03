@@ -224,29 +224,49 @@ router.post("/session/create", requireActivityDatabase, async (req, res) => {
     }
 
     const info2fa = await getAdmin2FAInfo(req.adminUid);
+    let isTrustedDevice = false;
     if (info2fa?.is_two_factor_enabled && info2fa?.two_factor_secret) {
-      const tempToken = jwt.sign(
-        { uid: req.adminUid, purpose: "2FA_PENDING_AUTH", role: req.adminRole },
-        process.env.JWT_SECRET || "HUY_LOCKET_SECURE_KEY_2FA",
-        { expiresIn: "10m" }
-      );
-      return res.status(200).json({
-        success: true,
-        require2FA: true,
-        tempToken,
-        message: "Mã PIN chính xác! Vui lòng nhập mã OTP từ ứng dụng Google Authenticator.",
-      });
+      // 🟢 TÍNH NĂNG MỚI: Kiểm tra Token "Ghi nhớ thiết bị" (Trusted Device) từ Cookie hoặc Header
+      const trustToken = req.cookies?.trust_device_token || req.body?.trustedDeviceToken || req.headers["x-trust-device-token"];
+      if (trustToken) {
+        try {
+          const trustDecoded = jwt.verify(trustToken, process.env.JWT_SECRET || "HUY_LOCKET_SECURE_KEY_2FA");
+          if (trustDecoded.uid === req.adminUid && trustDecoded.purpose === "TRUSTED_DEVICE") {
+            isTrustedDevice = true;
+            console.log(`[🟢 Trusted Device] Admin ${req.adminUid} verified via 30-day trusted device token! Skipping 2FA OTP.`);
+          }
+        } catch (err) {
+          // Token hết hạn hoặc không hợp lệ -> bỏ qua và tiếp tục yêu cầu OTP như bình thường
+        }
+      }
+
+      // Nếu KHÔNG PHẢI thiết bị tin cậy -> Bắt buộc xác thực qua OTP 2FA
+      if (!isTrustedDevice) {
+        const tempToken = jwt.sign(
+          { uid: req.adminUid, purpose: "2FA_PENDING_AUTH", role: req.adminRole },
+          process.env.JWT_SECRET || "HUY_LOCKET_SECURE_KEY_2FA",
+          { expiresIn: "10m" }
+        );
+        return res.status(200).json({
+          success: true,
+          require2FA: true,
+          tempToken,
+          message: "Mã PIN chính xác! Vui lòng nhập mã OTP từ ứng dụng Google Authenticator.",
+        });
+      }
     }
 
     const token = crypto.randomBytes(32).toString("hex");
     const hash = crypto.createHash("sha256").update(token).digest("hex");
     await createAdminSession(req.adminUid, hash, 30);
-    await audit(req, "CREATE_ADMIN_SESSION", req.adminUid, "Started 30-minute privileged admin session via PIN");
+    const auditType = (info2fa?.is_two_factor_enabled && isTrustedDevice) ? "CREATE_ADMIN_SESSION_TRUSTED" : "CREATE_ADMIN_SESSION";
+    await audit(req, auditType, req.adminUid, `Started 30-minute privileged admin session via ${auditType}`);
     return res.status(200).json({
       success: true,
       adminSessionToken: token,
       expiresAt: Date.now() + 30 * 60 * 1000,
       role: req.adminRole,
+      trustedDeviceUsed: info2fa?.is_two_factor_enabled && isTrustedDevice,
     });
   } catch (error) {
     console.error("Failed to create admin session:", error?.message || "unknown");
@@ -257,7 +277,7 @@ router.post("/session/create", requireActivityDatabase, async (req, res) => {
 router.post("/session/verify-2fa", requireActivityDatabase, async (req, res) => {
   res.setHeader("Cache-Control", "no-store, max-age=0");
   try {
-    const { tempToken, otpCode } = req.body || {};
+    const { tempToken, otpCode, rememberDevice } = req.body || {};
     if (!tempToken || !otpCode || !/^\d{6}$/.test(String(otpCode).trim())) {
       return res.status(400).json({ success: false, error: "Vui lòng nhập mã OTP gồm đúng 6 chữ số." });
     }
@@ -288,9 +308,28 @@ router.post("/session/verify-2fa", requireActivityDatabase, async (req, res) => 
     const hash = crypto.createHash("sha256").update(token).digest("hex");
     await createAdminSession(req.adminUid, hash, 30);
     await audit(req, "CREATE_ADMIN_SESSION_2FA", req.adminUid, "Started privileged admin session via PIN + 2FA");
+
+    // 🟢 TÍNH NĂNG MỚI: Nếu Admin chọn "Ghi nhớ thiết bị này trong 30 ngày", sinh jwt token và set HttpOnly Cookie
+    let trustToken = null;
+    if (rememberDevice === true || String(rememberDevice) === "true") {
+      trustToken = jwt.sign(
+        { uid: req.adminUid, purpose: "TRUSTED_DEVICE", role: req.adminRole },
+        process.env.JWT_SECRET || "HUY_LOCKET_SECURE_KEY_2FA",
+        { expiresIn: "30d" }
+      );
+      res.cookie("trust_device_token", trustToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "none",
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 ngày (ms)
+      });
+      console.log(`[🛡️ Trusted Device] Granted 30-day trust token for Admin: ${req.adminUid}`);
+    }
+
     return res.status(200).json({
       success: true,
       adminSessionToken: token,
+      trust_device_token: trustToken, // Hỗ trợ lưu dự phòng trong localStorage nếu Cookie cross-domain bị chặn
       expiresAt: Date.now() + 30 * 60 * 1000,
       role: req.adminRole,
     });
@@ -357,8 +396,9 @@ router.post("/disable-2fa", requireActivityDatabase, requireActiveAdminSession, 
   res.setHeader("Cache-Control", "no-store, max-age=0");
   try {
     await setAdmin2FAEnabled(req.adminUid, false);
+    res.clearCookie("trust_device_token", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "none" });
     await audit(req, "DISABLE_ADMIN_2FA", req.adminUid, "Disabled 2FA protection for Admin");
-    return res.status(200).json({ success: true, message: "Đã tắt xác thực 2FA." });
+    return res.status(200).json({ success: true, message: "Đã tắt xác thực 2FA và hủy thiết bị tin cậy." });
   } catch (error) {
     console.error("Failed disable 2FA:", error?.message || "unknown");
     return res.status(500).json({ success: false, error: "Lỗi tắt 2FA" });

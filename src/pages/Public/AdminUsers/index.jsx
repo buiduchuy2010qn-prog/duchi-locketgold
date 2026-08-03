@@ -34,6 +34,7 @@ import {
   hasShortAdminSession,
   startShortAdminSession,
   verifyAdmin2FAOTP,
+  setTrustedDeviceToken,
 } from "@/services/AdminAuthService";
 
 const UNKNOWN = "Không xác định";
@@ -201,6 +202,7 @@ export default function AdminUsers() {
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
   const [gate2FATempToken, setGate2FATempToken] = useState(null);
   const [gate2FAOtp, setGate2FAOtp] = useState("");
+  const [gate2FARememberDevice, setGate2FARememberDevice] = useState(true);
   const [setup2FAOpen, setSetup2FAOpen] = useState(false);
   const [setup2FAData, setSetup2FAData] = useState(null);
   const [setup2FAOtp, setSetup2FAOtp] = useState("");
@@ -827,6 +829,8 @@ export default function AdminUsers() {
       if (!hasPin) {
         SonnerInfo("🎉 Thiết lập Mã PIN số Quản Trị viên thành công! Cổng bảo mật đã mở.");
         setHasPin(true);
+      } else if (res?.trustedDeviceUsed) {
+        SonnerInfo("🛡️ Thiết bị tin cậy được nhận diện! Bỏ qua OTP 2FA — Cổng bảo mật Admin đã mở.");
       } else {
         SonnerInfo("Xác minh mã PIN thành công! Cổng bảo mật Admin đã mở cho 30 phút tới.");
       }
@@ -850,8 +854,11 @@ export default function AdminUsers() {
     setGateLoading(true);
     setGateError(null);
     try {
-      await verifyAdmin2FAOTP(gate2FATempToken, gate2FAOtp.trim());
-      SonnerInfo("🎉 Xác nhận 2FA thành công! Cổng bảo mật Admin đã mở cho 30 phút tới.");
+      await verifyAdmin2FAOTP(gate2FATempToken, gate2FAOtp.trim(), gate2FARememberDevice);
+      SonnerInfo(gate2FARememberDevice
+        ? "🎉 Xác nhận 2FA thành công! Thiết bị này đã được ghi nhớ 30 ngày."
+        : "🎉 Xác nhận 2FA thành công! Cổng bảo mật Admin đã mở cho 30 phút tới."
+      );
       setIsGateUnlocked(true);
       setGate2FATempToken(null);
       setGate2FAOtp("");
@@ -910,6 +917,7 @@ export default function AdminUsers() {
       const res = await adminRequest("/disable-2fa", {
         method: "POST",
       });
+      setTrustedDeviceToken(null);
       SonnerInfo(res.message || "Đã tắt tính năng bảo mật 2FA.");
       setIs2FAEnabled(false);
       if (setup2FAData) setSetup2FAData({ ...setup2FAData, is2FAEnabled: false });
@@ -1170,7 +1178,20 @@ export default function AdminUsers() {
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
+                  <label className="flex items-center gap-3 px-1 py-3 cursor-pointer select-none group">
+                    <input
+                      type="checkbox"
+                      checked={gate2FARememberDevice}
+                      onChange={(e) => setGate2FARememberDevice(e.target.checked)}
+                      className="checkbox checkbox-sm checkbox-success rounded-lg border-2 border-emerald-400 bg-white shadow-sm transition-all group-hover:border-emerald-500"
+                      disabled={gateLoading}
+                    />
+                    <span className="text-xs font-bold text-slate-700 leading-tight group-hover:text-emerald-800 transition-colors">
+                      🛡️ Ghi nhớ thiết bị này trong <strong className="text-emerald-700">30 ngày</strong> <span className="text-slate-400 font-medium">(không cần nhập OTP lần sau)</span>
+                    </span>
+                  </label>
+
+                  <nav className="flex gap-2">
                     <button
                       type="button"
                       onClick={() => { setGate2FATempToken(null); setGatePassword(""); setGate2FAOtp(""); }}
@@ -1187,7 +1208,7 @@ export default function AdminUsers() {
                       {!gateLoading && <CheckCircle size={18} className="text-emerald-200" />}
                       {gateLoading ? "Đang kiểm duyệt..." : "🚀 Mở Khóa Ngay"}
                     </button>
-                  </div>
+                  </nav>
                 </form>
               </div>
             ) : (
