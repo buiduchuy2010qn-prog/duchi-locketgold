@@ -264,6 +264,19 @@ async function ensureUserActivitySchema() {
          OR target_endpoint LIKE '%/health%'
          OR (threat_type = 'AUTOMATED_SCRAPER_BOT' AND target_endpoint = '/health')
     `.catch(() => {});
+
+    await sql`
+      UPDATE web_users SET current_web_source = 'vercel'
+      WHERE current_web_source IN ('web-locket', 'https://locket-dio.com', 'https://www.locket-dio.com', 'locket-dio.com');
+    `.catch(() => {});
+    await sql`
+      UPDATE login_history SET web_source = 'vercel'
+      WHERE web_source IN ('web-locket', 'https://locket-dio.com', 'https://www.locket-dio.com', 'locket-dio.com');
+    `.catch(() => {});
+    await sql`
+      UPDATE user_sessions SET web_source = 'vercel'
+      WHERE web_source IN ('web-locket', 'https://locket-dio.com', 'https://www.locket-dio.com', 'locket-dio.com');
+    `.catch(() => {});
   })().catch((error) => {
     schemaPromise = null;
     throw error;
