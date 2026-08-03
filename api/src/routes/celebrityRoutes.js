@@ -40,7 +40,7 @@ router.get("/", celebrityReadLimiter, verifyIdToken, async (req, res) => {
     const rows = await sql`
       SELECT id, uid, username, display_name, avatar_url, locket_url,
              country_code
-      FROM celebrity_profiles
+      FROM locket_idols
       WHERE enabled = TRUE
       ORDER BY sort_order ASC, display_name ASC, id ASC
     `;
