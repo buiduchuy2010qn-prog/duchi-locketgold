@@ -817,7 +817,13 @@ export default function AdminUsers() {
     setGateLoading(true);
     setGateError(null);
     try {
-      await startShortAdminSession(gatePassword.trim());
+      const res = await startShortAdminSession(gatePassword.trim());
+      if (res?.require2FA && res?.tempToken) {
+        setGate2FATempToken(res.tempToken);
+        SonnerInfo("Vui lòng nhập mã OTP Google Authenticator để mở khóa.");
+        setGateLoading(false);
+        return;
+      }
       if (!hasPin) {
         SonnerInfo("🎉 Thiết lập Mã PIN số Quản Trị viên thành công! Cổng bảo mật đã mở.");
         setHasPin(true);
@@ -832,6 +838,85 @@ export default function AdminUsers() {
     } finally {
       setGatePassword("");
       setGateLoading(false);
+    }
+  };
+
+  const handleGate2FASubmit = async (e) => {
+    e.preventDefault();
+    if (!gate2FAOtp.trim() || !/^\d{6}$/.test(gate2FAOtp.trim())) {
+      setGateError("Vui lòng nhập đúng mã OTP 6 chữ số từ ứng dụng Google Authenticator.");
+      return;
+    }
+    setGateLoading(true);
+    setGateError(null);
+    try {
+      await verifyAdmin2FAOTP(gate2FATempToken, gate2FAOtp.trim());
+      SonnerInfo("🎉 Xác nhận 2FA thành công! Cổng bảo mật Admin đã mở cho 30 phút tới.");
+      setIsGateUnlocked(true);
+      setGate2FATempToken(null);
+      setGate2FAOtp("");
+      fetchUsers();
+      fetchAdvancedData();
+    } catch (err) {
+      setGateError(err.message || "Xác minh mã 2FA OTP thất bại.");
+    } finally {
+      setGateLoading(false);
+    }
+  };
+
+  const handleOpenSetup2FA = async () => {
+    setSetup2FAError(null);
+    setSetup2FAOtp("");
+    setSetup2FALoading(true);
+    setSetup2FAOpen(true);
+    try {
+      const res = await adminRequest("/setup-2fa");
+      setSetup2FAData(res);
+      setIs2FAEnabled(Boolean(res?.is2FAEnabled));
+    } catch (err) {
+      setSetup2FAError(err.message || "Không thể lấy dữ liệu cài đặt 2FA từ máy chủ.");
+    } finally {
+      setSetup2FALoading(false);
+    }
+  };
+
+  const handleConfirm2FA = async () => {
+    if (!setup2FAOtp.trim() || !/^\d{6}$/.test(setup2FAOtp.trim())) {
+      setSetup2FAError("Vui lòng nhập mã OTP 6 chữ số để kích hoạt.");
+      return;
+    }
+    setSetup2FALoading(true);
+    setSetup2FAError(null);
+    try {
+      const res = await adminRequest("/confirm-2fa", {
+        method: "POST",
+        body: JSON.stringify({ otpCode: setup2FAOtp.trim() }),
+      });
+      SonnerInfo(res.message || "🎉 Kích hoạt bảo mật 2FA thành công!");
+      setIs2FAEnabled(true);
+      if (setup2FAData) setSetup2FAData({ ...setup2FAData, is2FAEnabled: true });
+      setSetup2FAOtp("");
+    } catch (err) {
+      setSetup2FAError(err.message || "Xác minh mã OTP thất bại.");
+    } finally {
+      setSetup2FALoading(false);
+    }
+  };
+
+  const handleDisable2FA = async () => {
+    setSetup2FALoading(true);
+    setSetup2FAError(null);
+    try {
+      const res = await adminRequest("/disable-2fa", {
+        method: "POST",
+      });
+      SonnerInfo(res.message || "Đã tắt tính năng bảo mật 2FA.");
+      setIs2FAEnabled(false);
+      if (setup2FAData) setSetup2FAData({ ...setup2FAData, is2FAEnabled: false });
+    } catch (err) {
+      setSetup2FAError(err.message || "Không thể tắt 2FA.");
+    } finally {
+      setSetup2FALoading(false);
     }
   };
 
