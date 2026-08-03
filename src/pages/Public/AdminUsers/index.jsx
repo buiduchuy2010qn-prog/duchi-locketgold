@@ -3106,12 +3106,11 @@ export default function AdminUsers() {
                       💬 Nội Dung Bản Tin Phát Loa:
                     </label>
                     <div className="flex flex-col sm:flex-row gap-3">
-                      <input
-                        type="text"
+                      <textarea
                         placeholder="Nhập nội dung thông báo (ví dụ: Bảo trì hệ thống lúc 23h50, vui lòng lưu giữ bài đăng...)"
                         value={broadcastMsg}
                         onChange={(e) => setBroadcastMsg(e.target.value)}
-                        className="input input-bordered flex-1 font-semibold rounded-2xl h-13 bg-slate-950 text-white placeholder:text-slate-500 border-slate-800 focus:border-blue-500 shadow-sm px-4 text-base"
+                        className="textarea textarea-bordered flex-1 font-semibold rounded-2xl min-h-[3.25rem] py-3 bg-slate-950 text-white placeholder:text-slate-500 border-slate-800 focus:border-blue-500 shadow-sm px-4 text-base"
                       />
                       <button
                         type="button"
