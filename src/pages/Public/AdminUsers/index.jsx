@@ -487,6 +487,8 @@ export default function AdminUsers() {
       if (b?.list) setBroadcastList(b.list || []);
       const p = await adminRequest(`/ip-blacklist?_=${Date.now()}`);
       if (p?.list) setBlacklistedIps(p.list || []);
+      const w = await adminRequest(`/whitelist?_=${Date.now()}`);
+      if (w?.list) setWhitelistItems(w.list || []);
       if (typeof isUserAction === "boolean" && isUserAction) {
         SonnerSuccess("⚡ Đã cập nhật chỉ số cảm biến và nhịp tim máy chủ mới nhất!");
       }

@@ -1,40 +1,12 @@
 const fs = require('fs');
-const path = 'api/src/middlewares/antiBot.js';
-let content = fs.readFileSync(path, 'utf8');
+let content = fs.readFileSync('src/pages/Public/AdminUsers/index.jsx', 'utf8');
 
-const adminCheck = `
-function isAdminRequest(req) {
-  try {
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.split(' ')[1];
-      const payloadBase64 = token.split('.')[1];
-      if (!payloadBase64) return false;
-      const payloadString = Buffer.from(payloadBase64, 'base64').toString('utf8');
-      const payload = JSON.parse(payloadString);
-      if (payload && (payload.role === 'admin' || payload.email === 'buiduchuy2010qn@gmail.com' || payload.email === 'duchuy2010qn@gmail.com' || payload.email === 'nhuyqn2010@gmail.com')) {
-        return true;
-      }
-    }
-  } catch (e) {
-    return false;
-  }
-  return false;
+const search = `      if (p?.list) setBlacklistedIps(p.list || []);\r\n      if (typeof isUserAction === "boolean" && isUserAction) {`;
+const replace = `      if (p?.list) setBlacklistedIps(p.list || []);\r\n      const w = await adminRequest(\`/whitelist?_=\${Date.now()}\`);\r\n      if (w?.list) setWhitelistItems(w.list || []);\r\n      if (typeof isUserAction === "boolean" && isUserAction) {`;
+
+if (content.includes(search)) {
+  fs.writeFileSync('src/pages/Public/AdminUsers/index.jsx', content.replace(search, replace));
+  console.log("OK: whitelist fetch added");
+} else {
+  console.log("FAIL: search string not found");
 }
-`;
-
-content = content.replace('function getRequestIp(req) {', adminCheck + '\nfunction getRequestIp(req) {');
-
-// We have two places with `if (req.method === "OPTIONS" || isExemptPath(req.path)) {`
-// One in antiBotMiddleware, one in wafSecurityShield.
-content = content.replace(
-  'if (req.method === "OPTIONS" || isExemptPath(req.path)) {',
-  'if (req.method === "OPTIONS" || isExemptPath(req.path) || isAdminRequest(req)) {'
-);
-content = content.replace(
-  'if (req.method === "OPTIONS" || isExemptPath(req.path)) {',
-  'if (req.method === "OPTIONS" || isExemptPath(req.path) || isAdminRequest(req)) {'
-);
-
-fs.writeFileSync(path, content, 'utf8');
-console.log('Patched');

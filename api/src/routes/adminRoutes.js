@@ -52,6 +52,9 @@ const {
   getAdmin2FAInfo,
   setAdmin2FASecret,
   setAdmin2FAEnabled,
+  addWhitelist,
+  listWhitelist,
+  removeWhitelist,
 } = require("../services/userActivityStore");
 const { getRequestContext, lookupPublicIpLocation } = require("../services/userActivityContext");
 
@@ -1000,6 +1003,38 @@ router.get("/users/:uid/password-status", async (req, res) => {
   if (!u) return res.status(404).json({ success: false, error: "Không tìm thấy người dùng trong hệ thống Huy Locket" });
   const status = getUserPasswordRecoveryStatus(u.email);
   res.json({ success: true, data: { uid: u.uid, displayName: u.displayName || u.email, ...status } });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// 6. Kim Bài Miễn Tử — Whitelist CRUD
+// ═══════════════════════════════════════════════════════════════════
+router.get("/whitelist", async (req, res) => {
+  try {
+    const rows = await listWhitelist();
+    res.json({ success: true, list: rows });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.post("/whitelist", async (req, res) => {
+  try {
+    const { identifier, type } = req.body || {};
+    if (!identifier) return res.status(400).json({ success: false, error: "Thiếu identifier" });
+    await addWhitelist(identifier, type || "email", req.adminEmail || "SUPER_ADMIN");
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.delete("/whitelist/:identifier", async (req, res) => {
+  try {
+    await removeWhitelist(decodeURIComponent(req.params.identifier));
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 module.exports = router;
