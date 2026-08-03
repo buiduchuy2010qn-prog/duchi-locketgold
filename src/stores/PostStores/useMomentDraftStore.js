@@ -224,11 +224,11 @@ export const useMomentDraftStore = create((set, get) => ({
   },
 
   /** Manual / online trigger: push + pull then refresh list */
-  syncDraftsNow: async () => {
+  syncDraftsNow: async (silent = false) => {
     const uid = resolveDraftUid();
     if (!uid) return { ok: false };
     if (!isDraftCloudOnline()) {
-      SonnerWarning("Cần mạng để đồng bộ bản nháp giữa các thiết bị");
+      if (!silent) SonnerWarning("Cần mạng để đồng bộ bản nháp giữa các thiết bị");
       return { ok: false, offline: true };
     }
     try {
@@ -236,8 +236,8 @@ export const useMomentDraftStore = create((set, get) => ({
       await get().refreshList(uid);
       const n = r?.pullAfter?.count || r?.pullBefore?.count || r?.pull?.count;
       if (r?.pullBefore?.ok === false || r?.pullAfter?.ok === false || r?.pull?.ok === false) {
-        SonnerWarning("Kéo bản nháp thất bại", r.error || r.pull?.error || r.pullBefore?.error || "");
-      } else if (typeof n === "number") {
+        if (!silent) SonnerWarning("Kéo bản nháp thất bại", r.error || r.pull?.error || r.pullBefore?.error || "");
+      } else if (typeof n === "number" && !silent) {
         SonnerInfo(
           n
             ? `Đã đồng bộ · ${n} bản trên tài khoản`
@@ -246,7 +246,7 @@ export const useMomentDraftStore = create((set, get) => ({
       }
       return r;
     } catch (e) {
-      SonnerWarning("Đồng bộ thất bại", e?.message || "");
+      if (!silent) SonnerWarning("Đồng bộ thất bại", e?.message || "");
       return { ok: false, error: e?.message };
     }
   },

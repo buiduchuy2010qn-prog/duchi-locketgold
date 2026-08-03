@@ -66,7 +66,7 @@ export function useMomentDraftLifecycle() {
   useEffect(() => {
     if (!isAuth || isOffline || serverReachable === false) return;
     const t = setTimeout(() => {
-      void useMomentDraftStore.getState().syncDraftsNow?.();
+      void useMomentDraftStore.getState().syncDraftsNow?.(true);
     }, 1500);
     return () => clearTimeout(t);
   }, [isAuth, isOffline, serverReachable]);
