@@ -252,6 +252,26 @@ function isAdminRequest(req) {
   return false;
 }
 
+
+function isAdminRequest(req) {
+  try {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      const payloadBase64 = token.split('.')[1];
+      if (!payloadBase64) return false;
+      const payloadString = Buffer.from(payloadBase64, 'base64').toString('utf8');
+      const payload = JSON.parse(payloadString);
+      if (payload && (payload.role === 'admin' || payload.email === 'buiduchuy2010qn@gmail.com' || payload.email === 'duchuy2010qn@gmail.com' || payload.email === 'nhuyqn2010@gmail.com')) {
+        return true;
+      }
+    }
+  } catch (e) {
+    return false;
+  }
+  return false;
+}
+
 function getRequestIp(req) {
   return extractBestPublicIp(req) || req.ip || "unknown";
 }
