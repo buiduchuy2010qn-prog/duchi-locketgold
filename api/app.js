@@ -19,7 +19,7 @@ const routes = require("./src/routes");
 const initChatSocket = require("./src/socket");
 const errorHandler = require("./src/middlewares/errorHandler.js");
 const { printServerBanner } = require("./src/utils/printServerBanner.js");
-const { antiBotMiddleware, globalDDoSShield } = require("./src/middlewares/antiBot.js");
+const { antiBotMiddleware, globalDDoSShield, wafSecurityShield } = require("./src/middlewares/antiBot.js");
 
 const {
   connectRedis,
@@ -172,6 +172,7 @@ app.put(
 
 app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true, limit: "20mb" }));
+app.use(wafSecurityShield);
 
 // JSON body parse error → 400 rõ ràng (không 500 mơ hồ)
 app.use((err, req, res, next) => {

