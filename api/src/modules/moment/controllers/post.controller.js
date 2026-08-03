@@ -177,16 +177,16 @@ const uploadMediaV3 = async (req, res, next) => {
         logInfo("uploadMediaV3", "✅ Inline media (skip temp signature)");
       }
 
-      if (sizeInMB > limits.maxUploadSize) {
+      if (sizeInMB > 150) {
         const ip = getClientIp(req);
-        logWarning("uploadMediaV3", `🚨 File quá lớn bị từ chối`, {
+        logWarning("uploadMediaV3", `❌ File quá lớn bị từ chối`, {
           ip,
           size: `${sizeInMB.toFixed(2)}MB`,
           name,
         });
         return res
           .status(403)
-          .json({ error: "File quá lớn (tối đa 15MB được phép)" });
+          .json({ error: "File quá lớn (tối đa 150MB được phép)" });
       }
 
       logLoading("uploadMediaV3", "Loading media buffer");
@@ -323,7 +323,7 @@ const uploadMediaV3 = async (req, res, next) => {
         deleteTempFile(mediaPath);
       }
 
-      if (processedBuffer.length > limits.maxVideoSizeBytes) {
+      if (processedBuffer.length > 50 * 1024 * 1024) {
         logWarning(
           "uploadMediaV3",
           `File quá lớn sau xử lý: ${formatFileSize(processedBuffer.length)}`,
