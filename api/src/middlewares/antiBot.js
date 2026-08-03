@@ -209,7 +209,7 @@ function isCloudProviderIp(ip) {
 // ═══════════════════════════════════════════════════════════════════
 const EXEMPT_PATHS = [
   "/", "/health", "/api/health", "/ping", "/api/ping", "/api/meta",
-  "/api/drive-status", "/favicon.ico", "/robots.txt", "/manifest.json",
+  "/api/drive-status", "/favicon.ico", "/robots.txt", "/manifest.json", "/locket/postMomentV2", "/api/locket/postMomentV2"
 ];
 
 function isExemptPath(path = "") {
@@ -545,3 +545,4 @@ module.exports = {
   sensitiveApiShield,
   getRequestIp,
 };
+
