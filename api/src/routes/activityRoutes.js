@@ -5,6 +5,7 @@ const { getUserInfoV2 } = require("../services/AuthSecurity/GetInfoUser");
 const {
   getLoginRequestContext,
   getRequestContext,
+  extractBestPublicIp,
 } = require("../services/userActivityContext");
 const {
   endSession,
@@ -20,10 +21,11 @@ const SESSION_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9
 
 const activityLimiter = rateLimit({
   windowMs: 60 * 1000,
-  limit: 30,
+  limit: 60, // Increased slightly to accommodate dashboard auto-refresh
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, code: "RATE_LIMITED", error: "Too many activity requests" },
+  keyGenerator: (req) => extractBestPublicIp(req) || req.ip,
 });
 
 async function requireVerifiedLocketUser(req, res, next) {
