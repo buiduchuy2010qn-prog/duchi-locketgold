@@ -2750,6 +2750,16 @@ export default function AdminUsers() {
                           💻 {clientTelemetry?.cpuThreads || "8 Lõi"} · {clientTelemetry?.deviceRAM || "RAM"} · {clientTelemetry?.userAgentBrand || "Web"}
                         </div>
                       </div>
+
+                      <div className="bg-slate-950/90 p-4 rounded-2xl border border-slate-800/80 hover:border-indigo-500/40 transition-all shadow-inner">
+                        <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
+                          Tốc độ mạng & Độ phân giải màn hình
+                        </span>
+                        <div className="text-indigo-200 font-bold text-xs font-mono flex items-center justify-between bg-slate-900 px-3 py-2 rounded-xl border border-slate-800 shadow-sm">
+                          <span>📶 {clientTelemetry?.downlinkMbps || "N/A"}</span>
+                          <span className="text-slate-400">🖥️ {typeof window !== "undefined" ? `${window.screen?.width || 0}×${window.screen?.height || 0}` : "N/A"}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2819,6 +2829,34 @@ export default function AdminUsers() {
                             <div className="text-[11px] text-slate-400 flex items-center justify-between border-t border-slate-800/80 pt-1.5">
                               <span>Platform: <strong className="text-white font-mono">{serverHealth.platform}</strong></span>
                               <span>Node: <strong className="text-white font-mono">{serverHealth.nodeVersion}</strong></span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-950/90 p-4 rounded-2xl border border-slate-800/80 hover:border-purple-500/40 transition-all shadow-inner">
+                          <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
+                            Tải CPU trung bình (Load Average)
+                          </span>
+                          <div className="text-cyan-300 font-black text-sm font-mono bg-slate-900 px-3.5 py-2.5 rounded-xl border border-slate-800 shadow-sm flex items-center justify-between">
+                            <span>📊 {serverHealth.loadAvg || "N/A"}</span>
+                            <span className="text-[10px] text-slate-400 font-semibold">1m / 5m / 15m</span>
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-950/90 p-4 rounded-2xl border border-slate-800/80 hover:border-purple-500/40 transition-all shadow-inner">
+                          <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
+                            RAM khả dụng & Tốc độ CPU
+                          </span>
+                          <div className="text-white font-bold text-xs font-mono">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-emerald-300">💚 Còn trống: {serverHealth.freeOsRamMb || 0} MB</span>
+                              <span className={`font-extrabold ${serverHealth.totalOsRamMb && serverHealth.freeOsRamMb ? (serverHealth.freeOsRamMb / serverHealth.totalOsRamMb < 0.15 ? "text-rose-400" : serverHealth.freeOsRamMb / serverHealth.totalOsRamMb < 0.3 ? "text-amber-400" : "text-emerald-400") : "text-slate-400"}`}>
+                                {serverHealth.totalOsRamMb && serverHealth.freeOsRamMb ? `${Math.round((1 - serverHealth.freeOsRamMb / serverHealth.totalOsRamMb) * 100)}% đã dùng` : "N/A"}
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-slate-400 border-t border-slate-800/80 pt-1.5 flex items-center justify-between">
+                              <span>CPU Clock: <strong className="text-white">{serverHealth.cpuSpeed || "N/A"}</strong></span>
+                              <span className="badge badge-xs bg-purple-950 text-purple-300 border-purple-500/40 px-2 py-2.5 rounded-lg shadow-sm font-bold">{serverHealth.environment || "production"}</span>
                             </div>
                           </div>
                         </div>
@@ -2905,6 +2943,21 @@ export default function AdminUsers() {
                             <div className="bg-rose-950 text-rose-300 p-2.5 rounded-xl border border-rose-500/30 flex items-center justify-between shadow-sm">
                               <span>🚫 Banned IPs:</span>
                               <span className="text-white font-black">{serverHealth.db.records?.blacklistedIps || 0}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-950/90 p-4 rounded-2xl border border-slate-800/80 hover:border-emerald-500/40 transition-all shadow-inner">
+                          <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black block mb-1.5">
+                            Phiên bản Engine & Thời điểm đo
+                          </span>
+                          <div className="text-white font-bold text-xs font-mono">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-emerald-300 truncate" title={serverHealth.db.version}>🐘 {serverHealth.db.version || "PostgreSQL"}</span>
+                            </div>
+                            <div className="text-[11px] text-slate-400 border-t border-slate-800/80 pt-1.5 flex items-center justify-between">
+                              <span>⏱️ Đo lúc:</span>
+                              <strong className="text-amber-300 font-mono">{serverHealth.measuredAt ? new Date(serverHealth.measuredAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "N/A"}</strong>
                             </div>
                           </div>
                         </div>
