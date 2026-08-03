@@ -6,6 +6,8 @@ const IP_LOCATION_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const IP_LOCATION_FAILURE_TTL_MS = 5 * 60 * 1000;
 const ipLocationCache = new Map();
 const TRUSTED_ORIGINS = new Map([
+  ["https://locket-dio.com", "vercel"],
+  ["https://www.locket-dio.com", "vercel"],
   ["https://duchi.vercel.app", "vercel"],
   ["https://huy-locket-production.up.railway.app", "railway"],
 ]);

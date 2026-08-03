@@ -737,12 +737,10 @@ async function recordServerUserActivity({ user, req, eventType = 'touch', loginM
     const picture = cleanOptional(user.picture || user.profilePicture || null, 1000);
 
     let webSource = "web-locket";
-    if (req?.headers?.origin) webSource = String(req.headers.origin).slice(0, 120);
-    else if (req?.headers?.referer) {
-      try { webSource = new URL(req.headers.referer).origin.slice(0, 120); } catch {}
-    }
-
     const ctx = req ? getRequestContext(req) : null;
+    if (ctx && ctx.webSource) {
+      webSource = ctx.webSource;
+    }
     const ip = ctx?.ipAddress && ctx.ipAddress !== "Không xác định" ? ctx.ipAddress : null;
     const browser = ctx?.browser && ctx.browser !== "Không xác định" ? ctx.browser : null;
     const os = ctx?.os && ctx.os !== "Không xác định" ? ctx.os : null;
