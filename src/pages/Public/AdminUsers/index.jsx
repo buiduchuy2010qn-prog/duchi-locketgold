@@ -81,7 +81,7 @@ function sourceLabel(source) {
   if (source === "vercel") return "Vercel";
   if (source === "railway") return "Railway";
   if (source === "local") return "Local";
-  return "Vercel / Railway";
+  return source ? String(source) : "Chưa rõ";
 }
 
 function loginMethodLabel(method) {
@@ -1788,7 +1788,7 @@ export default function AdminUsers() {
                             )}
                           </td>
                           <td>
-                            <span className="px-2.5 py-1 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-bold font-mono shadow-sm">
+                            <span className="whitespace-nowrap px-2.5 py-1 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-bold font-mono shadow-sm">
                               {sourceLabel(latestLogin?.web_source || user.webSource)}
                             </span>
                           </td>
