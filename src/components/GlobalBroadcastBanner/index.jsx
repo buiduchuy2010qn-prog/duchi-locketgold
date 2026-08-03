@@ -73,28 +73,28 @@ export default function GlobalBroadcastBanner() {
     <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[99999] w-max max-w-[94%] sm:max-w-3xl animate-in fade-in slide-in-from-top-4 duration-400">
       <div className={`relative flex items-center justify-between gap-3 sm:gap-4 px-4 sm:px-6 py-3.5 rounded-2xl shadow-2xl backdrop-blur-xl border ${
         isWarning 
-          ? "bg-gradient-to-r from-red-950/95 via-orange-950/95 to-amber-950/95 border-red-500/50 text-red-100 shadow-red-900/30"
-          : "bg-gradient-to-r from-indigo-950/95 via-purple-950/95 to-slate-950/95 border-purple-400/50 text-indigo-100 shadow-purple-900/40"
+          ? "bg-error/95 border-error/50 text-error-content shadow-error/30"
+          : "bg-base-100/95 border-base-content/10 text-base-content shadow-base-content/10"
       }`}>
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <span className="flex h-3.5 w-3.5 relative flex-shrink-0">
             <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-              isWarning ? "bg-red-400" : "bg-purple-400"
+              isWarning ? "bg-error-content" : "bg-primary"
             }`} />
             <span className={`relative inline-flex rounded-full h-3.5 w-3.5 ${
-              isWarning ? "bg-red-500" : "bg-purple-500"
+              isWarning ? "bg-error-content" : "bg-primary"
             }`} />
           </span>
           <div className="flex flex-col min-w-0">
-            <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider font-extrabold text-white/80">
+            <div className={`flex items-center gap-1.5 text-[11px] uppercase tracking-wider font-extrabold ${isWarning ? 'text-error-content/80' : 'text-base-content/80'}`}>
               <span>📢 THÔNG BÁO HỆ THỐNG</span>
               {broadcast.targetUser && broadcast.targetUser !== "ALL" ? (
-                <span className="bg-white/20 text-white px-1.5 py-0.5 rounded text-[10px] uppercase font-mono font-bold">
+                <span className={`px-1.5 py-0.5 rounded text-[10px] uppercase font-mono font-bold ${isWarning ? 'bg-error-content/20 text-error-content' : 'bg-base-content/20 text-base-content'}`}>
                   Riêng cho bạn
                 </span>
               ) : null}
             </div>
-            <p className="font-black text-sm sm:text-base text-white break-words mt-0.5 leading-snug drop-shadow">
+            <p className="font-black text-sm sm:text-base break-words mt-0.5 leading-snug drop-shadow-sm">
               {broadcast.message}
             </p>
           </div>
@@ -105,7 +105,7 @@ export default function GlobalBroadcastBanner() {
             setDismissedKey(broadcast.key);
             setBroadcast(null);
           }}
-          className="flex-shrink-0 p-2 hover:bg-white/10 rounded-xl transition-colors duration-200 text-white/80 hover:text-white"
+          className={`flex-shrink-0 p-2 rounded-xl transition-colors duration-200 ${isWarning ? 'hover:bg-error-content/20 text-error-content/80 hover:text-error-content' : 'hover:bg-base-content/20 text-base-content/80 hover:text-base-content'}`}
           title="Đóng thông báo"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
