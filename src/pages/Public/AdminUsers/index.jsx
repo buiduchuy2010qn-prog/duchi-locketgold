@@ -2808,8 +2808,8 @@ export default function AdminUsers() {
                             Thời gian liên tiếp hoạt động (Uptime)
                           </span>
                           <div className="text-white font-black text-sm font-mono bg-slate-900 px-3.5 py-2.5 rounded-xl border border-slate-800 flex flex-wrap gap-2 items-center justify-between shadow-sm">
-                            <span>⏳ API: <span className="text-purple-300 font-bold">{Math.floor(serverHealth.uptimeSeconds / 3600)}h {Math.floor((serverHealth.uptimeSeconds % 3600) / 60)}p</span></span>
-                            {serverHealth.osUptimeSeconds && <span className="text-xs text-slate-400 font-semibold">OS: {Math.floor(serverHealth.osUptimeSeconds / 3600)}h {Math.floor((serverHealth.osUptimeSeconds % 3600) / 60)}p</span>}
+                            <span>⏳ API: <span className="text-purple-300 font-bold">{Math.floor(serverHealth.uptimeSeconds / 3600)}h {Math.floor((serverHealth.uptimeSeconds % 3600) / 60)}p {serverHealth.uptimeSeconds % 60}s</span></span>
+                            {serverHealth.osUptimeSeconds && <span className="text-xs text-slate-400 font-semibold">OS: {Math.floor(serverHealth.osUptimeSeconds / 3600)}h {Math.floor((serverHealth.osUptimeSeconds % 3600) / 60)}p {serverHealth.osUptimeSeconds % 60}s</span>}
                           </div>
                         </div>
 
