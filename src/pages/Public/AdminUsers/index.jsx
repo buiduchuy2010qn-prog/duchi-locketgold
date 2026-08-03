@@ -548,7 +548,7 @@ export default function AdminUsers() {
     } catch (requestError) {
       if (requestError.status === 401 || requestError.code === "ADMIN_SESSION_EXPIRED") {
         clearShortAdminSessionToken();
-        setIsGateUnlocked(false);
+        navigate('/', { replace: true });
       }
       if (!silent || requestError.status === 401 || requestError.status === 403) {
         setError({ code: requestError.code, message: errorMessage(requestError) });
@@ -574,7 +574,7 @@ export default function AdminUsers() {
     } catch (err) {
       if (err?.code === "ADMIN_SESSION_EXPIRED" || err?.status === 401) {
         clearShortAdminSessionToken();
-        setIsGateUnlocked(false);
+        navigate('/', { replace: true });
       }
       setAuditError(errorMessage(err));
     } finally {
@@ -591,7 +591,7 @@ export default function AdminUsers() {
     } catch (err) {
       if (err?.code === "ADMIN_SESSION_EXPIRED" || err?.status === 401) {
         clearShortAdminSessionToken();
-        setIsGateUnlocked(false);
+        navigate('/', { replace: true });
       }
       setReportsError(errorMessage(err));
     } finally {
@@ -611,7 +611,7 @@ export default function AdminUsers() {
     } catch (err) {
       if (err?.code === "ADMIN_SESSION_EXPIRED" || err?.status === 401) {
         clearShortAdminSessionToken();
-        setIsGateUnlocked(false);
+        navigate('/', { replace: true });
       }
       if (!silent) setUserActionsError(errorMessage(err));
     } finally {
@@ -647,7 +647,7 @@ export default function AdminUsers() {
     } catch (err) {
       if (err?.code === "ADMIN_SESSION_EXPIRED" || err?.status === 401) {
         clearShortAdminSessionToken();
-        setIsGateUnlocked(false);
+        navigate('/', { replace: true });
       }
       if (!silent) setSecurityError(errorMessage(err));
     } finally {
@@ -809,7 +809,7 @@ export default function AdminUsers() {
     } catch (requestError) {
       if (requestError?.code === "ADMIN_SESSION_EXPIRED" || requestError?.status === 401) {
         clearShortAdminSessionToken();
-        setIsGateUnlocked(false);
+        navigate('/', { replace: true });
         setSelectedUser(null);
       } else {
         setHistoryError(errorMessage(requestError));
@@ -951,7 +951,7 @@ export default function AdminUsers() {
         clearShortAdminSessionToken();
         setPendingCallback(() => actionFn);
         setReauthError("Phiên thao tác nhạy cảm đã hết hạn sau 30 phút. Vui lòng xác minh lại mã PIN bảo mật.");
-        setReauthModalOpen(true);
+        navigate('/', { replace: true });
       } else {
         SonnerInfo(`Lỗi thao tác: ${err.message || "Không xác định"}`);
       }
@@ -1337,7 +1337,7 @@ export default function AdminUsers() {
               type="button"
               onClick={() => {
                 clearShortAdminSessionToken();
-                setIsGateUnlocked(false);
+                navigate('/', { replace: true });
                 SonnerInfo("Đã khóa trang Quản Trị. Vui lòng nhập mã PIN bảo mật khi truy cập lại.");
               }}
               className="btn btn-sm sm:btn-md bg-gradient-to-r from-rose-600 via-red-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-extrabold border-0 rounded-2xl h-11 px-5 shadow-[0_10px_20px_-5px_rgba(225,29,72,0.4)] transition-all flex items-center gap-2 cursor-pointer active:scale-95"
