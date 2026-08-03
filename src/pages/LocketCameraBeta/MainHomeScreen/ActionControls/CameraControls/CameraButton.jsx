@@ -457,7 +457,7 @@ const CameraButton = () => {
         height: 72,
         minWidth: 64,
         minHeight: 64,
-        touchAction: "manipulation",
+        touchAction: "none",
         userSelect: "none",
         WebkitUserSelect: "none",
         WebkitTouchCallout: "none",
