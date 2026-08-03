@@ -21,6 +21,7 @@ import {
   Zap,
   Volume2,
   ShieldAlert,
+  ShieldCheck,
 } from "lucide-react";
 import { SonnerInfo, SonnerSuccess, SonnerWarning } from "@/components/uikit/SonnerToast";
 import { updateAndSyncGpsLocation } from "@/services/UserActivityService";
