@@ -12,8 +12,8 @@ const TRUSTED_ORIGINS = new Map([
 
 function extractBestPublicIp(req) {
   const headersToCheck = [
-    req.headers["cf-connecting-ip"],
     req.headers["x-vercel-forwarded-for"],
+    req.headers["cf-connecting-ip"],
     req.headers["x-forwarded-for"],
     req.headers["x-real-ip"],
     req.ip
