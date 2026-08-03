@@ -875,9 +875,64 @@ async function uploadToSharedDrive(fileBuf, contentType, filename, mediaHint) {
     mediaHint
   );
 
+  const isVideo = isVideoMedia(contentType, filename, mediaHint);
+  const useResumable = fileBuf.length > 4 * 1024 * 1024 || isVideo;
+  const targetName = filename || `locketdio-${Date.now()}.bin`;
+
+  if (useResumable) {
+    console.log(`[gdrive] ⚡ Kích hoạt giao thức Resumable Upload tốc độ cao cho ${targetName} (${(fileBuf.length / 1024 / 1024).toFixed(2)} MB)`);
+    const initRes = await fetch(
+      "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true&fields=id,name,webViewLink,parents",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json; charset=UTF-8",
+          "X-Upload-Content-Type": contentType || "application/octet-stream",
+          "X-Upload-Content-Length": String(fileBuf.length),
+        },
+        body: JSON.stringify({
+          name: targetName,
+          parents: [parentId],
+        }),
+      }
+    );
+    if (!initRes.ok) {
+      const initData = await initRes.json().catch(() => ({}));
+      const msg = initData?.error?.message || `Drive Resumable Init ${initRes.status}`;
+      if (/storage quota|Service Accounts do not have storage/i.test(msg)) {
+        throw new Error(
+          "Service Account không ghi được Drive cá nhân. Vào /admin/google-drive → Đăng nhập Google (OAuth)."
+        );
+      }
+      throw new Error("[Drive Resumable Init Error] " + msg);
+    }
+    const sessionUri = initRes.headers.get("location") || initRes.headers.get("Location");
+    if (!sessionUri) {
+      throw new Error("[Drive Upload Error] Không nhận được URI phiên upload tốc độ cao từ Google.");
+    }
+
+    const uploadRes = await fetch(sessionUri, {
+      method: "PUT",
+      headers: {
+        "Content-Type": contentType || "application/octet-stream",
+        "Content-Length": String(fileBuf.length),
+      },
+      body: fileBuf,
+    });
+    const uploadData = await uploadRes.json().catch(() => ({}));
+    if (!uploadRes.ok) {
+      throw new Error("[Drive Resumable Upload Error] " + (uploadData?.error?.message || `HTTP ${uploadRes.status}`));
+    }
+    return {
+      ...uploadData,
+      folder: isVideo ? "Video" : "Ảnh",
+    };
+  }
+
   const boundary = "----LocketDioDrive" + Date.now();
   const meta = JSON.stringify({
-    name: filename || `locketdio-${Date.now()}.bin`,
+    name: targetName,
     parents: [parentId],
   });
   const preamble = Buffer.from(
@@ -915,7 +970,7 @@ async function uploadToSharedDrive(fileBuf, contentType, filename, mediaHint) {
   }
   return {
     ...data,
-    folder: isVideoMedia(contentType, filename, mediaHint) ? "Video" : "Ảnh",
+    folder: isVideo ? "Video" : "Ảnh",
   };
 }
 
