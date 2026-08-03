@@ -1221,11 +1221,12 @@ async function setAdmin2FASecret(uid, secret, enabled = false) {
   await ensureUserActivitySchema();
   const sql = getSql();
   await sql`
-    UPDATE web_users
-    SET two_factor_secret = ${secret},
-        is_two_factor_enabled = ${enabled},
+    INSERT INTO web_users (uid, auth_provider, account_status, two_factor_secret, is_two_factor_enabled, created_at, updated_at)
+    VALUES (${uid}, 'locket-firebase', 'active', ${secret}, ${enabled}, NOW(), NOW())
+    ON CONFLICT (uid) DO UPDATE
+    SET two_factor_secret = EXCLUDED.two_factor_secret,
+        is_two_factor_enabled = EXCLUDED.is_two_factor_enabled,
         updated_at = NOW()
-    WHERE uid = ${uid}
   `;
   return true;
 }
@@ -1234,10 +1235,11 @@ async function setAdmin2FAEnabled(uid, enabled = true) {
   await ensureUserActivitySchema();
   const sql = getSql();
   await sql`
-    UPDATE web_users
-    SET is_two_factor_enabled = ${enabled},
+    INSERT INTO web_users (uid, auth_provider, account_status, is_two_factor_enabled, created_at, updated_at)
+    VALUES (${uid}, 'locket-firebase', 'active', ${enabled}, NOW(), NOW())
+    ON CONFLICT (uid) DO UPDATE
+    SET is_two_factor_enabled = EXCLUDED.is_two_factor_enabled,
         updated_at = NOW()
-    WHERE uid = ${uid}
   `;
   return true;
 }

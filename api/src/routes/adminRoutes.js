@@ -1,7 +1,7 @@
 const express = require("express");
 const crypto = require("node:crypto");
 const jwt = require("jsonwebtoken");
-const { authenticator } = require("otplib");
+const { generateSecret, generateURI, verify } = require("otplib");
 const qrcode = require("qrcode");
 const {
   ADMIN_FIREBASE_PROJECT_ID,
@@ -274,10 +274,11 @@ router.post("/session/verify-2fa", requireActivityDatabase, async (req, res) => 
     if (!info2fa?.is_two_factor_enabled || !info2fa?.two_factor_secret) {
       return res.status(400).json({ success: false, error: "Tài khoản chưa kích hoạt 2FA." });
     }
-    const isValid = authenticator.verify({
+    const verification = await verify({
       token: String(otpCode).trim(),
       secret: info2fa.two_factor_secret,
     });
+    const isValid = verification && verification.valid === true;
     if (!isValid) {
       await audit(req, "FAILED_ADMIN_2FA_OTP", req.adminUid, "Failed 2FA OTP code test", "failure");
       return res.status(401).json({ success: false, error: "Mã OTP không chính xác hoặc đã hết hạn!" });
@@ -305,12 +306,12 @@ router.get("/setup-2fa", requireActivityDatabase, requireActiveAdminSession, asy
     const info2fa = await getAdmin2FAInfo(req.adminUid);
     let secret = info2fa?.two_factor_secret;
     if (!secret) {
-      secret = authenticator.generateSecret();
+      secret = await generateSecret();
       await setAdmin2FASecret(req.adminUid, secret, false);
     }
     const serviceName = "Huy Locket Admin";
-    const userLabel = req.adminEmail || req.adminUid;
-    const otpauth = authenticator.keyuri(userLabel, serviceName, secret);
+    const userLabel = req.adminEmail || req.adminUid || "Admin";
+    const otpauth = await generateURI({ secret, label: userLabel, issuer: serviceName });
     const qrCodeBase64 = await qrcode.toDataURL(otpauth);
     return res.status(200).json({
       success: true,
@@ -319,8 +320,8 @@ router.get("/setup-2fa", requireActivityDatabase, requireActiveAdminSession, asy
       is2FAEnabled: Boolean(info2fa?.is_two_factor_enabled),
     });
   } catch (error) {
-    console.error("Failed 2FA setup:", error?.message || "unknown");
-    return res.status(500).json({ success: false, error: "Lỗi khởi tạo bảo mật 2FA" });
+    console.error("Failed 2FA setup:", error?.message || "unknown", error);
+    return res.status(500).json({ success: false, error: error?.message ? `Lỗi khởi tạo bảo mật 2FA: ${error.message}` : "Lỗi khởi tạo bảo mật 2FA" });
   }
 });
 
@@ -335,10 +336,11 @@ router.post("/confirm-2fa", requireActivityDatabase, requireActiveAdminSession, 
     if (!info2fa?.two_factor_secret) {
       return res.status(400).json({ success: false, error: "Bạn chưa tạo mã QR nào trước đó." });
     }
-    const isValid = authenticator.verify({
+    const verification = await verify({
       token: String(otpCode).trim(),
       secret: info2fa.two_factor_secret,
     });
+    const isValid = verification && verification.valid === true;
     if (!isValid) {
       return res.status(401).json({ success: false, error: "Mã OTP không chính xác hoặc đã hết hạn!" });
     }
@@ -346,8 +348,8 @@ router.post("/confirm-2fa", requireActivityDatabase, requireActiveAdminSession, 
     await audit(req, "ENABLE_ADMIN_2FA", req.adminUid, "Enabled Google Authenticator 2FA for Admin");
     return res.status(200).json({ success: true, message: "🎉 Kích hoạt Bảo Mật 2FA Google Authenticator thành công!" });
   } catch (error) {
-    console.error("Failed confirm 2FA:", error?.message || "unknown");
-    return res.status(500).json({ success: false, error: "Lỗi kích hoạt 2FA" });
+    console.error("Failed confirm 2FA:", error?.message || "unknown", error);
+    return res.status(500).json({ success: false, error: error?.message ? `Lỗi kích hoạt 2FA: ${error.message}` : "Lỗi kích hoạt 2FA" });
   }
 });
 
