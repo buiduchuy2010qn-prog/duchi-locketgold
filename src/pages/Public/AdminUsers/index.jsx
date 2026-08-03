@@ -208,6 +208,8 @@ export default function AdminUsers() {
   const [setup2FAOtp, setSetup2FAOtp] = useState("");
   const [setup2FALoading, setSetup2FALoading] = useState(false);
   const [setup2FAError, setSetup2FAError] = useState(null);
+  const [disable2FAConfirmMode, setDisable2FAConfirmMode] = useState(false);
+  const [disable2FAOtp, setDisable2FAOtp] = useState("");
 
   // Change PIN modal states
   const [changePinModalOpen, setChangePinModalOpen] = useState(false);
@@ -911,16 +913,23 @@ export default function AdminUsers() {
   };
 
   const handleDisable2FA = async () => {
+    if (!disable2FAOtp.trim() || !/^\d{6}$/.test(disable2FAOtp.trim())) {
+      setSetup2FAError("Vui lòng nhập đúng mã OTP 6 chữ số từ Google Authenticator để xác nhận tắt 2FA.");
+      return;
+    }
     setSetup2FALoading(true);
     setSetup2FAError(null);
     try {
       const res = await adminRequest("/disable-2fa", {
         method: "POST",
+        body: JSON.stringify({ otpCode: disable2FAOtp.trim() }),
       });
       setTrustedDeviceToken(null);
       SonnerInfo(res.message || "Đã tắt tính năng bảo mật 2FA.");
       setIs2FAEnabled(false);
       if (setup2FAData) setSetup2FAData({ ...setup2FAData, is2FAEnabled: false });
+      setDisable2FAConfirmMode(false);
+      setDisable2FAOtp("");
     } catch (err) {
       setSetup2FAError(err.message || "Không thể tắt 2FA.");
     } finally {
@@ -3680,17 +3689,57 @@ export default function AdminUsers() {
                       <header className="space-y-1">
                         <h4 className="text-base font-black uppercase tracking-wider text-emerald-900">Bảo Mật 2FA Đang Hoạt Động</h4>
                         <p className="text-xs text-emerald-800 font-medium max-w-sm">
-                          Tài khoản Quản Trị Viên của bạn đang được bảo vệ an toàn 100% bằng mã OTP từ <strong>Google Authenticator / Authy</strong>. Mã vạch QR đã được đóng phai bọc mật để đảm bảo an toàn.
+                          Tài khoản Quản Trị Viên của bạn đang được bảo vệ an toàn 100% bằng mã OTP từ <strong>Google Authenticator / Authy</strong>. Mã vạch QR đã được ẩn để đảm bảo an toàn.
                         </p>
                       </header>
-                      <button
-                        type="button"
-                        onClick={handleDisable2FA}
-                        disabled={setup2FALoading}
-                        className="btn btn-sm bg-rose-600 hover:bg-rose-700 text-white border-0 rounded-2xl px-6 font-black tracking-wide shadow-md transition-transform active:scale-95 mt-2"
-                      >
-                        Tắt Ký Quyền 2FA
-                      </button>
+
+                      {disable2FAConfirmMode ? (
+                        <form
+                          onSubmit={(e) => { e.preventDefault(); handleDisable2FA(); }}
+                          className="w-full max-w-xs space-y-3 mt-1"
+                        >
+                          <label className="text-[11px] font-black text-rose-800 uppercase tracking-wider block text-left">
+                            ⚠️ NHẬP MÃ OTP 6 SỐ ĐỂ XÁC NHẬN TẮT 2FA:
+                          </label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              maxLength={6}
+                              placeholder="000000"
+                              className="input input-bordered flex-1 rounded-2xl text-center text-xl font-mono font-black tracking-[0.4em] bg-white text-rose-950 border-rose-300 focus:border-rose-600 focus:bg-white h-11 shadow-inner"
+                              value={disable2FAOtp}
+                              onChange={(e) => setDisable2FAOtp(e.target.value.replace(/[^0-9]/g, ""))}
+                              disabled={setup2FALoading}
+                              autoFocus
+                            />
+                            <button
+                              type="submit"
+                              className="btn btn-sm bg-rose-600 hover:bg-rose-700 text-white border-0 rounded-2xl px-4 font-black shadow-md h-11"
+                              disabled={setup2FALoading || disable2FAOtp.length !== 6}
+                            >
+                              {setup2FALoading ? "Đang xử lý..." : "Xác Nhận Tắt"}
+                            </button>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => { setDisable2FAConfirmMode(false); setDisable2FAOtp(""); setSetup2FAError(null); }}
+                            className="btn btn-ghost btn-xs text-slate-500 font-bold w-full"
+                          >
+                            Hủy bỏ
+                          </button>
+                        </form>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => { setDisable2FAConfirmMode(true); setSetup2FAError(null); }}
+                          disabled={setup2FALoading}
+                          className="btn btn-sm bg-rose-600 hover:bg-rose-700 text-white border-0 rounded-2xl px-6 font-black tracking-wide shadow-md transition-transform active:scale-95 mt-2"
+                        >
+                          Tắt Ký Quyền 2FA
+                        </button>
+                      )}
                     </article>
                   ) : (
                     <section className="space-y-4">

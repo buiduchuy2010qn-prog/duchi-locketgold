@@ -395,9 +395,27 @@ router.post("/confirm-2fa", requireActivityDatabase, requireActiveAdminSession, 
 router.post("/disable-2fa", requireActivityDatabase, requireActiveAdminSession, async (req, res) => {
   res.setHeader("Cache-Control", "no-store, max-age=0");
   try {
+    // 🔴 BẮT BUỘC xác minh mã OTP trước khi cho phép tắt 2FA
+    const { otpCode } = req.body || {};
+    if (!otpCode || !/^\d{6}$/.test(String(otpCode).trim())) {
+      return res.status(400).json({ success: false, error: "Vui lòng nhập mã OTP 6 số từ Google Authenticator để xác nhận tắt 2FA." });
+    }
+    const info2fa = await getAdmin2FAInfo(req.adminUid);
+    if (!info2fa?.is_two_factor_enabled || !info2fa?.two_factor_secret) {
+      return res.status(400).json({ success: false, error: "Tài khoản chưa kích hoạt 2FA." });
+    }
+    const verification = await verify({
+      token: String(otpCode).trim(),
+      secret: info2fa.two_factor_secret,
+    });
+    if (!verification || verification.valid !== true) {
+      await audit(req, "FAILED_DISABLE_2FA_OTP", req.adminUid, "Failed OTP verification when trying to disable 2FA", "failure");
+      return res.status(401).json({ success: false, error: "Mã OTP không chính xác! Bạn phải nhập đúng mã từ ứng dụng Authenticator để tắt 2FA." });
+    }
+
     await setAdmin2FAEnabled(req.adminUid, false);
     res.clearCookie("trust_device_token", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "none" });
-    await audit(req, "DISABLE_ADMIN_2FA", req.adminUid, "Disabled 2FA protection for Admin");
+    await audit(req, "DISABLE_ADMIN_2FA", req.adminUid, "Disabled 2FA protection for Admin (verified via OTP)");
     return res.status(200).json({ success: true, message: "Đã tắt xác thực 2FA và hủy thiết bị tin cậy." });
   } catch (error) {
     console.error("Failed disable 2FA:", error?.message || "unknown");
