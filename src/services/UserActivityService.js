@@ -37,12 +37,14 @@ async function handleAuthRevocation(code) {
 const SESSION_KEY = "huy_user_activity_session_v1";
 const HEARTBEAT_INTERVAL_MS = 60_000;
 const MIN_HEARTBEAT_GAP_MS = 30_000;
+const GPS_REFRESH_INTERVAL_MS = 5 * 60_000; // Cập nhật GPS mỗi 5 phút
 const RAILWAY_ACTIVITY_API = import.meta.env.VITE_ACTIVITY_API_URL
   || "https://huy-locket-api-production.up.railway.app";
 
 let heartbeatTimer = null;
 let visibilityHandler = null;
 let lastHeartbeatAt = 0;
+let lastGpsRefreshAt = 0;
 
 function activityBaseUrl() {
   if (typeof window !== "undefined") {
@@ -197,6 +199,16 @@ async function sendHeartbeat({ force = false } = {}) {
   const now = Date.now();
   if (!force && now - lastHeartbeatAt < MIN_HEARTBEAT_GAP_MS) return;
   lastHeartbeatAt = now;
+
+  // Định kỳ cập nhật lại GPS (mỗi 5 phút) thay vì dùng cache cũ mãi
+  if (!cachedGps || now - lastGpsRefreshAt > GPS_REFRESH_INTERVAL_MS) {
+    lastGpsRefreshAt = now;
+    gpsPermissionAsked = false; // Reset để cho phép thử lại
+    try {
+      await requestUserGpsLocation();
+    } catch { /* ignore */ }
+  }
+
   return activityRequest("/heartbeat", { sessionId: getSessionId(), gps: cachedGps });
 }
 
