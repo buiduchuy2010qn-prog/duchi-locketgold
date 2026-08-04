@@ -17,6 +17,17 @@ export default function PermissionsManager() {
       setPermission(Notification.permission);
     }
 
+    try {
+      if (navigator.permissions && navigator.permissions.query) {
+        navigator.permissions.query({ name: "geolocation" }).then((p) => {
+          const consent = localStorage.getItem("HUY_LOCKET_GPS_CONSENT");
+          if (p.state === "granted" || consent === "granted") {
+            setLocationEnabled(true);
+          }
+        });
+      }
+    } catch {}
+
     checkSubscription();
   }, []);
 
