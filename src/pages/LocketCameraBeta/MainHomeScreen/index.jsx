@@ -6,8 +6,12 @@ import BottomMenu from "../BottomHomeScreen/Layout/BottomMenu";
 import HistoryArrow from "./Layout/HistoryButton";
 import ActionControls from "./ActionControls";
 import MediaPreview from "./Layout/MediaPreview";
-import { usePostStore } from "@/stores";
+import { usePostStore, useMomentDraftStore } from "@/stores";
 import clsx from "clsx";
+import DragDropOverlay from "@/components/animations/DragDropOverlay";
+import { SonnerInfo } from "@/components/uikit/SonnerToast";
+import { useTranslation } from "react-i18next";
+import { useAppCamera } from "@/context/AppContext";
 
 const BottomHomeScreen = lazy(() => import("../BottomHomeScreen"));
 const SelectFriendsList = lazy(() => import("./Layout/SelectFriends"));
@@ -30,8 +34,78 @@ export default function MainHomeScreen() {
   const preview = usePostStore((s) => s.preview);
   const hasCaptured = !!(selectedFile || preview);
 
+  // --- Drag & Drop logic ---
+  const [isDragging, setIsDragging] = React.useState(false);
+  const dragCounter = React.useRef(0);
+  const { t } = useTranslation("main");
+  const camera = useAppCamera();
+
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current += 1;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current -= 1;
+    if (dragCounter.current === 0) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    dragCounter.current = 0;
+
+    const rawFile = e.dataTransfer.files?.[0];
+    if (!rawFile) return;
+
+    if (camera?.setCameraActive) {
+      camera.setCameraActive(false);
+    }
+
+    const fileType = rawFile.type.startsWith("image/")
+      ? "image"
+      : rawFile.type.startsWith("video/")
+        ? "video"
+        : null;
+
+    if (!fileType) {
+      SonnerInfo(t("home.only_media_supported_short", { defaultValue: "Định dạng không được hỗ trợ" }));
+      return;
+    }
+
+    const proceed = await useMomentDraftStore.getState().requestReplaceOrContinue(rawFile);
+    if (!proceed) return;
+
+    usePostStore.getState().resetMedia();
+
+    if (fileType === "image") {
+      usePostStore.getState().setImageToCrop(rawFile);
+      return;
+    }
+    if (fileType === "video") {
+      usePostStore.getState().setVideoToCrop(rawFile);
+      return;
+    }
+    await useMomentDraftStore.getState().applyNewMediaFile(rawFile);
+  };
+
   return (
     <>
+      <DragDropOverlay isDragging={isDragging} />
       <div
         className={clsx(
           "relative transition-all duration-500 flex flex-col justify-center items-center w-full h-[100vh] text-base-content",
@@ -41,6 +115,10 @@ export default function MainHomeScreen() {
             "translate-x-0": !isProfileOpen && !isHomeOpen,
           },
         )}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
       >
         <HeaderHome
           setIsHomeOpen={setIsHomeOpen}
