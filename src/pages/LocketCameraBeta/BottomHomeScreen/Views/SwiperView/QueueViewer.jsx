@@ -136,8 +136,12 @@ const QueueViewer = () => {
 
           {/* Nội dung media */}
           <div className="h-full w-full flex items-center justify-center relative">
+            {isMediaLoading && !mediaFailed && (
+              <div className="absolute inset-0 w-full h-full skeleton rounded-2xl z-0" />
+            )}
+
             {mediaFailed ? (
-              <div className="h-full w-full rounded-2xl flex flex-col items-center justify-center bg-base-200 select-none p-8 gap-3">
+              <div className="h-full w-full rounded-2xl flex flex-col items-center justify-center bg-base-200 select-none p-8 gap-3 z-10 relative">
                 <span className="text-5xl font-semibold">{":("}</span>
                 <button
                   type="button"
@@ -150,19 +154,21 @@ const QueueViewer = () => {
             ) : mediaType === "video" ? (
               <video
                 src={mediaUrl}
-                className="max-h-full max-w-full object-contain rounded-2xl"
+                className={`max-h-full max-w-full object-contain rounded-2xl transition-opacity duration-300 z-10 relative ${isMediaLoading ? "opacity-0" : "opacity-100"}`}
                 autoPlay
                 muted
                 loop
                 playsInline
-                onError={() => setMediaFailed(true)}
+                onError={() => { setMediaFailed(true); setIsMediaLoading(false); }}
+                onLoadedData={() => setIsMediaLoading(false)}
               />
             ) : (
               <img
                 src={mediaUrl}
                 alt={caption}
-                className="max-h-full max-w-full object-contain rounded-2xl"
-                onError={() => setMediaFailed(true)}
+                className={`max-h-full max-w-full object-contain rounded-2xl transition-opacity duration-300 z-10 relative ${isMediaLoading ? "opacity-0" : "opacity-100"}`}
+                onError={() => { setMediaFailed(true); setIsMediaLoading(false); }}
+                onLoad={() => setIsMediaLoading(false)}
               />
             )}
 

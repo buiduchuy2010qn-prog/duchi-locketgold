@@ -11,6 +11,7 @@ import MomentOwnerInfo from "../../Layout/MomentOwnerInfo";
 
 const MomentViewer = ({ moment, handleClose }) => {
   const [isVideoReady, setIsVideoReady] = useState(false);
+  const [isImageReady, setIsImageReady] = useState(false);
 
   const { user } = useAuthStore();
   const myUid = resolveMyUid(user);
@@ -40,14 +41,20 @@ const MomentViewer = ({ moment, handleClose }) => {
         </button>
 
         <div className="h-full w-full border-t border-b border-base-300 sm:max-w-sm max-w-md aspect-square flex items-center justify-center relative bg-gradient-to-br from-base-300/20 to-base-100/20 rounded-[64px] overflow-hidden">
+          {/* Skeleton hiển thị lúc chờ load ảnh/video */}
+          {(!isImageReady && !isVideoReady) && (
+            <div className="absolute inset-0 w-full h-full skeleton rounded-[64px] z-0" />
+          )}
+
           {/* 1️⃣ Thumbnail luôn hiển thị trước */}
           {thumbnailUrl && (
             <img
               src={thumbnailUrl}
               alt={moment?.caption || "Moment"}
-              className={`absolute inset-0 w-full h-full object-cover rounded-2xl transition-opacity duration-300 ${
+              className={`absolute inset-0 w-full h-full object-cover rounded-[64px] transition-opacity duration-300 z-10 ${
                 isVideoReady ? "opacity-0" : "opacity-100"
               }`}
+              onLoad={() => setIsImageReady(true)}
             />
           )}
 
@@ -55,7 +62,7 @@ const MomentViewer = ({ moment, handleClose }) => {
           {videoUrl && (
             <video
               src={videoUrl}
-              className={`absolute inset-0 w-full h-full object-cover rounded-2xl transition-opacity duration-300 ${
+              className={`absolute inset-0 w-full h-full object-cover rounded-[64px] transition-opacity duration-300 z-20 ${
                 isVideoReady ? "opacity-100" : "opacity-0"
               }`}
               autoPlay
