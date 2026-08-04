@@ -28,30 +28,28 @@ module.exports = (app) => {
 
   app.get("/health", healthController);
 
-  //Tạo tiền tố cho các route trong file authRoutes.js
-  app.use("/locket", authRoutes); //http://localhost:5002/locket/login
-  app.use("/locket", generalApiLimit, locketRoutes);
-  app.use("/locket", generalApiLimit, momentRoutes);
-  app.use("/locket", generalApiLimit, rpgcRoutes);
-
-  app.use("/api", generalApiLimit, planRoutes);
-  app.use("/api", generalApiLimit, notificationRoutes);
-  app.use("/api", generalApiLimit, appCheckRoutes);
-  app.use("/api", generalApiLimit, weatherRoutes);
-  app.use("/api", musicRoutes); // musicRoutes has its own internal limiters
-  // Self-host temp media (presignedV3 + media-temp GET). PUT raw mounted in app.js
-  app.use("/api", generalApiLimit, storageRoutes);
-  // Account-synced moment drafts (metadata + private media on API disk)
-  app.use("/api", generalApiLimit, draftRoutes);
-
-  // Admin routes — bảo vệ bằng rate limit nghiêm ngặt
+  // 1. Nhóm các route CÓ rate limit riêng lẻ (Cần mount trước để không bị dính generalApiLimit)
+  app.use("/locket", authRoutes); // Có authBruteForceLimit riêng
   app.use("/api/admin", adminLimit, sensitiveApiShield, adminRoutes);
-
-  // Verified Huy Locket website-user registry, login history and presence.
-  // Đây là endpoint bị bot cào nhiều nhất — áp dụng shield nghiêm ngặt
   app.use("/api/activity", sensitiveApiShield, activityRoutes);
-
-  // Authenticated user tool; deliberately separate from admin routes.
   app.use("/api/celebrities", celebrityRoutes);
+  app.use("/api", musicRoutes); // musicRoutes có limit riêng bên trong
+
+  // 2. Nhóm các route Locket dùng generalApiLimit
+  const locketRouter = express.Router();
+  locketRouter.use(locketRoutes);
+  locketRouter.use(momentRoutes);
+  locketRouter.use(rpgcRoutes);
+  app.use("/locket", generalApiLimit, locketRouter);
+
+  // 3. Nhóm các route API chung dùng generalApiLimit
+  const apiRouter = express.Router();
+  apiRouter.use(planRoutes);
+  apiRouter.use(notificationRoutes);
+  apiRouter.use(appCheckRoutes);
+  apiRouter.use(weatherRoutes);
+  apiRouter.use(storageRoutes);
+  apiRouter.use(draftRoutes);
+  app.use("/api", generalApiLimit, apiRouter);
 };
 
