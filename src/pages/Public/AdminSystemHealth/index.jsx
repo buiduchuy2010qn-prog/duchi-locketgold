@@ -83,91 +83,76 @@ export default function AdminSystemHealth() {
   const runDiagnostics = useCallback(async () => {
     setTesting(true);
 
-    // 1. Camera, Mic & Hardware Zoom Real Check
+    // 1. Camera, Mic & Hardware Zoom Silent Diagnostic (No Popup)
     try {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setCameraStatus({ state: "error", details: "Trình duyệt không hỗ trợ MediaDevices / getUserMedia API" });
-        setMicStatus({ state: "error", details: "Trình duyệt không hỗ trợ MediaDevices / getUserMedia API" });
+      if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+        setCameraStatus({ state: "error", details: "Trình duyệt không hỗ trợ MediaDevices API" });
+        setMicStatus({ state: "error", details: "Trình duyệt không hỗ trợ MediaDevices API" });
         setZoomStatus({ state: "error", details: "Không hỗ trợ" });
       } else {
-        // Enumerate devices first
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoInputs = devices.filter((d) => d.kind === "videoinput");
         const audioInputs = devices.filter((d) => d.kind === "audioinput");
 
-        // Try accessing stream to test real permissions and capabilities
-        let stream = null;
+        // Check Permissions silently if permissions API exists
+        let camPerm = "unknown";
+        let micPerm = "unknown";
         try {
-          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-          
-          const videoTrack = stream.getVideoTracks()[0];
-          const audioTrack = stream.getAudioTracks()[0];
+          if (navigator.permissions && navigator.permissions.query) {
+            const cRes = await navigator.permissions.query({ name: "camera" });
+            camPerm = cRes.state; // 'granted', 'prompt', 'denied'
+            const mRes = await navigator.permissions.query({ name: "microphone" });
+            micPerm = mRes.state;
+          }
+        } catch (e) {}
 
-          if (videoTrack) {
-            const settings = videoTrack.getSettings ? videoTrack.getSettings() : {};
-            const resText = settings.width && settings.height ? ` (${settings.width}x${settings.height})` : "";
-            setCameraStatus({
+        // Camera status
+        if (camPerm === "denied") {
+          setCameraStatus({ state: "warning", details: `🔒 Quyền bị từ chối trên trình duyệt. (Có ${videoInputs.length} camera)` });
+        } else if (videoInputs.length > 0) {
+          const hasLabel = videoInputs.some((d) => d.label);
+          setCameraStatus({
+            state: "ok",
+            details: `Phát hiện ${videoInputs.length} thiết bị Camera (${hasLabel ? videoInputs[0].label : "Đã có sẵn"})`,
+          });
+        } else {
+          setCameraStatus({ state: "warning", details: "Không tìm thấy thiết bị Camera trên máy này." });
+        }
+
+        // Mic status
+        if (micPerm === "denied") {
+          setMicStatus({ state: "warning", details: `🔒 Quyền bị từ chối trên trình duyệt. (Có ${audioInputs.length} micro)` });
+        } else if (audioInputs.length > 0) {
+          const hasLabel = audioInputs.some((d) => d.label);
+          setMicStatus({
+            state: "ok",
+            details: `Phát hiện ${audioInputs.length} thiết bị Microphone (${hasLabel ? audioInputs[0].label : "Đã có sẵn"})`,
+          });
+        } else {
+          setMicStatus({ state: "warning", details: "Không tìm thấy thiết bị Microphone." });
+        }
+
+        // Zoom capability check
+        if (typeof navigator.mediaDevices.getSupportedConstraints === "function") {
+          const constraints = navigator.mediaDevices.getSupportedConstraints();
+          if (constraints.zoom) {
+            setZoomStatus({
               state: "ok",
-              details: `Camera hoạt động tốt! Label: "${videoTrack.label || 'Camera'}"${resText}.`,
-            });
-
-            // Real Hardware Zoom check on active video track
-            const capabilities = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
-            if (capabilities.zoom) {
-              setZoomStatus({
-                state: "ok",
-                details: `Thiết bị hỗ trợ Hardware Zoom (Mức Zoom: ${capabilities.zoom.min || 1}x - ${capabilities.zoom.max || 5}x).`,
-              });
-            } else {
-              setZoomStatus({
-                state: "warning",
-                details: "Ống kính Camera không có Hardware Zoom quang học. Sử dụng Digital Zoom phần mềm.",
-              });
-            }
-          } else {
-            setCameraStatus({ state: "warning", details: "Không thể khởi chạy Video Track." });
-            setZoomStatus({ state: "warning", details: "Không lấy được Video Track để kiểm tra Zoom." });
-          }
-
-          if (audioTrack) {
-            setMicStatus({
-              state: "ok",
-              details: `Microphone thu âm tốt! Label: "${audioTrack.label || 'Microphone'}".`,
+              details: "Trình duyệt hỗ trợ cấu hình Zoom (MediaTrackConstraints.zoom)",
             });
           } else {
-            setMicStatus({ state: "warning", details: "Không thể khởi chạy Audio Track." });
-          }
-
-          // Release test stream immediately
-          stream.getTracks().forEach((t) => t.stop());
-        } catch (permErr) {
-          // If permission was denied or camera occupied
-          if (permErr.name === "NotAllowedError" || permErr.name === "PermissionDeniedError") {
-            setCameraStatus({
+            setZoomStatus({
               state: "warning",
-              details: `🔒 Quyền bị từ chối: Bạn đã chặn quyền Camera trên trình duyệt. (${videoInputs.length} thiết bị có sẵn)`,
+              details: "Trình duyệt không hỗ trợ Hardware Zoom. Hệ thống sử dụng Digital Zoom.",
             });
-            setMicStatus({
-              state: "warning",
-              details: `🔒 Quyền bị từ chối: Bạn đã chặn quyền Microphone trên trình duyệt. (${audioInputs.length} thiết bị có sẵn)`,
-            });
-            setZoomStatus({ state: "warning", details: "Cần cấp quyền Camera để đo tính năng Zoom." });
-          } else {
-            setCameraStatus({
-              state: videoInputs.length > 0 ? "ok" : "error",
-              details: `Phát hiện ${videoInputs.length} thiết bị Camera (${permErr.message || "Bị chiếm dụng"})`,
-            });
-            setMicStatus({
-              state: audioInputs.length > 0 ? "ok" : "error",
-              details: `Phát hiện ${audioInputs.length} thiết bị Microphone`,
-            });
-            setZoomStatus({ state: "warning", details: "Không kiểm tra được Zoom" });
           }
+        } else {
+          setZoomStatus({ state: "warning", details: "Không kiểm tra được Zoom" });
         }
       }
     } catch (err) {
-      setCameraStatus({ state: "error", details: err.message || "Lỗi thiết bị" });
-      setMicStatus({ state: "error", details: err.message || "Lỗi thiết bị" });
+      setCameraStatus({ state: "error", details: err.message || "Lỗi kiểm tra thiết bị" });
+      setMicStatus({ state: "error", details: err.message || "Lỗi kiểm tra thiết bị" });
       setZoomStatus({ state: "error", details: "Lỗi kiểm tra" });
     }
 
