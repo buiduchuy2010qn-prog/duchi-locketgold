@@ -4,6 +4,7 @@ import { Download, UserPlus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { COMMUNITY_CONFIG } from "@/config";
 import ScrollReveal from "@/components/Effects/ScrollReveal";
+import MagneticButton from "@/components/Effects/MagneticButton";
 const StatsSection = lazy(() => import("./StatsSection"));
 const NotificationPrompt = lazy(() =>
   import("@/components/uikit/NotificationPrompt")
@@ -67,33 +68,37 @@ const Home = () => {
             </p>
 
             <div className="flex flex-wrap gap-3 mt-2 animate-fade-in delay-400">
-              <Link
-                to={"/login"}
-                className="
-                  px-5 py-3
-                  rounded-full
-                  font-semibold
-                  text-base-content
-                  bg-base-100/20
-                  border border-base-content/10
-                  backdrop-blur-[2px]
-                  shadow-sm
-                  transition-all duration-300
-                  hover:-translate-y-0.5
-                  hover:shadow-md
-                  hover:bg-base-100
-                  active:scale-95
-                "
-              >
-                Đăng nhập ngay
-              </Link>
+              <MagneticButton>
+                <Link
+                  to={"/login"}
+                  className="
+                    px-5 py-3
+                    rounded-full
+                    font-semibold
+                    text-base-content
+                    bg-base-100/20
+                    border border-base-content/10
+                    backdrop-blur-[2px]
+                    shadow-sm
+                    transition-all duration-300
+                    hover:shadow-md
+                    hover:bg-base-100
+                    active:scale-95
+                    block
+                  "
+                >
+                  Đăng nhập ngay
+                </Link>
+              </MagneticButton>
 
-              <Link
-                to={"/download"}
-                className="px-4 py-3 rotate-[1deg] gradient-effect text-white font-semibold rounded-full shadow-lg hover:bg-blue-700 transition-all duration-300 hover:scale-105"
-              >
-                Thêm vào màn hình
-              </Link>
+              <MagneticButton>
+                <Link
+                  to={"/download"}
+                  className="block px-4 py-3 rotate-[1deg] gradient-effect text-white font-semibold rounded-full shadow-lg hover:bg-blue-700 transition-all duration-300 hover:scale-105"
+                >
+                  Thêm vào màn hình
+                </Link>
+              </MagneticButton>
             </div>
           </ScrollReveal>
 
@@ -156,21 +161,25 @@ const Home = () => {
             phá thế giới photography & videography đầy màu sắc!
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              to={"/download"}
-              className="px-8 py-4 bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold rounded-3xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"
-            >
-              <Download className="w-5 h-5" />
-              Cài đặt miễn phí
-            </Link>
-            <a
-              href={COMMUNITY_CONFIG.discord}
-              target="_blank"
-              className="px-8 py-4 bg-base-100/20 backdrop-blur-[2px] border-base-content/10 border text-base-content font-bold rounded-3xl transition-all duration-300 flex items-center justify-center gap-2"
-            >
-              <UserPlus className="w-5 h-5" />
-              Tham gia Discord
-            </a>
+            <MagneticButton>
+              <Link
+                to={"/download"}
+                className="px-8 py-4 bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold rounded-3xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"
+              >
+                <Download className="w-5 h-5" />
+                Cài đặt miễn phí
+              </Link>
+            </MagneticButton>
+            <MagneticButton>
+              <a
+                href={COMMUNITY_CONFIG.discord}
+                target="_blank"
+                className="px-8 py-4 bg-base-100/20 backdrop-blur-[2px] border-base-content/10 border text-base-content font-bold rounded-3xl transition-all duration-300 flex items-center justify-center gap-2"
+              >
+                <UserPlus className="w-5 h-5" />
+                Tham gia Discord
+              </a>
+            </MagneticButton>
           </div>
 
           <div className="mt-8 text-base-content/60 text-sm">

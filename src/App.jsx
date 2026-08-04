@@ -1,4 +1,6 @@
 import React, { Suspense, useEffect } from "react";
+import { AnimatePresence } from "framer-motion";
+import PageTransition from "./components/Effects/PageTransition";
 import {
   BrowserRouter as Router,
   Routes,
@@ -228,91 +230,97 @@ function AppContent() {
   return (
     <>
       <Suspense fallback={<LoadingPageMain isLoading={true} />}>
-        <Routes>
-          {(isAuth ? privateRoutes : publicRoutes).map(
-            // eslint-disable-next-line no-unused-vars
-            ({ path, component: Component }) => {
-              const Layout = getLayout(path);
-              return (
-                <Route
-                  key={path}
-                  path={path}
-                  element={
-                    <LayoutWithSidebar Layout={Layout}>
-                      <Component />
-                    </LayoutWithSidebar>
-                  }
-                />
-              );
-            },
-          )}
-
-          {/* Route public luôn mở (Spotify OAuth callback…) — cả khi đã login */}
-          {isAuth &&
-            publicRoutes
-              .filter(({ path }) => alwaysPublicPaths.has(path))
+        <AnimatePresence mode="wait">
+          <Routes location={location} key={location.pathname}>
+            {(isAuth ? privateRoutes : publicRoutes).map(
               // eslint-disable-next-line no-unused-vars
-              .map(({ path, component: Component }) => {
+              ({ path, component: Component }) => {
                 const Layout = getLayout(path);
                 return (
                   <Route
-                    key={`always-pub-${path}`}
+                    key={path}
                     path={path}
                     element={
                       <LayoutWithSidebar Layout={Layout}>
-                        <Component />
+                        <PageTransition>
+                          <Component />
+                        </PageTransition>
                       </LayoutWithSidebar>
                     }
                   />
                 );
-              })}
+              },
+            )}
 
-          {/* Điều hướng khi chưa đăng nhập cố vào route cần auth */}
-          {!loading &&
-            !isAuth &&
-            privateRoutes.map(({ path }) => (
-              <Route
-                key={path}
-                path={path}
-                element={<Navigate to="/login" replace />}
-              />
-            ))}
+            {/* Route public luôn mở (Spotify OAuth callback…) — cả khi đã login */}
+            {isAuth &&
+              publicRoutes
+                .filter(({ path }) => alwaysPublicPaths.has(path))
+                // eslint-disable-next-line no-unused-vars
+                .map(({ path, component: Component }) => {
+                  const Layout = getLayout(path);
+                  return (
+                    <Route
+                      key={`always-pub-${path}`}
+                      path={path}
+                      element={
+                        <LayoutWithSidebar Layout={Layout}>
+                          <PageTransition>
+                            <Component />
+                          </PageTransition>
+                        </LayoutWithSidebar>
+                      }
+                    />
+                  );
+                })}
 
-          {/* Đã login mà vào public (/) → camera */}
-          {!loading &&
-            isAuth &&
-            publicRoutes
-              .filter(
-                ({ path }) =>
-                  // Chỉ redirect entry public; route trùng auth (settings…) đã có ở privateRoutes
-                  // Không redirect OAuth callback
-                  !alwaysPublicPaths.has(path) &&
-                  (path === "/" ||
-                    path === "/login" ||
-                    path === "/forgot-password"),
-              )
-              .map(({ path }) => (
+            {/* Điều hướng khi chưa đăng nhập cố vào route cần auth */}
+            {!loading &&
+              !isAuth &&
+              privateRoutes.map(({ path }) => (
                 <Route
-                  key={`pub-redir-${path}`}
+                  key={path}
                   path={path}
-                  element={<Navigate to="/locket" replace />}
+                  element={<Navigate to="/login" replace />}
                 />
               ))}
 
-          {/* Catch-all: đã login → camera; chưa login → login */}
-          <Route
-            path="*"
-            element={
-              loading ? (
-                <LoadingPageMain isLoading={true} />
-              ) : isAuth ? (
-                <Navigate to="/locket" replace />
-              ) : (
-                <Navigate to="/login" replace />
-              )
-            }
-          />
-        </Routes>
+            {/* Đã login mà vào public (/) → camera */}
+            {!loading &&
+              isAuth &&
+              publicRoutes
+                .filter(
+                  ({ path }) =>
+                    // Chỉ redirect entry public; route trùng auth (settings…) đã có ở privateRoutes
+                    // Không redirect OAuth callback
+                    !alwaysPublicPaths.has(path) &&
+                    (path === "/" ||
+                      path === "/login" ||
+                      path === "/forgot-password"),
+                )
+                .map(({ path }) => (
+                  <Route
+                    key={`pub-redir-${path}`}
+                    path={path}
+                    element={<Navigate to="/locket" replace />}
+                  />
+                ))}
+
+            {/* Catch-all: đã login → camera; chưa login → login */}
+            <Route
+              path="*"
+              element={
+                loading ? (
+                  <LoadingPageMain isLoading={true} />
+                ) : isAuth ? (
+                  <Navigate to="/locket" replace />
+                ) : (
+                  <Navigate to="/login" replace />
+                )
+              }
+            />
+          </Routes>
+        </AnimatePresence>
       </Suspense>
       <LoadingPageMain isLoading={loading} />
     </>
