@@ -79,6 +79,8 @@ export default function AdminSystemHealth() {
   const [apiStatus, setApiStatus] = useState({ state: "loading", latency: null, details: "" });
   const [musicStatus, setMusicStatus] = useState({ state: "loading", details: "" });
   const [authStatus, setAuthStatus] = useState({ state: "loading", details: "" });
+  const [storageStatus, setStorageStatus] = useState({ state: "loading", details: "" });
+  const [perfStatus, setPerfStatus] = useState({ state: "loading", fps: null, details: "" });
 
   const runDiagnostics = useCallback(async () => {
     setTesting(true);
@@ -94,45 +96,41 @@ export default function AdminSystemHealth() {
         const videoInputs = devices.filter((d) => d.kind === "videoinput");
         const audioInputs = devices.filter((d) => d.kind === "audioinput");
 
-        // Check Permissions silently if permissions API exists
         let camPerm = "unknown";
         let micPerm = "unknown";
         try {
           if (navigator.permissions && navigator.permissions.query) {
             const cRes = await navigator.permissions.query({ name: "camera" });
-            camPerm = cRes.state; // 'granted', 'prompt', 'denied'
+            camPerm = cRes.state;
             const mRes = await navigator.permissions.query({ name: "microphone" });
             micPerm = mRes.state;
           }
         } catch (e) {}
 
-        // Camera status
         if (camPerm === "denied") {
           setCameraStatus({ state: "warning", details: `🔒 Quyền bị từ chối trên trình duyệt. (Có ${videoInputs.length} camera)` });
         } else if (videoInputs.length > 0) {
           const hasLabel = videoInputs.some((d) => d.label);
           setCameraStatus({
             state: "ok",
-            details: `Phát hiện ${videoInputs.length} thiết bị Camera (${hasLabel ? videoInputs[0].label : "Đã có sẵn"})`,
+            details: `Phát hiện ${videoInputs.length} thiết bị Camera (${hasLabel ? videoInputs[0].label : "Sẵn sàng"})`,
           });
         } else {
           setCameraStatus({ state: "warning", details: "Không tìm thấy thiết bị Camera trên máy này." });
         }
 
-        // Mic status
         if (micPerm === "denied") {
           setMicStatus({ state: "warning", details: `🔒 Quyền bị từ chối trên trình duyệt. (Có ${audioInputs.length} micro)` });
         } else if (audioInputs.length > 0) {
           const hasLabel = audioInputs.some((d) => d.label);
           setMicStatus({
             state: "ok",
-            details: `Phát hiện ${audioInputs.length} thiết bị Microphone (${hasLabel ? audioInputs[0].label : "Đã có sẵn"})`,
+            details: `Phát hiện ${audioInputs.length} thiết bị Microphone (${hasLabel ? audioInputs[0].label : "Sẵn sàng"})`,
           });
         } else {
           setMicStatus({ state: "warning", details: "Không tìm thấy thiết bị Microphone." });
         }
 
-        // Zoom capability check
         if (typeof navigator.mediaDevices.getSupportedConstraints === "function") {
           const constraints = navigator.mediaDevices.getSupportedConstraints();
           if (constraints.zoom) {
@@ -175,7 +173,6 @@ export default function AdminSystemHealth() {
         });
       }
     } catch (err) {
-      const latency = Math.round(performance.now() - start);
       setApiStatus({
         state: "error",
         latency: null,
@@ -206,7 +203,78 @@ export default function AdminSystemHealth() {
       });
     }
 
-    // 4. Auth & Database Status Check
+    // 4. Real Storage & PWA Service Worker Check
+    try {
+      let quotaText = "";
+      if (navigator.storage && navigator.storage.estimate) {
+        const { quota, usage } = await navigator.storage.estimate();
+        const usageMb = (usage / (1024 * 1024)).toFixed(2);
+        const quotaMb = (quota / (1024 * 1024)).toFixed(0);
+        quotaText = `Dung lượng web đã dùng: ${usageMb} MB / ${quotaMb} MB. `;
+      }
+
+      let swStateText = "Service Worker: Chưa kích hoạt";
+      if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+        swStateText = `Service Worker: Đang chạy (${navigator.serviceWorker.controller.state || "active"})`;
+      }
+
+      let notifPerm = "Quyền Thông báo: Chưa xin quyền";
+      if ("Notification" in window) {
+        notifPerm = `Quyền Thông báo: ${Notification.permission === "granted" ? "Đã cho phép" : Notification.permission === "denied" ? "Đã bị chặn" : "Chưa xin quyền"}`;
+      }
+
+      setStorageStatus({
+        state: "ok",
+        details: `${quotaText}${swStateText}. ${notifPerm}.`,
+      });
+    } catch (err) {
+      setStorageStatus({
+        state: "warning",
+        details: "Không đo được dung lượng bộ nhớ trình duyệt.",
+      });
+    }
+
+    // 5. Real Performance & RAM / FPS Check
+    try {
+      let memoryInfo = "Không hỗ trợ API performance.memory";
+      if (performance && performance.memory) {
+        const usedMb = (performance.memory.usedJSHeapSize / (1024 * 1024)).toFixed(1);
+        const totalMb = (performance.memory.totalJSHeapSize / (1024 * 1024)).toFixed(1);
+        memoryInfo = `RAM JS Heap: ${usedMb} MB / ${totalMb} MB`;
+      }
+
+      // Measure real FPS over 500ms
+      let frames = 0;
+      const startTime = performance.now();
+      const measureFps = new Promise((resolve) => {
+        const loop = () => {
+          frames++;
+          if (performance.now() - startTime < 500) {
+            requestAnimationFrame(loop);
+          } else {
+            const elapsedSec = (performance.now() - startTime) / 1000;
+            const currentFps = Math.round(frames / elapsedSec);
+            resolve(currentFps);
+          }
+        };
+        requestAnimationFrame(loop);
+      });
+
+      const fps = await measureFps;
+      setPerfStatus({
+        state: fps >= 30 ? "ok" : "warning",
+        fps,
+        details: `Tốc độ khung hình: ${fps} FPS. ${memoryInfo}.`,
+      });
+    } catch (err) {
+      setPerfStatus({
+        state: "warning",
+        fps: null,
+        details: "Không đo được hiệu năng RAM/FPS.",
+      });
+    }
+
+    // 6. Auth & Database Status Check
     if (isAuth && user) {
       setAuthStatus({
         state: "ok",
@@ -428,6 +496,44 @@ export default function AdminSystemHealth() {
             </div>
             <div className="mt-4 pt-4 border-t border-base-content/5 text-xs text-base-content/50">
               Phân loại: Firebase Service
+            </div>
+          </ScrollReveal>
+
+          {/* Card 7: Storage & PWA Service Worker */}
+          <ScrollReveal delay={0.4} className="bg-base-200/30 backdrop-blur-md p-6 rounded-3xl border border-base-content/10 flex flex-col justify-between hover:border-primary/50 transition-colors">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="p-3 rounded-2xl bg-cyan-500/10 text-cyan-500">
+                  <Globe className="w-6 h-6" />
+                </div>
+                <StatusBadge status={storageStatus.state} />
+              </div>
+              <h2 className="text-xl font-bold">Bộ Nhớ Web & PWA</h2>
+              <p className="text-sm text-base-content/70 leading-relaxed">
+                {storageStatus.details}
+              </p>
+            </div>
+            <div className="mt-4 pt-4 border-t border-base-content/5 text-xs text-base-content/50">
+              Phân loại: StorageEstimate & ServiceWorker API
+            </div>
+          </ScrollReveal>
+
+          {/* Card 8: Performance Telemetry & RAM / FPS */}
+          <ScrollReveal delay={0.45} className="bg-base-200/30 backdrop-blur-md p-6 rounded-3xl border border-base-content/10 flex flex-col justify-between hover:border-primary/50 transition-colors">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="p-3 rounded-2xl bg-indigo-500/10 text-indigo-500">
+                  <Cpu className="w-6 h-6" />
+                </div>
+                <StatusBadge status={perfStatus.state} text={perfStatus.fps ? `${perfStatus.fps} FPS` : undefined} />
+              </div>
+              <h2 className="text-xl font-bold">Hiệu Năng RAM & FPS</h2>
+              <p className="text-sm text-base-content/70 leading-relaxed">
+                {perfStatus.details}
+              </p>
+            </div>
+            <div className="mt-4 pt-4 border-t border-base-content/5 text-xs text-base-content/50">
+              Phân loại: Performance.memory & RequestAnimationFrame
             </div>
           </ScrollReveal>
         </div>
