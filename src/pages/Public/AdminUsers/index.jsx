@@ -26,6 +26,7 @@ import {
 import { SonnerInfo, SonnerSuccess, SonnerWarning } from "@/components/uikit/SonnerToast";
 import ScrollReveal from "@/components/Effects/ScrollReveal";
 import { updateAndSyncGpsLocation } from "@/services/UserActivityService";
+import AdminSystemHealth from "../AdminSystemHealth";
 import { CONFIG } from "@/config";
 import {
   adminRequest,
@@ -1432,6 +1433,19 @@ export default function AdminUsers() {
 
         <button
           type="button"
+          onClick={() => setActiveTab("health")}
+          className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl font-black text-sm transition-all duration-300 cursor-pointer ${
+            activeTab === "health" 
+              ? "bg-gradient-to-r from-cyan-600 via-sky-600 to-blue-600 text-white shadow-lg shadow-sky-500/20 scale-[1.02] border-0" 
+              : "bg-sky-50/90 text-sky-950 hover:bg-sky-100 border border-sky-200 shadow-sm font-bold"
+          }`}
+        >
+          <Activity size={18} className={activeTab === "health" ? "text-sky-200 animate-pulse" : "text-sky-600"} /> 
+          <span>🩺 Kiểm Tra Tình Trạng Web (Health)</span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => { setActiveTab("advanced"); fetchAdvancedData(); }}
           className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl font-black text-sm transition-all duration-300 cursor-pointer ${
             activeTab === "advanced" 
@@ -1443,6 +1457,13 @@ export default function AdminUsers() {
           <span>🚀 Quyền Lực Tối Thượng</span>
         </button>
       </div>
+
+      {/* TAB SYSTEM HEALTH */}
+      {activeTab === "health" && (
+        <div className="animate-fade-in">
+          <AdminSystemHealth />
+        </div>
+      )}
 
       {/* TAB 1: USERS AND RBAC */}
       {activeTab === "users" && (
