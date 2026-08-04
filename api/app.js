@@ -20,6 +20,10 @@ const initChatSocket = require("./src/socket");
 const errorHandler = require("./src/middlewares/errorHandler.js");
 const { printServerBanner } = require("./src/utils/printServerBanner.js");
 const { antiBotMiddleware, globalDDoSShield, wafSecurityShield } = require("./src/middlewares/antiBot.js");
+const { securityHeaders } = require("./src/middlewares/securityHeaders.js");
+const { requireJsonContentType, sanitizeBodyStrings, validateUploadBuffer, ALLOWED_IMAGE_MIMES, ALLOWED_VIDEO_MIMES } = require("./src/middlewares/payloadValidation.js");
+
+const allowedMediaMimes = new Set([...ALLOWED_IMAGE_MIMES, ...ALLOWED_VIDEO_MIMES]);
 
 const {
   connectRedis,
@@ -144,6 +148,7 @@ initChatSocket(io);
 // ── Express middleware ────────────────────────────────────────
 app.use(globalDDoSShield);
 app.use(antiBotMiddleware);
+app.use(securityHeaders);
 app.use(cookieParser());
 
 // Binary media upload (presigned PUT) — BEFORE json parser
@@ -154,6 +159,7 @@ const {
 app.put(
   "/api/media-upload/:id",
   express.raw({ type: "*/*", limit: "25mb" }),
+  validateUploadBuffer({ maxBytes: 25 * 1024 * 1024, allowedMimes: allowedMediaMimes }),
   mediaUpload,
 );
 app.get("/api/media-temp/:id", mediaTempGet);
@@ -167,13 +173,16 @@ const {
 app.put(
   "/api/drafts/:id/media/:role",
   express.raw({ type: "*/*", limit: "95mb" }),
+  validateUploadBuffer({ maxBytes: 95 * 1024 * 1024, allowedMimes: allowedMediaMimes }),
   verifyIdToken,
   draftUploadLimiter,
   draftsController.uploadMedia,
 );
 
-app.use(express.json({ limit: "20mb" }));
-app.use(express.urlencoded({ extended: true, limit: "20mb" }));
+app.use(express.json({ limit: "2mb" }));
+app.use(express.urlencoded({ extended: true, limit: "2mb" }));
+app.use(requireJsonContentType);
+app.use(sanitizeBodyStrings);
 
 // Mở khoá khẩn cấp (bypass WAF)
 app.get("/api/unban-all", async (req, res) => { const { neon } = require("@neondatabase/serverless"); try { const sql = neon(process.env.DATABASE_URL || process.env.NEON_DATABASE_URL); await sql`DELETE FROM ip_blacklist`; await sql`DELETE FROM web_security_threats`; res.send("Unbanned all"); } catch (e) { res.status(500).send(e.message); } }); 

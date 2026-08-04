@@ -1,6 +1,6 @@
 const express = require("express");
 const multer = require("multer");
-const { getLimiter } = require("../../../middlewares/rateLimit");
+const { musicSearchLimit, generalApiLimit } = require("../../../middlewares/securityRateLimiter");
 const { logRequestInfo } = require("../../../middlewares/logRequestInfo");
 const { verifyIdToken } = require("../../../middlewares/Auth");
 const {
@@ -31,44 +31,44 @@ const upload = multer({
 });
 
 // ── Legacy Spotify / Apple info ──
-musicRoutes.post("/spotify", getLimiter, logRequestInfo, verifyIdToken, getInfoTrack);
-musicRoutes.post("/spotifyV2", getLimiter, logRequestInfo, verifyIdToken, getInfoTrack);
-musicRoutes.post("/getInfoMusic", getInfoMusicController);
-musicRoutes.post("/getInfoMusicV3", getInfoMusicControllerV2);
-musicRoutes.post("/getInfoMusicV2", getInfoMusicControllerV3);
-musicRoutes.post("/searchMusic", getLimiter, logRequestInfo, searchMusicController);
-musicRoutes.get("/searchMusic", getLimiter, logRequestInfo, searchMusicController);
+musicRoutes.post("/spotify", generalApiLimit, logRequestInfo, verifyIdToken, getInfoTrack);
+musicRoutes.post("/spotifyV2", generalApiLimit, logRequestInfo, verifyIdToken, getInfoTrack);
+musicRoutes.post("/getInfoMusic", generalApiLimit, getInfoMusicController);
+musicRoutes.post("/getInfoMusicV3", generalApiLimit, getInfoMusicControllerV2);
+musicRoutes.post("/getInfoMusicV2", generalApiLimit, getInfoMusicControllerV3);
+musicRoutes.post("/searchMusic", musicSearchLimit, logRequestInfo, searchMusicController);
+musicRoutes.get("/searchMusic", musicSearchLimit, logRequestInfo, searchMusicController);
 
 // ── Music library (MusicTrack) ──
-musicRoutes.get("/music/tracks", getLimiter, logRequestInfo, listTracksController);
-musicRoutes.get("/music/search", getLimiter, logRequestInfo, searchTracksController);
+musicRoutes.get("/music/tracks", generalApiLimit, logRequestInfo, listTracksController);
+musicRoutes.get("/music/search", musicSearchLimit, logRequestInfo, searchTracksController);
 musicRoutes.post(
   "/music/upload",
-  getLimiter,
+  generalApiLimit,
   logRequestInfo,
   verifyIdToken,
   upload.single("file"),
   uploadTrackController,
 );
-musicRoutes.get("/music/audio/:filename", getLimiter, streamAudioController);
+musicRoutes.get("/music/audio/:filename", generalApiLimit, streamAudioController);
 
 // ── MomentMusic ──
 musicRoutes.post(
   "/moments/:id/music",
-  getLimiter,
+  generalApiLimit,
   logRequestInfo,
   verifyIdToken,
   attachMomentMusicController,
 );
 musicRoutes.get(
   "/moments/:id/music",
-  getLimiter,
+  generalApiLimit,
   logRequestInfo,
   getMomentMusicController,
 );
 musicRoutes.delete(
   "/moments/:id/music",
-  getLimiter,
+  generalApiLimit,
   logRequestInfo,
   verifyIdToken,
   deleteMomentMusicController,

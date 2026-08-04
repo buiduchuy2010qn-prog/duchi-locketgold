@@ -7,8 +7,7 @@ const {
   changeProfileInfo,
   loginAndCaptchaV2,
 } = require("../controllers");
-const loginLimiter = require("../middlewares/loginLimiter");
-const { getLimiter, refreshLimiter, loginV2Limiter } = require("../middlewares/rateLimit");
+const { authBruteForceLimit, refreshTokenLimit, generalApiLimit } = require("../middlewares/securityRateLimiter");
 const { logRequestInfo } = require("../middlewares/logRequestInfo");
 const { verifyIdToken } = require("../middlewares/Auth");
 const { resetPasswordControll, getInfoByToken, loginPhoneController } = require("../controllers/authController");
@@ -16,18 +15,18 @@ const { resetPasswordControll, getInfoByToken, loginPhoneController } = require(
 const router = express.Router();
 
 //Endpoint liên quan đến Auth
-router.post("/loginV2", logRequestInfo, loginV2);
+router.post("/loginV2", authBruteForceLimit, logRequestInfo, loginV2);
 
-router.post("/loginWithPhoneV2", logRequestInfo, loginPhoneController)
+router.post("/loginWithPhoneV2", authBruteForceLimit, logRequestInfo, loginPhoneController)
 
-router.post("/loginV3", loginAndCaptchaV2);
+router.post("/loginV3", authBruteForceLimit, loginAndCaptchaV2);
 router.get("/logout", logout);
-router.post("/refresh-token", logRequestInfo, refreshIdTokenControll);
+router.post("/refresh-token", refreshTokenLimit, logRequestInfo, refreshIdTokenControll);
 
-router.get("/getInfoUser", verifyIdToken, getInfoByToken);
-router.post("/resetPassword", resetPasswordControll);
+router.get("/getInfoUser", generalApiLimit, verifyIdToken, getInfoByToken);
+router.post("/resetPassword", authBruteForceLimit, resetPasswordControll);
 
 // Định tuyến cho thay đổi thông tin profile
-router.post("/changeProfileInfo", changeProfileInfo);
+router.post("/changeProfileInfo", generalApiLimit, changeProfileInfo);
 
 module.exports = router;
