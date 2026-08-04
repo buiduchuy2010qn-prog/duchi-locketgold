@@ -30,6 +30,7 @@ import { useAppNavigation } from "@/context/AppContext";
 import { MenuItem } from "./MenuItem";
 import { AuthButton } from "./AuthButton";
 import ThemeToggle from "./ThemeToggle";
+import AnimationToggle from "../animations/AnimationToggle";
 import PlanBadge from "@/components/uikit/PlanBadge/PlanBadge";
 import { SonnerError, SonnerSuccess } from "@/components/uikit/SonnerToast";
 import { CONFIG } from "@/config";
@@ -377,7 +378,10 @@ const Sidebar = () => {
               {t("sidebar.menu_title")}
             </span>
           </Link>
-          <ThemeToggle />
+          <div className="flex items-center gap-4">
+            <AnimationToggle title="Bật/tắt hiệu ứng" />
+            <ThemeToggle />
+          </div>
           <button
             type="button"
             aria-label="Close menu"
