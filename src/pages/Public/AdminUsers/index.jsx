@@ -24,6 +24,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { SonnerInfo, SonnerSuccess, SonnerWarning } from "@/components/uikit/SonnerToast";
+import ScrollReveal from "@/components/Effects/ScrollReveal";
 import { updateAndSyncGpsLocation } from "@/services/UserActivityService";
 import { CONFIG } from "@/config";
 import {
@@ -1507,8 +1508,9 @@ export default function AdminUsers() {
                 const isSelf = admin.uid === currentUserUid;
 
                 return (
-                  <div
+                  <ScrollReveal
                     key={admin.uid}
+                    delay={(adminTeam.indexOf(admin) % 3) * 0.1}
                     className="bg-white/95 border-2 border-slate-200/80 hover:border-indigo-400 rounded-[2.2rem] p-6 shadow-[0_10px_35px_-10px_rgba(30,41,59,0.07)] hover:shadow-[0_20px_45px_-10px_rgba(79,46,229,0.15)] transition-all duration-300 relative overflow-hidden flex flex-col justify-between group"
                   >
                     <div className="absolute top-0 right-0 -mr-16 -mt-16 w-36 h-36 bg-gradient-to-bl from-blue-500/10 via-indigo-500/10 to-transparent rounded-full blur-2xl pointer-events-none group-hover:scale-150 transition-transform duration-500" />
@@ -1631,7 +1633,7 @@ export default function AdminUsers() {
                         </div>
                       )}
                     </div>
-                  </div>
+                  </ScrollReveal>
                 );
               })}
             </div>
@@ -1726,7 +1728,12 @@ export default function AdminUsers() {
                       const isSelf = user.uid === currentUserUid;
 
                       return (
-                        <tr key={user.uid} className="hover:bg-indigo-50/40 transition-colors group">
+                        <ScrollReveal 
+                          key={user.uid} 
+                          as="tr"
+                          delay={(normalUsers.indexOf(user) % 10) * 0.05}
+                          className="hover:bg-indigo-50/40 transition-colors group"
+                        >
                           <td className="py-4 pl-6">
                             <div className="font-black text-sm flex items-center gap-2 text-slate-900">
                               <span>{userName(user)}</span>
@@ -1846,7 +1853,7 @@ export default function AdminUsers() {
                               </button>
                             </div>
                           </td>
-                        </tr>
+                        </ScrollReveal>
                       );
                     })}
                   </tbody>

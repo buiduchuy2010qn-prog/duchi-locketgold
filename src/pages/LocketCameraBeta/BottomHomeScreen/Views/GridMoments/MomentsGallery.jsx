@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { MdSlowMotionVideo } from "react-icons/md";
+import ScrollReveal from "@/components/Effects/ScrollReveal";
 import { useSelectedStore } from "@/stores";
 
 /**
@@ -96,46 +97,50 @@ const MomentsGallery = ({
         const isLastItem = index === visibleMoments.length - 1;
 
         return (
-          <div
+          <ScrollReveal
             key={item.id}
-            ref={isLastItem ? lastElementRef : null}
-            onClick={() => {
-              setSelectedMoment(index);
-              setSelectedMomentId(item.id);
-            }}
-            className="aspect-square overflow-hidden cursor-pointer rounded-2xl relative group"
+            delay={index % 6 * 0.05} // Stagger effect
+            amount={0.1}
           >
-            {!isLoaded && (
-              <div className="absolute inset-0 skeleton w-full h-full rounded-2xl z-10" />
-            )}
+            <div
+              ref={isLastItem ? lastElementRef : null}
+              onClick={() => {
+                setSelectedMoment(index);
+                setSelectedMomentId(item.id);
+              }}
+              className="aspect-square overflow-hidden cursor-pointer rounded-2xl relative group w-full h-full"
+            >
+              {!isLoaded && (
+                <div className="absolute inset-0 skeleton w-full h-full rounded-2xl z-10" />
+              )}
 
-            <img
-              src={item.thumbnail_url || item.image_url || item.thumbnailUrl}
-              alt=""
-              className={`object-cover w-full h-full rounded-2xl transition-all duration-300 ${
-                isLoaded ? "opacity-100" : "opacity-0"
-              }`}
-              onLoad={() => handleLoaded(item.id)}
-              loading="lazy"
-            />
+              <img
+                src={item.thumbnail_url || item.image_url || item.thumbnailUrl}
+                alt=""
+                className={`object-cover w-full h-full rounded-2xl transition-all duration-300 ${
+                  isLoaded ? "opacity-100" : "opacity-0"
+                }`}
+                onLoad={() => handleLoaded(item.id)}
+                loading="lazy"
+              />
 
-            {(item.video_url || item.videoUrl) && (
-              <div className="absolute top-2 right-2 bg-primary/30 rounded-full z-20 p-0.5">
-                <MdSlowMotionVideo className="text-white" />
-              </div>
-            )}
-          </div>
+              {(item.video_url || item.videoUrl) && (
+                <div className="absolute top-2 right-2 bg-primary/30 rounded-full z-20 p-0.5">
+                  <MdSlowMotionVideo className="text-white" />
+                </div>
+              )}
+            </div>
+          </ScrollReveal>
         );
       })}
 
       {loading &&
         Array.from({ length: 3 }).map((_, idx) => (
-          <div
-            key={`skeleton-${idx}`}
-            className="aspect-square overflow-hidden rounded-2xl relative"
-          >
-            <div className="absolute inset-0 skeleton w-full h-full rounded-2xl" />
-          </div>
+          <ScrollReveal key={`skeleton-${idx}`} delay={idx * 0.1}>
+            <div className="aspect-square overflow-hidden rounded-2xl relative">
+              <div className="absolute inset-0 skeleton w-full h-full rounded-2xl" />
+            </div>
+          </ScrollReveal>
         ))}
     </div>
   );

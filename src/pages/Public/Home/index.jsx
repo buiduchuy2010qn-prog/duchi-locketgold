@@ -3,6 +3,7 @@ import { lazy, Suspense, useState } from "react";
 import { Download, UserPlus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { COMMUNITY_CONFIG } from "@/config";
+import ScrollReveal from "@/components/Effects/ScrollReveal";
 const StatsSection = lazy(() => import("./StatsSection"));
 const NotificationPrompt = lazy(() =>
   import("@/components/uikit/NotificationPrompt")
@@ -18,7 +19,7 @@ const Home = () => {
       <section className="w-full max-w-screen-2xl mx-auto px-4 pt-5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-y-10 md:gap-y-0 gap-x-12 items-center min-h-[84vh]">
           {/* LEFT */}
-          <div className="flex flex-col justify-center gap-4 md:gap-6 text-left md:pr-8">
+          <ScrollReveal delay={0.1} className="flex flex-col justify-center gap-4 md:gap-6 text-left md:pr-8">
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-base-content leading-tight tracking-tight relative h-[55px] md:h-[65px] lg:h-[70px]">
               <span className="absolute word-rotate whitespace-nowrap text-base-content">
                 <span>Trải nghiệm</span>
@@ -94,10 +95,10 @@ const Home = () => {
                 Thêm vào màn hình
               </Link>
             </div>
-          </div>
+          </ScrollReveal>
 
           {/* RIGHT */}
-          <div className="flex items-center justify-center h-full w-full md:pl-6 no-select -mb-10">
+          <ScrollReveal delay={0.2} className="flex items-center justify-center h-full w-full md:pl-6 no-select -mb-10">
             <div className="relative transform hover:scale-105 transition-transform duration-500">
               <img
                 src="https://cdn.locket-dio.com/v1/images/double-phone-view-huylocket.webp"
@@ -111,11 +112,11 @@ const Home = () => {
           `}
               />
             </div>
-          </div>
+          </ScrollReveal>
         </div>
       </section>
 
-      <section className="w-full py-5">
+      <ScrollReveal as="section" className="w-full py-5" amount={0.3}>
         <div className="mx-auto drop-shadow-lg">
           <div className="text-center py-5">
             <h2 className="text-4xl md:text-5xl font-bold text-base-content mb-4">
@@ -130,18 +131,22 @@ const Home = () => {
             <FeatureCardMarquee />
           </Suspense>
         </div>
-      </section>
+      </ScrollReveal>
 
-      <Suspense fallback={null}>
-        <StepsSection />{" "}
-      </Suspense>
+      <ScrollReveal amount={0.3}>
+        <Suspense fallback={null}>
+          <StepsSection />{" "}
+        </Suspense>
+      </ScrollReveal>
       {/* Stats Section */}
-      <Suspense fallback={null}>
-        <StatsSection />
-      </Suspense>
+      <ScrollReveal amount={0.3}>
+        <Suspense fallback={null}>
+          <StatsSection />
+        </Suspense>
+      </ScrollReveal>
 
       {/* CTA Section */}
-      <section className="py-6 px-4">
+      <ScrollReveal as="section" className="py-6 px-4" amount={0.3}>
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-base-content mb-6">
             Bắt đầu hành trình sáng tạo
@@ -172,7 +177,7 @@ const Home = () => {
             Dễ sử dụng • Không quảng cáo • Bảo mật thông tin
           </div>
         </div>
-      </section>
+      </ScrollReveal>
 
       {/* 👉 Component xin thông báo */}
       <NotificationPrompt />
