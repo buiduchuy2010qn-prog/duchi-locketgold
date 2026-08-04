@@ -91,13 +91,15 @@ function getWebSource(req) {
 
 function getRequestLocation(req, webSource) {
   if (!req.headers["x-vercel-id"]) {
-    return { country: UNKNOWN, region: UNKNOWN, city: UNKNOWN };
+    // Không có Vercel header (Railway direct) → trả unknown, sẽ lookup ở getLoginRequestContext
+    return { country: UNKNOWN, region: UNKNOWN, city: UNKNOWN, _needsLookup: true };
   }
-  return {
-    country: String(req.headers["x-vercel-ip-country"] || UNKNOWN).slice(0, 80),
-    region: safeDecode(req.headers["x-vercel-ip-country-region"] || UNKNOWN).slice(0, 120),
-    city: safeDecode(req.headers["x-vercel-ip-city"] || UNKNOWN).slice(0, 120),
-  };
+  const country = String(req.headers["x-vercel-ip-country"] || UNKNOWN).slice(0, 80);
+  const region = safeDecode(req.headers["x-vercel-ip-country-region"] || UNKNOWN).slice(0, 120);
+  const city = safeDecode(req.headers["x-vercel-ip-city"] || UNKNOWN).slice(0, 120);
+  // Vercel deploy ở Singapore → header có thể trả SG thay vì VN thật
+  const isSuspectProxy = (country === "SG" || country === "Singapore");
+  return { country, region, city, _needsLookup: isSuspectProxy };
 }
 
 function parseUserAgent(userAgent) {
@@ -220,11 +222,15 @@ async function lookupPublicIpLocation(ipAddress) {
 
 async function getLoginRequestContext(req) {
   const context = getRequestContext(req);
+  // Xoá flag nội bộ trước khi trả ra
+  const needsLookup = context._needsLookup;
+  delete context._needsLookup;
   if (context.ipAddress === UNKNOWN) {
     return context;
   }
   const impreciseCities = [UNKNOWN, "Unknown", "Không xác định", "Hà Nội", "Hanoi", "Ho Chi Minh City", "Hồ Chí Minh", "Ho Chi Minh"];
-  if (impreciseCities.includes(context.city) || context.country === UNKNOWN || context.country === "Unknown") {
+  // Luôn lookup khi: flag _needsLookup (Railway direct / Vercel SG proxy), hoặc city không chính xác
+  if (needsLookup || impreciseCities.includes(context.city) || context.country === UNKNOWN || context.country === "Unknown") {
     const location = await lookupPublicIpLocation(context.ipAddress);
     return location ? { ...context, ...location } : context;
   }
