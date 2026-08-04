@@ -12,6 +12,7 @@ import DragDropOverlay from "@/components/animations/DragDropOverlay";
 import { SonnerInfo } from "@/components/uikit/SonnerToast";
 import { useTranslation } from "react-i18next";
 import { useAppCamera } from "@/context/AppContext";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 
 const BottomHomeScreen = lazy(() => import("../BottomHomeScreen"));
 const SelectFriendsList = lazy(() => import("./Layout/SelectFriends"));
@@ -33,6 +34,9 @@ export default function MainHomeScreen() {
   const selectedFile = usePostStore((s) => s.selectedFile);
   const preview = usePostStore((s) => s.preview);
   const hasCaptured = !!(selectedFile || preview);
+
+  // --- Keyboard Shortcuts logic ---
+  useKeyboardShortcuts();
 
   // --- Drag & Drop logic ---
   const [isDragging, setIsDragging] = React.useState(false);

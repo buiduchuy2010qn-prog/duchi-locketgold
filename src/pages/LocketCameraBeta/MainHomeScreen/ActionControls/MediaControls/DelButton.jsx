@@ -53,6 +53,7 @@ const DelButton = () => {
     <>
       <button
         type="button"
+        id="camera-del-button"
         className="pillSideBtn"
         aria-label="Xóa bài đang chỉnh"
         title="Xóa bài đang chỉnh"

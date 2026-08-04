@@ -450,6 +450,7 @@ const CameraButton = () => {
       onPointerUp={endHold}
       onPointerCancel={endHold}
       onContextMenu={(e) => e.preventDefault()}
+      id="camera-shutter-button"
       aria-label="Chụp ảnh"
       className="relative flex items-center justify-center rounded-full"
       style={{
