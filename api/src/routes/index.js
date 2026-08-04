@@ -1,3 +1,4 @@
+const express = require("express");
 const authRoutes = require("./authRoutes");
 const locketRoutes = require("./locketRoutes");
 const { rpgcRoutes } = require("../modules/grpc");
