@@ -11,6 +11,7 @@ import {
 import { publicRoutes, authRoutes, locketRoutes } from "./routes";
 import { ThemeProvider } from "./context/ThemeContext";
 import { AppProvider } from "./context/AppContext";
+import { AnimationProvider } from "./context/AnimationContext";
 import getLayout from "./layouts";
 import NotFoundPage from "./components/pages/NotFoundPage";
 import { Toaster } from "sonner";
@@ -40,23 +41,25 @@ import GlobalBroadcastBanner from "./components/GlobalBroadcastBanner";
 
 function App() {
   return (
-    <ThemeProvider>
-      <SocketProvider>
-        <AppProvider>
-          <Router>
-            <GlobalThemeEffects />
-            <OfflineBanner />
-            <GlobalBroadcastBanner />
-            <AppContent />
-            {/* RestoreDraftModal disabled — library only via draft badge */}
-            <RestoreDraftModal />
-            <ReplaceDraftPrompt />
-            <DraftLibrary />
-          </Router>
-          <Toaster />
-        </AppProvider>
-      </SocketProvider>
-    </ThemeProvider>
+    <AnimationProvider>
+      <ThemeProvider>
+        <SocketProvider>
+          <AppProvider>
+            <Router>
+              <GlobalThemeEffects />
+              <OfflineBanner />
+              <GlobalBroadcastBanner />
+              <AppContent />
+              {/* RestoreDraftModal disabled — library only via draft badge */}
+              <RestoreDraftModal />
+              <ReplaceDraftPrompt />
+              <DraftLibrary />
+            </Router>
+            <Toaster />
+          </AppProvider>
+        </SocketProvider>
+      </ThemeProvider>
+    </AnimationProvider>
   );
 }
 
@@ -227,6 +230,7 @@ function AppContent() {
       <Suspense fallback={<LoadingPageMain isLoading={true} />}>
         <Routes>
           {(isAuth ? privateRoutes : publicRoutes).map(
+            // eslint-disable-next-line no-unused-vars
             ({ path, component: Component }) => {
               const Layout = getLayout(path);
               return (
@@ -247,6 +251,7 @@ function AppContent() {
           {isAuth &&
             publicRoutes
               .filter(({ path }) => alwaysPublicPaths.has(path))
+              // eslint-disable-next-line no-unused-vars
               .map(({ path, component: Component }) => {
                 const Layout = getLayout(path);
                 return (
