@@ -176,7 +176,11 @@ const postImageToLocketV2 = async ({
     const responseData = await postResponse.data; // 👈 Lấy dữ liệu JSON từ phản hồi
     // console.log("📦 Dữ liệu phản hồi:", responseData);
     logInfo("postImageToLocketV2", "End");
-    return responseData.result?.data || null;
+    
+    const data = responseData.result?.data || {};
+    data.image_url = imageUrl; // Always override with the signed URL we just uploaded
+    
+    return data;
   } catch (error) {
     logError("postImageToLocketV2", error.message);
     console.error("Status:", error.response?.status);

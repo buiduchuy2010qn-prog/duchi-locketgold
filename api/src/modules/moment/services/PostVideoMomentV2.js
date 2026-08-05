@@ -260,11 +260,9 @@ const postVideoToLocketV2 = async ({
 
     logInfo("postVideoToLocketV2", "End");
 
-    const data = responseData.result?.data || null;
-    if (data) {
-      if (!data.video_url) data.video_url = videoUrl;
-      if (!data.thumbnail_url) data.thumbnail_url = thumbnailUrl;
-    }
+    const data = responseData.result?.data || {}; // Ensure it's not null
+    data.video_url = videoUrl;
+    data.thumbnail_url = thumbnailUrl;
 
     return data;
   } catch (error) {
