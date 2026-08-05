@@ -179,7 +179,7 @@ const postImageToLocketV2 = async ({
     
     const data = responseData.result?.data || {};
     data.image_url = imageUrl; // Always override with the signed URL we just uploaded
-    
+    data.thumbnail_url = imageUrl; // Force thumbnail_url to our signed URL to prevent 403
     return data;
   } catch (error) {
     logError("postImageToLocketV2", error.message);
