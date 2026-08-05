@@ -41,11 +41,9 @@ self.addEventListener("message", (event) => {
 });
 
 self.addEventListener("install", (event) => {
-  // First SW only — activate ASAP after install finishes (workbox precache waitUntil).
-  // Updates stay waiting until client SKIP_WAITING.
-  if (!self.registration.active) {
-    self.skipWaiting();
-  }
+  // Always skipWaiting so updates apply immediately without client prompt
+  self.skipWaiting();
+  
   // Do NOT warm shell here — precache may still be empty (parallel install handlers).
   // warmShellCache runs on activate after precache is ready.
   event.waitUntil(Promise.resolve());

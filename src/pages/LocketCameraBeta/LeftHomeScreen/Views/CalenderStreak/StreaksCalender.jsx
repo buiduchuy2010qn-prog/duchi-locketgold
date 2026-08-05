@@ -78,10 +78,24 @@ const StreaksCalender = ({ recentPosts = [], setIsProfileOpen }) => {
   useEffect(() => {
     if (lastMonthRef.current) {
       const timer = setTimeout(() => {
-        lastMonthRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
+        const el = lastMonthRef.current;
+        const container = el.closest(".overflow-y-auto");
+        if (container) {
+          // Calculate the element's position relative to the scrollable container
+          const containerRect = container.getBoundingClientRect();
+          const elRect = el.getBoundingClientRect();
+          const targetScrollTop = container.scrollTop + (elRect.top - containerRect.top);
+          container.scrollTo({
+            top: targetScrollTop,
+            behavior: "smooth",
+          });
+        } else {
+          // Fallback if no container found, but avoid block: 'start' which can shift fixed parents
+          el.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest",
+          });
+        }
       }, 100);
       return () => clearTimeout(timer);
     }
