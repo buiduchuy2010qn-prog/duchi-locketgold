@@ -26,6 +26,12 @@ function StreakLocket({ recentPosts }) {
 
         <StreaksCalender recentPosts={recentPosts} />
         <BottomStreak recentPosts={recentPosts} />
+        
+        {/* Placeholder for empty space so it doesn't feel like a bug */}
+        <div className="flex flex-col items-center justify-center opacity-50 mt-4 pb-10">
+          <p className="text-sm font-medium">Bạn chưa có Locket nào dưới đây.</p>
+          <p className="text-xs mt-1">Hãy chụp thêm để lưu giữ kỷ niệm nhé!</p>
+        </div>
       </div>
     </>
   );
