@@ -80,7 +80,120 @@ export default function AdminSystemHealth() {
   const [musicStatus, setMusicStatus] = useState({ state: "loading", details: "" });
   const [authStatus, setAuthStatus] = useState({ state: "loading", details: "" });
   const [storageStatus, setStorageStatus] = useState({ state: "loading", details: "" });
-  const [perfStatus, setPerfStatus] = useState({ state: "loading", fps: null, details: "" });
+  const [perfStatus, setPerfStatus] = useState({ state: "loading", fps: null, details: "Đang tải dữ liệu..." });
+
+  // Real-time FPS & RAM monitor
+  useEffect(() => {
+    let animationFrameId;
+    let frames = 0;
+    let lastTime = performance.now();
+
+    const loop = () => {
+      const now = performance.now();
+      frames++;
+      
+      // Update state every 500ms
+      if (now - lastTime >= 500) {
+        const elapsedSec = (now - lastTime) / 1000;
+        const fps = Math.round(frames / elapsedSec);
+        
+        let memoryInfo = "Không hỗ trợ API performance.memory";
+        if (performance && performance.memory) {
+          const usedMb = (performance.memory.usedJSHeapSize / (1024 * 1024)).toFixed(1);
+          const totalMb = (performance.memory.totalJSHeapSize / (1024 * 1024)).toFixed(1);
+          memoryInfo = `RAM JS Heap: ${usedMb} MB / ${totalMb} MB`;
+        }
+
+        setPerfStatus({
+          state: fps >= 30 ? "ok" : "warning",
+          fps,
+          details: `Tốc độ khung hình: ${fps} FPS. ${memoryInfo}.`,
+        });
+
+        frames = 0;
+        lastTime = now;
+      }
+      animationFrameId = requestAnimationFrame(loop);
+    };
+
+    animationFrameId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, []);
+
+  // Real-time API Ping monitor
+  useEffect(() => {
+    let intervalId;
+    
+    const pingApi = async () => {
+      const start = performance.now();
+      try {
+        const res = await fetch("/dio-api/health", { method: "GET", cache: "no-store" });
+        const latency = Math.round(performance.now() - start);
+        if (res.ok) {
+          setApiStatus({
+            state: "ok",
+            latency,
+            details: `Máy chủ Backend /dio-api phản hồi bình thường (Độ trễ ping: ${latency}ms)`,
+          });
+        } else {
+          setApiStatus({
+            state: "error",
+            latency,
+            details: `Máy chủ trả về mã lỗi HTTP ${res.status}`,
+          });
+        }
+      } catch (err) {
+        setApiStatus({
+          state: "error",
+          latency: null,
+          details: `Không kết nối được Backend API (/dio-api) - Lỗi: ${err.message || "Mất kết nối mạng"}`,
+        });
+      }
+    };
+
+    intervalId = setInterval(pingApi, 3000);
+    return () => clearInterval(intervalId);
+  }, []);
+
+  // Real-time Storage & PWA monitor
+  useEffect(() => {
+    let intervalId;
+    
+    const checkStorage = async () => {
+      try {
+        let quotaText = "";
+        if (navigator.storage && navigator.storage.estimate) {
+          const { quota, usage } = await navigator.storage.estimate();
+          const usageMb = (usage / (1024 * 1024)).toFixed(2);
+          const quotaMb = (quota / (1024 * 1024)).toFixed(0);
+          quotaText = `Dung lượng web đã dùng: ${usageMb} MB / ${quotaMb} MB. `;
+        }
+  
+        let swStateText = "Service Worker: Chưa kích hoạt";
+        if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+          swStateText = `Service Worker: Đang chạy (${navigator.serviceWorker.controller.state || "active"})`;
+        }
+  
+        let notifPerm = "Quyền Thông báo: Chưa xin quyền";
+        if ("Notification" in window) {
+          notifPerm = `Quyền Thông báo: ${Notification.permission === "granted" ? "Đã cho phép" : Notification.permission === "denied" ? "Đã bị chặn" : "Chưa xin quyền"}`;
+        }
+  
+        setStorageStatus({
+          state: "ok",
+          details: `${quotaText}${swStateText}. ${notifPerm}.`,
+        });
+      } catch (err) {
+        setStorageStatus({
+          state: "warning",
+          details: "Không đo được dung lượng bộ nhớ trình duyệt.",
+        });
+      }
+    };
+
+    intervalId = setInterval(checkStorage, 3000);
+    return () => clearInterval(intervalId);
+  }, []);
 
   const runDiagnostics = useCallback(async () => {
     setTesting(true);
@@ -234,45 +347,7 @@ export default function AdminSystemHealth() {
       });
     }
 
-    // 5. Real Performance & RAM / FPS Check
-    try {
-      let memoryInfo = "Không hỗ trợ API performance.memory";
-      if (performance && performance.memory) {
-        const usedMb = (performance.memory.usedJSHeapSize / (1024 * 1024)).toFixed(1);
-        const totalMb = (performance.memory.totalJSHeapSize / (1024 * 1024)).toFixed(1);
-        memoryInfo = `RAM JS Heap: ${usedMb} MB / ${totalMb} MB`;
-      }
-
-      // Measure real FPS over 500ms
-      let frames = 0;
-      const startTime = performance.now();
-      const measureFps = new Promise((resolve) => {
-        const loop = () => {
-          frames++;
-          if (performance.now() - startTime < 500) {
-            requestAnimationFrame(loop);
-          } else {
-            const elapsedSec = (performance.now() - startTime) / 1000;
-            const currentFps = Math.round(frames / elapsedSec);
-            resolve(currentFps);
-          }
-        };
-        requestAnimationFrame(loop);
-      });
-
-      const fps = await measureFps;
-      setPerfStatus({
-        state: fps >= 30 ? "ok" : "warning",
-        fps,
-        details: `Tốc độ khung hình: ${fps} FPS. ${memoryInfo}.`,
-      });
-    } catch (err) {
-      setPerfStatus({
-        state: "warning",
-        fps: null,
-        details: "Không đo được hiệu năng RAM/FPS.",
-      });
-    }
+    // 5. Performance is now handled by a real-time useEffect below.
 
     // 6. Auth & Database Status Check
     if (isAuth && user) {
