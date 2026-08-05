@@ -47,12 +47,12 @@ const LeftHomeScreen = ({ setIsProfileOpen }) => {
 
   return (
     <div
-      className={`fixed inset-0 w-full flex flex-col z-50 bg-base-100 text-base-content transition-transform duration-500 overflow-hidden ${
+      className={`fixed inset-0 w-full grid grid-rows-[auto_1fr] z-50 bg-base-100 text-base-content transition-transform duration-500 overflow-hidden ${
         isProfileOpen ? "translate-x-0" : "-translate-x-full"
       }`}
     >
       {/* ==== Header (sticky) ==== */}
-      <div className="relative shadow-md shrink-0">
+      <div className="relative shadow-md">
         <HeaderOne setIsProfileOpen={setIsProfileOpen} />
         <InfoUser user={user} />
         {/* Mục menu riêng: Watermark on/off */}
@@ -65,7 +65,7 @@ const LeftHomeScreen = ({ setIsProfileOpen }) => {
       </div>
 
       {/* ==== Nội dung chính ==== */}
-      <div className="flex-1 w-full bg-base-200 overflow-y-auto relative pb-24">
+      <div className="w-full bg-base-200 overflow-y-auto relative pb-24">
         {active === "rollcall" && (
           <RollcallsPost
             active={active}
