@@ -274,7 +274,7 @@ const Sidebar = () => {
       items: [
         { to: "/", icon: Home, text: t("sidebar.menu.home") },
         { to: "/about", icon: Info, text: t("sidebar.menu.about") },
-        { to: "/about-dio", icon: UserCircle, text: t("sidebar.menu.about_dio") },
+        { to: "/about-huy", icon: UserCircle, text: "Về Huy" },
         { to: "/newsfeed", icon: Newspaper, text: t("sidebar.menu.newsfeed"), badge: "New" },
         {
           to: "/download",

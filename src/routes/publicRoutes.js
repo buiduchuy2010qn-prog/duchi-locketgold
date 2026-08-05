@@ -45,7 +45,6 @@ export const publicRoutes = [
   },
 
   { path: "/about", component: AboutHuyLocket, title: `Về Website Huy Locket | ${APP_NAME}` },
-  { path: "/about-dio", component: AboutMe, title: `Về Huy | ${APP_NAME}` },
   { path: "/about-huy", component: AboutMe, title: `Về Huy | ${APP_NAME}` },
 
   { path: "/newsfeed", component: NewsPage, title: `Bảng tin | ${APP_NAME}` },
