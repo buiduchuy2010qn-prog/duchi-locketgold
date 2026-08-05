@@ -82,65 +82,7 @@ const AboutMe = () => {
 
         <ImageMarquee />
 
-        {/* Contact */}
-        <div className="text-center">
-          <h2 className="text-2xl md:text-3xl font-semibold mb-5 flex justify-center items-center gap-2">
-            <Globe /> Liên hệ & Mạng xã hội
-          </h2>
-          <div className="flex justify-center gap-4 text-2xl md:text-3xl">
-            {/* Existing Social Links */}
-            <a
-              href="https://github.com/buiduchuy2010qn-prog"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="transition"
-            >
-              <FaGithub className="w-6 h-6 text-black" />
-            </a>
-            <a
-              href="mailto:buiduchuy2010qn@gmail.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="transition"
-            >
-              <Mail className="w-6 h-6 text-black" />
-            </a>
 
-            {/* New Social Links */}
-            <a
-              href="https://facebook.com/daovandoi2003"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-blue-600 transition"
-            >
-              <FaFacebook className="w-6 h-6 text-blue-600" />
-            </a>
-            <a
-              href="https://instagram.com/_am.dio"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-pink-500 transition"
-            >
-              <FaInstagram className="w-6 h-6 text-pink-500" />
-            </a>
-            <a
-              href="https://tiktok.com/@amdio25"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-black transition"
-            >
-              <FaTiktok className="w-6 h-6 text-black" />
-            </a>
-            <a
-              href="https://locket.cam/diodio"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-black transition"
-            >
-              <img src="/apple-touch-icon.png" className="w-6 h-6 rounded-md" />
-            </a>
-          </div>
-        </div>
       </div>
     </>
   );
