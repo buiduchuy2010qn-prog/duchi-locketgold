@@ -34,6 +34,13 @@ const STALE_MS = 8 * 60 * 1000; // 8 phút
 /** Failed auto-retry tối đa */
 const MAX_AUTO_RETRY = 2;
 
+const isUsableMediaUrl = (url) => {
+  if (!url || typeof url !== "string") return false;
+  // Bỏ qua các URL tạm thời của trình duyệt hoặc dạng inline://local
+  if (url.startsWith("inline://") || url.startsWith("blob:") || url.startsWith("data:")) return false;
+  return true;
+};
+
 export const useUploadQueueStore = create((set, get) => ({
   uploadItems: [],
   postedMoments: [],
@@ -177,14 +184,16 @@ export const useUploadQueueStore = create((set, get) => ({
 
       const od = item?.optionsData || {};
       const media = item?.mediaInfo || {};
-      const mediaUrl =
-        media.publicUrl ||
-        media.publicURL ||
-        media.downloadURL ||
-        media.url ||
-        normalized?.image_url ||
-        normalized?.thumbnail_url ||
-        null;
+      
+      const potentialUrls = [
+        media.publicUrl,
+        media.publicURL,
+        media.downloadURL,
+        media.url,
+        normalized?.image_url,
+        normalized?.thumbnail_url
+      ];
+      const mediaUrl = potentialUrls.find(isUsableMediaUrl) || null;
 
       // ── Music/poll/review: LUÔN lấy overlay từ lúc đăng (Locket hay cắt response)
       const ov = overlayFromOptionsData(od);
