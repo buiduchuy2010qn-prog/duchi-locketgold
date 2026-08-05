@@ -257,13 +257,15 @@ export const useUploadQueueStore = create((set, get) => ({
       }
 
       // Ảnh / video URL cho feed web
-      if (normalized) {
-        if (!normalized.image_url && !normalized.thumbnail_url && mediaUrl) {
+      if (normalized && mediaUrl) {
+        if (media.type !== "video") {
           normalized.image_url = mediaUrl;
           normalized.thumbnail_url = mediaUrl;
-        }
-        if (!normalized.video_url && media.type === "video" && mediaUrl) {
+        } else {
           normalized.video_url = mediaUrl;
+          if (media.thumbnailUrl || media.thumbnail_url) {
+             normalized.thumbnail_url = media.thumbnailUrl || media.thumbnail_url;
+          }
         }
       }
 
