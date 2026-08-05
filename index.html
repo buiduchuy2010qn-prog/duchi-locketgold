@@ -75,6 +75,61 @@
       gtag('config', 'G-7596Z1M8BB');
     </script>
     
+    <!-- Google Search Structured Data (Schema.org / Sitelinks) -->
+    <script type="application/ld+json">
+      [
+        {
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          "name": "Huy Locket",
+          "alternateName": ["Locket Dio", "HuyLocket"],
+          "url": "https://duchi.vercel.app/"
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "ItemList",
+          "itemListElement": [
+            {
+              "@type": "SiteNavigationElement",
+              "position": 1,
+              "name": "Đăng Nhập",
+              "url": "https://duchi.vercel.app/login"
+            },
+            {
+              "@type": "SiteNavigationElement",
+              "position": 2,
+              "name": "Locket Camera",
+              "url": "https://duchi.vercel.app/locket"
+            },
+            {
+              "@type": "SiteNavigationElement",
+              "position": 3,
+              "name": "Thêm Locket Camera vào Màn hình chính",
+              "url": "https://duchi.vercel.app/download"
+            },
+            {
+              "@type": "SiteNavigationElement",
+              "position": 4,
+              "name": "Cài đặt",
+              "url": "https://duchi.vercel.app/settings"
+            },
+            {
+              "@type": "SiteNavigationElement",
+              "position": 5,
+              "name": "Tài liệu & Hướng dẫn",
+              "url": "https://duchi.vercel.app/docs"
+            },
+            {
+              "@type": "SiteNavigationElement",
+              "position": 6,
+              "name": "Bảng giá & Gói thành viên",
+              "url": "https://duchi.vercel.app/pricing"
+            }
+          ]
+        }
+      ]
+    </script>
+    
   </head>
   <body>
     <!-- Apply theme before React to avoid FOUC / color flash -->
