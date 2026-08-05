@@ -29,7 +29,7 @@ const notes = [
   {
     labelKey: "custom_studio.notes.source_code",
     text: "GitHub",
-    href: "https://github.com/buiduchuy2010qn-prog/Client-Locket-Dio",
+    href: "https://github.com/buiduchuy2010qn-prog/Client-Huy Locket",
     external: true,
   },
 ];

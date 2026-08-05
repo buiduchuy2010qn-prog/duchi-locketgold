@@ -16,7 +16,7 @@ const Header = () => {
             Huy Locket
           </span>
           <img
-            src="/images/locket-dio.png"
+            src="/images/huy-locket.png"
             alt="Locket icon"
             className="w-7 h-7 object-contain -ml-1 disable-select"
             draggable="false"

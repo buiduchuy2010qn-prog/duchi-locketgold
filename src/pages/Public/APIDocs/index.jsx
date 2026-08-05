@@ -113,14 +113,14 @@ const CODE_EXAMPLES = {
   "spotify-search": {
     curl: `curl -X POST "https://api.example.com/api/spotifyV2" \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
-  -H "X-Locket-Dio-Key: YOUR_API_KEY" \\
+  -H "X-Huy Locket-Key: YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{"spotifyUrl": "https://open.spotify.com/track/2dPJtlvoa3GDowCh035M8P?si=EqxoHvkBRxy9Q31roW797w"}'`,
   },
   "weather-current": {
     curl: `curl -X POST "https://api.example.com/api/weatherV2" \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
-  -H "X-Locket-Dio-Key: YOUR_API_KEY" \\
+  -H "X-Huy Locket-Key: YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{"lat": 21.0285, "lon": 105.8542}'`,
   },
