@@ -32,13 +32,14 @@ render.yaml
 fly.toml
 firebase.json
 
-# Unneeded project data
-apps
-_upgrade_backup_20260710172600
-public_legacy_locket
-data
-node_modules
-dist
+# Unneeded root-level project data
+/apps
+/_upgrade_backup_20260710172600
+/public_legacy_locket
+/data
+/node_modules
+/dist
 
-# Do not ignore src/ or public/: Vercel now runs npm run build:deploy
-# and vite-plugin-pwa needs src/sw.js plus the public app assets.
+# Do not ignore src/ or public/: Vercel now runs npm run build:deploy.
+# Root-anchored entries above must not hide nested source folders such as
+# src/features/CustomeStudio/data.
