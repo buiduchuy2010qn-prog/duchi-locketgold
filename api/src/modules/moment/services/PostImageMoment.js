@@ -10,6 +10,9 @@ const { imagePayloadV2 } = require("../payloads");
 const {
   ensureMusicOptionsData,
 } = require("../../music/services/ensureMusicPayload");
+const {
+  preserveSubmittedOverlay,
+} = require("../utils/preserveSubmittedOverlay");
 
 const postImageToLocketV2 = async ({
   idToken,
@@ -17,9 +20,7 @@ const postImageToLocketV2 = async ({
   mediaData,
   optionsData: rawOptions,
 }) => {
-  // Lấy các giá trị từ tokenData và optionsData
   let optionsData = rawOptions || {};
-  // Music: bắt buộc isrc + (spotify_url | apple_music_url) — app Locket mới hiện
   if (optionsData.type === "music") {
     optionsData = await ensureMusicOptionsData(optionsData);
     const p = optionsData?.payload || {};
@@ -37,7 +38,6 @@ const postImageToLocketV2 = async ({
       err.status = 400;
       throw err;
     }
-    // iOS MusicKit hard-requires apple_music_url with track id
     if (!p.apple_music_url || !/[?&]i=\d{5,}/.test(String(p.apple_music_url))) {
       const err = new Error(
         "Thiếu Apple Music (?i=trackId) — iPhone sẽ im. Dán link Apple Music hoặc chọn bài khác.",
@@ -55,32 +55,26 @@ const postImageToLocketV2 = async ({
   try {
     logInfo("postImageToLocketV2", "Start");
 
-    // Upload ảnh lên Firebase và lấy URL
     const imageUrl = await uploadMomentImage(localId, idToken, fileBuffer);
-    // Xử lý theo từng loại type
     const postData = (() => {
       logBanner(`Type đang sử dụng: ${type}`);
       switch (type) {
-        //Loại mặc định đăng caption với nền mặc định
         case "default":
           return imagePayloadV2.imagePostPayloadDefault({
             imageUrl,
             optionsData,
           });
-        //Loại caption decorative bởi Locket
         case "decorative":
           return imagePayloadV2.imagePostPayloadDecorative({
             imageUrl,
             optionsData,
           });
-        //Loại caption được custom background + icon bởi Người dùng
         case "custome":
         case "custom":
           return imagePayloadV2.imagePostPayloadCustome({
             imageUrl,
             optionsData,
           });
-        //Loại caption chỉ có icon hoặc gif, template
         case "image_icon":
         case "image_gif":
         case "caption_image":
@@ -95,13 +89,11 @@ const postImageToLocketV2 = async ({
             imageUrl,
             optionsData,
           });
-        //Loại caption decorative bởi Locket
         case "caption_link":
           return imagePayloadV2.imagePostPayloadLink({
             imageUrl,
             optionsData,
           });
-        //Loại caption decorative bởi Locket
         case "time":
           return imagePayloadV2.imagePostPayloadTime({ imageUrl, optionsData });
         case "review":
@@ -164,7 +156,6 @@ const postImageToLocketV2 = async ({
       }
     })();
 
-    // Gửi request tạo bài post
     const postResponse = await instanceLocketV2.post("postMomentV2", postData, {
       meta: { idToken },
     });
@@ -173,13 +164,15 @@ const postImageToLocketV2 = async ({
       throw new Error(`Failed to create post: ${postResponse?.statusText}`);
     }
 
-    const responseData = await postResponse.data; // 👈 Lấy dữ liệu JSON từ phản hồi
-    // console.log("📦 Dữ liệu phản hồi:", responseData);
+    const responseData = await postResponse.data;
     logInfo("postImageToLocketV2", "End");
-    
-    const data = responseData.result?.data || {};
-    data.image_url = imageUrl; // Always override with the signed URL we just uploaded
-    data.thumbnail_url = imageUrl; // Force thumbnail_url to our signed URL to prevent 403
+
+    const data = preserveSubmittedOverlay(
+      responseData.result?.data || {},
+      postData,
+    );
+    data.image_url = imageUrl;
+    data.thumbnail_url = imageUrl;
     return data;
   } catch (error) {
     logError("postImageToLocketV2", error.message);
@@ -196,7 +189,6 @@ const postImageToLocketV2 = async ({
   }
 };
 
-//Export module
 module.exports = {
   postImageToLocketV2,
 };
