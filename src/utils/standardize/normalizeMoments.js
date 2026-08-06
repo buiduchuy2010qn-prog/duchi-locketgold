@@ -90,6 +90,9 @@ export function normalizeMoment(data) {
     createTimeMs = createTimeMs * 1000;
   }
 
+  const legacyCaption =
+    typeof caption === "string" && caption.trim() ? caption.trim() : "";
+
   // Normalize overlays → object shape used by OverlayRenderer
   // (API simplifyMoment already returns object; Locket raw is array)
   let overlayObj = null;
@@ -110,11 +113,15 @@ export function normalizeMoment(data) {
         resolvedType = "music";
       else resolvedType = resolvedType || "caption";
     }
+    const overlayText =
+      overlays.text || overlays.caption || legacyCaption || "";
     overlayObj = {
       ...overlays,
       overlay_id: oid,
       type: resolvedType,
-      text: overlays.text || overlays.caption || "",
+      // Locket có bài chỉ lưu caption ở alt_text/top-level caption.
+      text: overlayText,
+      caption: overlayText,
       payload: overlays.payload || {},
       icon: overlays.icon || {},
     };
@@ -129,11 +136,13 @@ export function normalizeMoment(data) {
       else if (d.payload?.isrc || d.payload?.song_title) resolvedType = "music";
       else resolvedType = "caption";
     }
+    const overlayText = d.text || first.alt_text || legacyCaption || "";
     overlayObj = {
       overlay_id: oid,
       overlay_type: first?.overlay_type || "caption",
       type: resolvedType,
-      text: d.text || first?.alt_text || caption || "",
+      text: overlayText,
+      caption: overlayText,
       text_color: d.text_color,
       max_lines: d.max_lines,
       background: d.background || {},
@@ -144,24 +153,18 @@ export function normalizeMoment(data) {
 
   // Captions list (legacy UI)
   const captions = [];
-  if (overlayObj?.text) {
+  const displayCaption = overlayObj?.text || legacyCaption;
+  if (displayCaption) {
     captions.push({
-      text: overlayObj.text,
-      text_color: overlayObj.text_color || "#FFFFFF",
-      icon: overlayObj.icon || null,
-      background: overlayObj.background || {
+      text: displayCaption,
+      text_color: overlayObj?.text_color || "#FFFFFF",
+      icon: overlayObj?.icon || null,
+      background: overlayObj?.background || {
         material_blur: "ultra_thin",
         colors: [],
       },
-      type: overlayObj.type,
-      payload: overlayObj.payload,
-    });
-  } else if (typeof caption === "string" && caption.trim() !== "") {
-    captions.push({
-      text: caption,
-      text_color: "#FFFFFF",
-      icon: null,
-      background: { material_blur: "ultra_thin", colors: [] },
+      type: overlayObj?.type || "caption",
+      payload: overlayObj?.payload || {},
     });
   }
 
@@ -178,6 +181,7 @@ export function normalizeMoment(data) {
     sent_to_all: !!sent_to_all,
     show_personally: !!show_personally,
     group_id: group_id || groupId || null,
+    caption: displayCaption || "",
     captions,
     // Critical: keep overlays for MusicOverlay / Poll / Review
     overlays: overlayObj,
