@@ -5,7 +5,6 @@ import { SonnerInfo } from "@/components/uikit/SonnerToast";
 import { instanceAuth } from "./instanceAuth";
 import { createUploadClient } from "./createBase";
 
-// ==== Kiểm tra token sắp hết hạn (dưới 5 phút) ====
 let cachedExp = null;
 function isTokenExpired(token) {
   if (!token) return true;
@@ -19,21 +18,12 @@ function isTokenExpired(token) {
   }
 
   const timeLeft = cachedExp - now;
-
-  // console.log(
-  //   `⏰ Token còn lại: ${timeLeft}s (hết hạn lúc: ${new Date(
-  //     cachedExp * 1000
-  //   ).toLocaleString()})`
-  // );
-
-  return timeLeft < 300; // < 5 phút thì coi là sắp hết hạn
+  return timeLeft < 300;
 }
 
-// ==== Biến toàn cục để tránh gọi refresh nhiều lần ====
 let isRefreshing = false;
 let refreshPromise = null;
 
-// ==== Gọi API để refresh idToken (nếu cookie còn hiệu lực) ====
 async function refreshIdToken() {
   try {
     const { refreshToken } = getToken();
@@ -47,7 +37,7 @@ async function refreshIdToken() {
     if (newToken) {
       localStorage.setItem("idToken", newToken);
       localStorage.setItem("localId", newLocalId);
-      cachedExp = null; // Reset lại cache khi nhận token mới
+      cachedExp = null;
       return newToken;
     }
 
@@ -68,7 +58,6 @@ async function refreshIdToken() {
   }
 }
 
-// ==== Đăng xuất tập trung ====
 function handleLogout() {
   isRefreshing = false;
   refreshPromise = null;
@@ -85,22 +74,12 @@ function handleLogout() {
   }
 }
 
-// ==== Khởi tạo axios instance ====
 const api = createUploadClient(CONFIG.api.baseUrl);
 
-// ==== Request Interceptor ====
 api.interceptors.request.use(async (config) => {
-  // const requireAuth = config.requireAuth === true;
-
-  // if (!requireAuth) {
-  //   // 👉 API public, bỏ qua toàn bộ auth logic
-  //   return config;
-  // }
-
   let token = localStorage.getItem("idToken");
 
   if (!token) {
-    // ❗ CHƯA LOGIN → KHÔNG REFRESH, KHÔNG LOGOUT
     return Promise.reject({
       status: 401,
       message: "Not authenticated",
@@ -128,19 +107,31 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-// Cold-start retry đã nằm trong createBase.attachGatewayRetry (6 lần, ~40s).
-// Interceptor này chỉ toast / auth — không double-retry.
-
-// ==== Response Interceptor ====
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const status = error.response?.status || error.status;
+    const responseData = error.response?.data;
+    const stringError =
+      typeof responseData?.error === "string" ? responseData.error : null;
     const message =
-      error.response?.data?.message ||
-      error.response?.data?.error?.message ||
+      responseData?.message ||
+      responseData?.error?.message ||
+      stringError ||
       error.message ||
       "Có lỗi xảy ra";
+
+    // Downstream upload queue reads response.data.message. Normalize APIs that
+    // return { error: "..." } so they do not fall back to Axios' English text.
+    if (
+      responseData &&
+      typeof responseData === "object" &&
+      !Array.isArray(responseData) &&
+      !responseData.message &&
+      stringError
+    ) {
+      responseData.message = stringError;
+    }
 
     const originalRequest = error.config;
 
@@ -164,10 +155,10 @@ api.interceptors.response.use(
           if (newToken) {
             originalRequest.headers.Authorization = `Bearer ${newToken}`;
             return api(originalRequest);
-          } else {
-            handleLogout();
-            return Promise.reject(error);
           }
+
+          handleLogout();
+          return Promise.reject(error);
         } catch (refreshError) {
           handleLogout();
           return Promise.reject(refreshError);
@@ -175,34 +166,53 @@ api.interceptors.response.use(
           isRefreshing = false;
           refreshPromise = null;
         }
-      } else {
-        handleLogout();
-        SonnerInfo("Phiên đăng nhập đã hết. Vui lòng đăng nhập lại.");
-        return Promise.reject(error);
       }
+
+      handleLogout();
+      SonnerInfo("Phiên đăng nhập đã hết. Vui lòng đăng nhập lại.");
+      return Promise.reject(error);
     }
 
     if (status === 403) {
-      const errorCode = error?.response?.data?.error || error?.response?.data?.code;
-      if (errorCode === "ACCOUNT_LOCKED" || errorCode === "SESSION_REVOKED" || String(message).toLowerCase().includes("locked")) {
-        SonnerInfo("⛔ Tài khoản của bạn đã bị Quản Trị Viên khóa và cấm truy cập!");
+      const errorCode = responseData?.error || responseData?.code;
+      if (
+        errorCode === "ACCOUNT_LOCKED" ||
+        errorCode === "SESSION_REVOKED" ||
+        String(message).toLowerCase().includes("locked")
+      ) {
+        SonnerInfo(
+          "⛔ Tài khoản của bạn đã bị Quản Trị Viên khóa và cấm truy cập!",
+        );
         handleLogout();
         return Promise.reject(error);
       }
       SonnerInfo(message || "Bạn không có quyền truy cập!");
     }
 
-    // skipErrorToast: resolve nhạc multi-step (404 trung gian không spam)
     if (status === 404 && !originalRequest?.skipErrorToast) {
       SonnerInfo(message || "Không tìm thấy nội dung yêu cầu.");
     }
+
     if (status === 429) {
+      const retryAfterRaw = error.response?.headers?.["retry-after"];
+      const retryAfterSeconds = Number.parseInt(retryAfterRaw, 10);
+      error.noAutoRetry = true;
+      error.retryAfterSeconds = Number.isFinite(retryAfterSeconds)
+        ? retryAfterSeconds
+        : 15 * 60;
+
+      const waitText =
+        error.retryAfterSeconds >= 60
+          ? `${Math.ceil(error.retryAfterSeconds / 60)} phút`
+          : `${error.retryAfterSeconds} giây`;
+
       SonnerInfo(
-        message || "Bạn đã gửi quá nhiều yêu cầu. Vui lòng thử lại sau.",
+        message && !/^request failed with status code/i.test(message)
+          ? `${message} Thử lại sau ${waitText}.`
+          : `Bạn đã gửi quá nhiều yêu cầu. Thử lại sau ${waitText}.`,
       );
     }
 
-    // Không spam toast cho lỗi cấu hình optional (Supabase membership DB)
     const isOptionalConfigMsg =
       typeof message === "string" &&
       (/supabase/i.test(message) ||
@@ -213,7 +223,6 @@ api.interceptors.response.use(
       SonnerInfo(message || "Lỗi máy chủ. Vui lòng thử lại sau.");
     }
 
-    // Chỉ báo sau khi createBase đã retry hết (cold start ~30–60s)
     if (status === 502 || status === 503) {
       SonnerInfo(
         "API đang khởi động (Render free). Đang thử lại — chờ thêm 20–40 giây.",
@@ -226,7 +235,6 @@ api.interceptors.response.use(
       );
     }
 
-    // Lỗi mạng không status — cold start / proxy abort
     if (!error.response && originalRequest?._gatewayRetry >= 6) {
       SonnerInfo(
         "Không kết nối được API (có thể đang khởi động). Thử lại sau 20 giây.",
