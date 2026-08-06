@@ -31,19 +31,33 @@ function requireJsonContentType(req, res, next) {
 
 /**
  * Giới hạn độ dài chuỗi trong body JSON — chống payload bomb.
- * Kiểm tra tất cả string fields trong body, giới hạn MAX_STRING_LEN ký tự.
+ * Chuỗi nhị phân Base64 phải được giữ nguyên; cắt giữa chuỗi sẽ tạo ảnh hỏng
+ * nhưng Sharp vẫn có thể giải mã được vài dòng pixel đầu tiên.
  */
 const MAX_STRING_LEN = 10000; // 10K chars — đủ cho bài viết dài
+const MAX_INLINE_BASE64_LEN = 1800000; // phù hợp ảnh inline tối đa 1.2MB
+const BINARY_STRING_KEYS = new Set([
+  "mediaBase64",
+  "base64",
+  "dataBase64",
+]);
 
-function sanitizeBodyStrings(req, _res, next) {
+function sanitizeBodyStrings(req, res, next) {
   if (req.body && typeof req.body === "object") {
-    truncateStrings(req.body, MAX_STRING_LEN, 0);
+    const validationError = truncateStrings(req.body, MAX_STRING_LEN, 0);
+    if (validationError) {
+      return res.status(413).json({
+        success: false,
+        code: validationError.code,
+        error: validationError.message,
+      });
+    }
   }
   next();
 }
 
 function truncateStrings(obj, maxLen, depth) {
-  if (depth > 10) return; // Chống infinite recursion
+  if (depth > 10) return null; // Chống infinite recursion
   if (Array.isArray(obj)) {
     // Giới hạn mảng tối đa 1000 phần tử
     if (obj.length > 1000) obj.length = 1000;
@@ -51,18 +65,35 @@ function truncateStrings(obj, maxLen, depth) {
       if (typeof obj[i] === "string" && obj[i].length > maxLen) {
         obj[i] = obj[i].slice(0, maxLen);
       } else if (typeof obj[i] === "object" && obj[i] !== null) {
-        truncateStrings(obj[i], maxLen, depth + 1);
+        const nestedError = truncateStrings(obj[i], maxLen, depth + 1);
+        if (nestedError) return nestedError;
       }
     }
   } else if (typeof obj === "object" && obj !== null) {
     for (const key of Object.keys(obj)) {
-      if (typeof obj[key] === "string" && obj[key].length > maxLen) {
-        obj[key] = obj[key].slice(0, maxLen);
+      if (typeof obj[key] === "string") {
+        if (BINARY_STRING_KEYS.has(key)) {
+          if (obj[key].length > MAX_INLINE_BASE64_LEN) {
+            return {
+              code: "INLINE_MEDIA_TOO_LARGE",
+              message: "Ảnh gửi trực tiếp quá lớn. Vui lòng tải lại để dùng luồng upload tệp.",
+            };
+          }
+          // Tuyệt đối không cắt chuỗi Base64: cắt sẽ làm hỏng phần cuối ảnh.
+          continue;
+        }
+
+        if (obj[key].length > maxLen) {
+          obj[key] = obj[key].slice(0, maxLen);
+        }
       } else if (typeof obj[key] === "object" && obj[key] !== null) {
-        truncateStrings(obj[key], maxLen, depth + 1);
+        const nestedError = truncateStrings(obj[key], maxLen, depth + 1);
+        if (nestedError) return nestedError;
       }
     }
   }
+
+  return null;
 }
 
 /**
