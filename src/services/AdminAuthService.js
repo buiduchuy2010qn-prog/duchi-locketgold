@@ -46,6 +46,16 @@ export function hasShortAdminSession() {
   return Boolean(getShortAdminSessionToken());
 }
 
+// Compatibility for the existing Admin page. This function can only delete
+// the legacy JavaScript-readable copy; it never accepts or stores a token.
+export function setTrustedDeviceToken() {
+  try {
+    localStorage.removeItem("huy_locket_trust_device");
+  } catch {
+    /* storage may be unavailable */
+  }
+}
+
 async function parseResponse(response) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
