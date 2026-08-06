@@ -98,3 +98,7 @@ overlays.json
 chunk.js
 convert.cjs
 ai-pro-store/
+
+# Automated test artifacts
+tests/playwright-report/
+tests/test-results/

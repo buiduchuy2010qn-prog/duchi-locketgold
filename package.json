@@ -13,6 +13,10 @@
     "build:vercel-static": "npm run build:deploy",
     "build:static": "npm run build:deploy",
     "lint": "eslint .",
+    "lint:quality": "node --check tests/playwright.config.mjs && node --check tests/e2e/public-smoke.spec.mjs && node --check tests/unit/normalizeMoments.test.mjs && node --check tests/unit/backendNormalizeMoment.test.mjs && node --check src/utils/standardize/normalizeMoments.js && node --check api/src/utils/normalize/normalizeMoment.js",
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "node --test tests/unit/*.test.mjs",
+    "test:e2e": "npm --prefix tests run e2e",
     "preview": "vite preview",
     "serve": "node server.mjs"
   },
