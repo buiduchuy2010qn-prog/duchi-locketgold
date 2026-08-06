@@ -11,23 +11,33 @@ function getVerifierApp() {
     );
 }
 
-const DEFAULT_BOOTSTRAP_UIDS = ["y82fIv1QyDXLrMZ012MKYoYmAVz2"];
-const DEFAULT_BOOTSTRAP_EMAILS = ["buiduchuy2010qn@gmail.com"];
+function parseAdminIdentifiers(value, { lowercase = false } = {}) {
+  return String(value || "")
+    .split(/[,;\s]+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => (lowercase ? item.toLowerCase() : item));
+}
 
 function getAdminLocketUids() {
-  const envUids = String(process.env.ADMIN_LOCKET_UIDS || "")
-    .split(/[,;\s]+/)
-    .map((value) => value.trim())
-    .filter(Boolean);
-  return new Set([...DEFAULT_BOOTSTRAP_UIDS, ...envUids]);
+  return new Set(parseAdminIdentifiers(process.env.ADMIN_LOCKET_UIDS));
 }
 
 function getAdminLocketEmails() {
-  const envEmails = String(process.env.ADMIN_LOCKET_EMAILS || "")
-    .split(/[,;\s]+/)
-    .map((value) => value.trim().toLowerCase())
-    .filter(Boolean);
-  return new Set([...DEFAULT_BOOTSTRAP_EMAILS, ...envEmails]);
+  return new Set(
+    parseAdminIdentifiers(process.env.ADMIN_LOCKET_EMAILS, { lowercase: true }),
+  );
+}
+
+if (process.env.NODE_ENV === "production") {
+  const hasBootstrapAdmin =
+    getAdminLocketUids().size > 0 || getAdminLocketEmails().size > 0;
+
+  if (!hasBootstrapAdmin) {
+    throw new Error(
+      "ADMIN_LOCKET_UIDS or ADMIN_LOCKET_EMAILS is required in production",
+    );
+  }
 }
 
 function getLocketAuthVerifier() {
