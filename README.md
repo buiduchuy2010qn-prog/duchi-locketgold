@@ -2,9 +2,6 @@
 
 <div align="center">
 
-<p align="center">
-  <img src="https://cdn.locket-dio.com/v1/images/locket-dio-logo.png" alt="Huy Locket Logo" width="200" />
-</p>
 
 **Ứng dụng web hiện đại dành cho cộng đồng Locket Widget - Chia sẻ ảnh và video ngay lập tức từ trình duyệt**
 
