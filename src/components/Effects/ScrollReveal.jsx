@@ -1,5 +1,6 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React from "react";
+import { motion } from "framer-motion";
+import { useTheme } from "@/hooks/useTheme";
 
 /**
  * A wrapper component that applies a fade-in and slide-up animation
@@ -7,16 +8,22 @@ import { motion } from 'framer-motion';
  */
 export const ScrollReveal = ({
   children,
-  className = '',
+  className = "",
   delay = 0,
   duration = 0.5,
   yOffset = 30,
   once = true,
-  amount = 0.2, // amount of element that must be visible
-  as = 'div',
+  amount = 0.2,
+  as = "div",
   ...props
 }) => {
+  const { perfMode } = useTheme();
   const MotionComponent = motion[as] || motion.div;
+
+  // Máy yếu: bỏ IntersectionObserver + Framer Motion cho danh sách dài.
+  if (perfMode === "lite") {
+    return React.createElement(as, { className, ...props }, children);
+  }
 
   return (
     <MotionComponent
@@ -26,7 +33,7 @@ export const ScrollReveal = ({
       transition={{
         duration,
         delay,
-        ease: 'easeOut'
+        ease: "easeOut",
       }}
       className={className}
       {...props}
