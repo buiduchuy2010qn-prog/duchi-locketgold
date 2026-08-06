@@ -121,8 +121,8 @@ const MomentViewer = ({ moment, handleClose }) => {
             />
           )}
 
-          {/* Caption / music pill */}
-          <div className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center">
+          {/* Caption / music / poll luôn nằm trên ảnh-video */}
+          <div className="absolute inset-0 z-30">
             <OverlayRenderer
               overlayData={overlayData}
               momentId={moment?.id}
