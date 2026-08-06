@@ -95,11 +95,14 @@ const MomentsGallery = ({
       {visibleMoments.map((item, index) => {
         const isLoaded = loadedItems.includes(item.id);
         const isLastItem = index === visibleMoments.length - 1;
+        // Ba hàng đầu đang nằm ngay trong viewport điện thoại: tải ưu tiên,
+        // tránh Chrome Android trì hoãn ảnh do toàn bộ lưới đều `lazy`.
+        const shouldPrioritize = index < 9;
 
         return (
           <ScrollReveal
             key={item.id}
-            delay={index % 6 * 0.05} // Stagger effect
+            delay={(index % 6) * 0.05}
             amount={0.1}
           >
             <div
@@ -108,7 +111,7 @@ const MomentsGallery = ({
                 setSelectedMoment(index);
                 setSelectedMomentId(item.id);
               }}
-              className="aspect-square overflow-hidden cursor-pointer rounded-2xl relative group w-full h-full"
+              className="aspect-square overflow-hidden cursor-pointer rounded-2xl relative group w-full h-full bg-base-300/30"
             >
               {!isLoaded && (
                 <div className="absolute inset-0 skeleton w-full h-full rounded-2xl z-10" />
@@ -117,11 +120,14 @@ const MomentsGallery = ({
               <img
                 src={item.thumbnail_url || item.image_url || item.thumbnailUrl}
                 alt=""
-                className={`object-cover w-full h-full rounded-2xl transition-all duration-300 ${
+                className={`object-cover w-full h-full rounded-2xl transition-opacity duration-300 ${
                   isLoaded ? "opacity-100" : "opacity-0"
                 }`}
                 onLoad={() => handleLoaded(item.id)}
-                loading="lazy"
+                onError={() => handleLoaded(item.id)}
+                loading={shouldPrioritize ? "eager" : "lazy"}
+                fetchPriority={shouldPrioritize ? "high" : "auto"}
+                decoding="async"
               />
 
               {(item.video_url || item.videoUrl) && (
