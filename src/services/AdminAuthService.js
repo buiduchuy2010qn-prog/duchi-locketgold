@@ -46,7 +46,7 @@ export function hasShortAdminSession() {
   return Boolean(getShortAdminSessionToken());
 }
 
-// Compatibility for the existing Admin page. It only removes the obsolete
+// Compatibility for the existing Admin page. It only clears the obsolete
 // browser-readable value; the trusted-device JWT remains cookie-only.
 export function setTrustedDeviceToken() {
   try {
