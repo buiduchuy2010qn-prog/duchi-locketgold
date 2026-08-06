@@ -1,5 +1,6 @@
 import React, { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useAppNavigation } from "@/context/AppContext";
+import { useTheme } from "@/hooks/useTheme";
 import MainHomeScreen from "./MainHomeScreen";
 import { MusicPlayer } from "./Widgets/MusicPlayer";
 import { useOverlayEditorStore, useUIStore } from "@/stores";
@@ -38,6 +39,7 @@ export default function LocketCameraBeta() {
     isOptionModalOpen,
     setOptionModalOpen,
   } = useAppNavigation();
+  const { perfMode } = useTheme();
 
   // Local canvas for legacy capture helpers (CameraButton uses its own)
   const canvasRef = useRef(null);
@@ -57,12 +59,11 @@ export default function LocketCameraBeta() {
     if (isHomeOpen) setRightReady(true);
   }, [isHomeOpen]);
 
-  // Preload heavy side chunks when idle — skip on low-end / save-data
-  // so first paint + camera stay free (chat/rollcalls/caption still lazy on open)
+  // Preload heavy side chunks when idle — skip on low-end / save-data / manual lite.
   useEffect(() => {
     const perf = getPerfProfile();
-    if (perf.isLowEnd || perf.saveData) return undefined;
-    // Stronger devices: warm chat/caption after a longer idle so shell wins first
+    if (perfMode === "lite" || perf.isLowEnd || perf.saveData) return undefined;
+
     return idleSchedule(
       () => {
         import("./LeftHomeScreen");
@@ -72,7 +73,7 @@ export default function LocketCameraBeta() {
       },
       { timeout: 5000, delay: 1200 },
     );
-  }, []);
+  }, [perfMode]);
 
   return (
     <>

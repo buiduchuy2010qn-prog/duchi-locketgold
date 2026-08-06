@@ -1,31 +1,39 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React from "react";
+import { motion } from "framer-motion";
+import { useTheme } from "@/hooks/useTheme";
 
 const pageVariants = {
   initial: {
     opacity: 0,
     y: 10,
-    filter: 'blur(10px)',
+    filter: "blur(10px)",
   },
   in: {
     opacity: 1,
     y: 0,
-    filter: 'blur(0px)',
+    filter: "blur(0px)",
   },
   out: {
     opacity: 0,
     y: -10,
-    filter: 'blur(10px)',
+    filter: "blur(10px)",
   },
 };
 
 const pageTransition = {
-  type: 'tween',
-  ease: 'easeInOut',
+  type: "tween",
+  ease: "easeInOut",
   duration: 0.3,
 };
 
 export const PageTransition = ({ children, className = "w-full h-full" }) => {
+  const { perfMode } = useTheme();
+
+  // Máy yếu: không chạy blur/transform khi đổi trang.
+  if (perfMode === "lite") {
+    return <div className={className}>{children}</div>;
+  }
+
   return (
     <motion.div
       initial="initial"

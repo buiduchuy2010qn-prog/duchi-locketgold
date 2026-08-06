@@ -1,0 +1,77 @@
+/*
+ * Chế độ "Máy cấu hình yếu".
+ * Chỉ hoạt động khi <html data-performance-mode="lite">.
+ * Không đổi bố cục, dữ liệu, camera hay chất lượng ảnh đăng.
+ */
+
+html[data-performance-mode="lite"] {
+  scroll-behavior: auto !important;
+}
+
+/* Blur kính và nhiều lớp đổ bóng là phần tốn GPU nhất trên Android. */
+html[data-performance-mode="lite"] *,
+html[data-performance-mode="lite"] *::before,
+html[data-performance-mode="lite"] *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  will-change: auto !important;
+}
+
+/* Giữ phản hồi bấm nhưng rút ngắn các transition dài. */
+html[data-performance-mode="lite"] .transition,
+html[data-performance-mode="lite"] .transition-all,
+html[data-performance-mode="lite"] .transition-colors,
+html[data-performance-mode="lite"] .transition-opacity,
+html[data-performance-mode="lite"] .transition-transform {
+  transition-duration: 80ms !important;
+  transition-delay: 0ms !important;
+}
+
+/* Dừng utility animation lặp vô hạn; spinner tải vẫn được giữ. */
+html[data-performance-mode="lite"] .animate-pulse,
+html[data-performance-mode="lite"] .animate-ping,
+html[data-performance-mode="lite"] .animate-bounce,
+html[data-performance-mode="lite"] .animate-marquee,
+html[data-performance-mode="lite"] .shake,
+html[data-performance-mode="lite"] .animate-borderExpand,
+html[data-performance-mode="lite"] [data-decorative-fx] {
+  animation: none !important;
+}
+
+/* Không dựng các lớp trang trí khi React effect cũ còn đang unmount. */
+html[data-performance-mode="lite"] .snow-layer,
+html[data-performance-mode="lite"] .perf-snow,
+html[data-performance-mode="lite"] .ocean-effect,
+html[data-performance-mode="lite"] [class*="particle"],
+html[data-performance-mode="lite"] [class*="snowflake"] {
+  display: none !important;
+}
+
+/* Glass được đổi thành mặt phẳng đặc, vẫn dùng đúng màu theme. */
+html[data-performance-mode="lite"] .glass,
+html[data-performance-mode="lite"] .glassSurface,
+html[data-performance-mode="lite"] [class*="backdrop-blur"] {
+  background-image: none !important;
+}
+
+/* Skeleton tĩnh nhẹ hơn pulse liên tục. */
+html[data-performance-mode="lite"] .skeleton {
+  animation: none !important;
+  background-image: none !important;
+  opacity: 0.72;
+}
+
+/* Ảnh/video thật không bị filter hoặc giảm chất lượng. */
+html[data-performance-mode="lite"] img,
+html[data-performance-mode="lite"] video,
+html[data-performance-mode="lite"] canvas {
+  image-rendering: auto;
+}
+
+/* Trình duyệt không cần compositing riêng cho các panel cố định. */
+html[data-performance-mode="lite"] .fixed,
+html[data-performance-mode="lite"] .sticky {
+  transform-style: flat !important;
+}
