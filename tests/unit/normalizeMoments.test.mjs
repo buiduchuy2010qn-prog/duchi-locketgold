@@ -44,6 +44,27 @@ test("overlay caption thật sự rỗng được chuyển thành null", () => {
   assert.deepEqual(moment.captions, []);
 });
 
+test("caption standard chỉ có icon vẫn được xem là rỗng để dùng caption local", () => {
+  const moment = normalizeMoment({
+    canonical_uid: "moment-icon-only-caption",
+    overlays: {
+      overlay_id: "caption:standard",
+      overlay_type: "caption",
+      type: "standard",
+      text: "",
+      caption: "",
+      payload: {},
+      icon: {
+        type: "emoji",
+        data: "💘",
+      },
+    },
+  });
+
+  assert.equal(moment.caption, "");
+  assert.equal(moment.overlays, null);
+});
+
 test("music overlay không có text vẫn được giữ khi payload có dữ liệu", () => {
   const moment = normalizeMoment({
     canonical_uid: "moment-music",

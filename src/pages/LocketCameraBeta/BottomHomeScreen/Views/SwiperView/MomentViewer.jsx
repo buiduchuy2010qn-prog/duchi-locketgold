@@ -1,6 +1,7 @@
 import { ImageOff, RefreshCw, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { OverlayRenderer } from "@/components/Overlay";
+import { applyLocalOverlayToMoment } from "@/utils/overlay/reconcilePostedOverlay";
 import {
   useAuthStore,
   useMomentActivityStore,
@@ -182,8 +183,6 @@ const MomentViewer = ({ moment, handleClose }) => {
   const thumbnailUrl = useMemo(() => {
     const candidates = [rawThumbnailUrl, rawImageUrl];
 
-    // Older optimistic video posts could accidentally store the WebP thumbnail
-    // in video_url. Treat it as an image instead of feeding it to <video>.
     if (looksLikeImageUrl(rawVideoUrl)) candidates.push(rawVideoUrl);
 
     return (
@@ -199,10 +198,18 @@ const MomentViewer = ({ moment, handleClose }) => {
     return rawVideoUrl;
   }, [rawVideoUrl]);
 
+  const resolvedMoment = useMemo(() => {
+    const savedLocalOverlay = resolveMomentOverlay(postedMomentFallback);
+    return savedLocalOverlay
+      ? applyLocalOverlayToMoment(moment, savedLocalOverlay)
+      : moment;
+  }, [moment, postedMomentFallback]);
+
   const resolvedOverlayData = useMemo(
     () =>
-      resolveMomentOverlay(moment) || resolveMomentOverlay(postedMomentFallback),
-    [moment, postedMomentFallback],
+      resolveMomentOverlay(resolvedMoment) ||
+      resolveMomentOverlay(postedMomentFallback),
+    [resolvedMoment, postedMomentFallback],
   );
 
   const momentId = moment?.id || null;
@@ -226,9 +233,6 @@ const MomentViewer = ({ moment, handleClose }) => {
   const mediaUnavailable =
     (!thumbnailUrl || imageFailed) && (!videoUrl || videoFailed);
 
-  // A synthetic local moment without any permanent media URL is a stale
-  // optimistic record. Refresh the official feed, remove only that local ghost,
-  // and close the viewer so the camera layer cannot appear as fake media.
   useEffect(() => {
     if (
       !momentId ||
@@ -297,7 +301,7 @@ const MomentViewer = ({ moment, handleClose }) => {
           {thumbnailUrl && !imageFailed && (
             <img
               src={thumbnailUrl}
-              alt={moment?.caption || "Moment"}
+              alt={resolvedMoment?.caption || "Moment"}
               className={`absolute inset-0 w-full h-full object-cover rounded-[64px] transition-opacity duration-300 z-10 ${
                 isVideoReady ? "opacity-0" : "opacity-100"
               }`}
