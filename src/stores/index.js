@@ -1,3 +1,7 @@
+import { installMomentCaptionGuard } from "./installMomentCaptionGuard";
+
+installMomentCaptionGuard();
+
 export * from "./useCamera";
 export * from "./useLoading";
 export * from "./useNavigation";
