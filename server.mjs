@@ -23,8 +23,8 @@ const API_UPSTREAM =
   process.env.LOCKET_API_UPSTREAM ||
   (process.env.RAILWAY_ENVIRONMENT
     ? process.env.LOCKET_API_UPSTREAM_RAILWAY ||
-      "https://huy-locket-api-production.up.railway.app"
-    : "https://huy-locket-api-production.up.railway.app");
+      "https://api.locket-dio.com"
+    : "https://api.locket-dio.com");
 
 const PROXIES = [
   { prefix: "/dio-api", target: API_UPSTREAM },
