@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   test:
-    name: Lint, unit and Android smoke
+    name: Syntax, unit and Android smoke
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
@@ -40,8 +40,8 @@ jobs:
         working-directory: tests
         run: npx playwright install --with-deps chromium
 
-      - name: Lint
-        run: npm run lint
+      - name: Quality syntax checks
+        run: npm run lint:quality
 
       - name: Unit regression tests
         run: npm run test:unit
