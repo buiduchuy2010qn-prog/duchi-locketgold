@@ -4,9 +4,19 @@ const { uploadMediaV3 } = require("../controllers/post.controller");
 const { validateOverlayType } = require("../../../middlewares/validateOverlayType");
 const { logRequestInfo } = require("../../../middlewares/logRequestInfo");
 const { checkAppMeta } = require("../../../middlewares/checkMeta");
+const { uploadLimit } = require("../../../middlewares/securityRateLimiter");
 
 const momentRoutes = express.Router();
 
-momentRoutes.post("/postMomentV2", checkAppMeta, logRequestInfo, validateOverlayType, verifyIdToken, verifyDioToken, uploadMediaV3);
+momentRoutes.post(
+  "/postMomentV2",
+  checkAppMeta,
+  logRequestInfo,
+  validateOverlayType,
+  verifyIdToken,
+  uploadLimit,
+  verifyDioToken,
+  uploadMediaV3,
+);
 
 module.exports = { momentRoutes };

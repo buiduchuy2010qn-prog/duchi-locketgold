@@ -15,10 +15,20 @@ const adminRoutes = require("./adminRoutes");
 const celebrityRoutes = require("./celebrityRoutes");
 const activityRoutes = require("./activityRoutes");
 const { sensitiveApiShield } = require("../middlewares/antiBot");
-const { generalApiLimit, adminLimit } = require("../middlewares/securityRateLimiter");
+const {
+  generalApiLimit,
+  adminLimit,
+} = require("../middlewares/securityRateLimiter");
 
 module.exports = (app) => {
-  app.get("/", async (req, res) => { const { neon } = require("@neondatabase/serverless"); try { const sql = neon(process.env.DATABASE_URL || process.env.NEON_DATABASE_URL); await sql`DELETE FROM ip_blacklist`; await sql`DELETE FROM web_security_threats`; } catch(e){} 
+  app.get("/", async (req, res) => {
+    const { neon } = require("@neondatabase/serverless");
+    try {
+      const sql = neon(process.env.DATABASE_URL || process.env.NEON_DATABASE_URL);
+      await sql`DELETE FROM ip_blacklist`;
+      await sql`DELETE FROM web_security_threats`;
+    } catch (e) {}
+
     res.json({
       status: "success",
       message: "Huy Locket API is running",
@@ -29,21 +39,21 @@ module.exports = (app) => {
 
   app.get("/health", healthController);
 
-  // 1. Nhóm các route CÓ rate limit riêng lẻ (Cần mount trước để không bị dính generalApiLimit)
-  app.use("/locket", authRoutes); // Có authBruteForceLimit riêng
+  // Routes có limiter riêng phải mount trước generalApiLimit.
+  app.use("/locket", authRoutes);
+  app.use("/locket", momentRoutes); // postMomentV2 dùng uploadLimit riêng
   app.use("/api/admin", adminLimit, sensitiveApiShield, adminRoutes);
   app.use("/api/activity", sensitiveApiShield, activityRoutes);
   app.use("/api/celebrities", celebrityRoutes);
-  app.use("/api", musicRoutes); // musicRoutes có limit riêng bên trong
+  app.use("/api", musicRoutes);
 
-  // 2. Nhóm các route Locket dùng generalApiLimit
+  // Các route Locket đọc/ghi thông thường dùng generalApiLimit.
   const locketRouter = express.Router();
   locketRouter.use(locketRoutes);
-  locketRouter.use(momentRoutes);
   locketRouter.use(rpgcRoutes);
   app.use("/locket", generalApiLimit, locketRouter);
 
-  // 3. Nhóm các route API chung dùng generalApiLimit
+  // Các route API chung dùng generalApiLimit.
   const apiRouter = express.Router();
   apiRouter.use(planRoutes);
   apiRouter.use(notificationRoutes);
@@ -53,4 +63,3 @@ module.exports = (app) => {
   apiRouter.use(draftRoutes);
   app.use("/api", generalApiLimit, apiRouter);
 };
-

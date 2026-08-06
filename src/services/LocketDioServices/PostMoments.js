@@ -1,22 +1,19 @@
 import api from "@/libs/axios";
+import { reconcilePostedMedia } from "@/utils/upload/reconcilePostedMedia";
 
 export const uploadMediaV2 = async (payload) => {
+  const { mediaInfo } = payload;
+  const fileType = mediaInfo.type;
+  const timeoutDuration =
+    fileType === "image" ? 5000 : fileType === "video" ? 10000 : 5000;
+
+  const timeoutId = setTimeout(() => {
+    console.log("⏳ Uploading is taking longer than expected...");
+  }, timeoutDuration);
+
   try {
-    // Lấy mediaInfo từ payload
-    const { mediaInfo } = payload;
-    // Lấy type từ mediaInfo để xác định là ảnh hay video
-    const fileType = mediaInfo.type;
-
-    // Đặt timeout tùy theo loại tệp (ảnh hoặc video)
-    const timeoutDuration =
-      fileType === "image" ? 5000 : fileType === "video" ? 10000 : 5000;
-    const timeoutId = setTimeout(() => {
-      console.log("⏳ Uploading is taking longer than expected...");
-    }, timeoutDuration);
-
     const response = await api.post("/locket/postMomentV2", payload);
-
-    clearTimeout(timeoutId); // Hủy timeout khi upload thành công
+    reconcilePostedMedia(payload, response.data);
     console.log("✅ Upload thành công:", response.data);
     return response.data;
   } catch (error) {
@@ -29,11 +26,18 @@ export const uploadMediaV2 = async (payload) => {
     }
 
     throw error;
+  } finally {
+    clearTimeout(timeoutId);
   }
 };
+
 export const PostMoments = async (payload) => {
   try {
     const response = await api.post("/locket/postMomentV2", payload);
+
+    // The queue examines payload.mediaInfo again after this promise resolves.
+    // Preserve the permanent API URLs before it builds the optimistic moment.
+    reconcilePostedMedia(payload, response.data);
 
     console.log("✅ Upload thành công:", response.data);
     return response.data;
