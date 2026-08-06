@@ -2,6 +2,57 @@
  * Chuẩn hoá moment từ Firestore / API response.
  * Giữ overlays đầy đủ (type, payload, icon) để music/poll/review hiển thị.
  */
+
+const NON_TEXT_OVERLAY_TYPES = new Set([
+  "music",
+  "poll",
+  "review",
+  "color_palette",
+  "streak",
+  "locket_count",
+  "weather",
+  "location",
+  "battery",
+  "time",
+  "heart",
+  "special",
+  "decorative",
+  "template",
+  "image_icon",
+  "image_gif",
+  "caption_gif",
+  "caption_image",
+  "star_sign",
+]);
+
+function hasObjectContent(value) {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      Object.keys(value).length > 0,
+  );
+}
+
+/**
+ * API đăng bài đôi khi trả một overlay caption rỗng dù caption thật vẫn nằm
+ * trong optionsData ở máy. Overlay rỗng phải được xem như "không có" để
+ * upload queue có thể gắn lại caption local ngay sau khi đăng.
+ */
+function hasMeaningfulOverlayContent(overlay) {
+  if (!overlay || typeof overlay !== "object") return false;
+
+  const text = overlay.text || overlay.caption;
+  if (typeof text === "string" && text.trim()) return true;
+
+  if (hasObjectContent(overlay.payload) || hasObjectContent(overlay.icon)) {
+    return true;
+  }
+
+  const type = String(overlay.type || "").toLowerCase();
+  return NON_TEXT_OVERLAY_TYPES.has(type);
+}
+
 export function normalizeMoment(data) {
   if (!data || typeof data !== "object") return null;
 
@@ -149,6 +200,12 @@ export function normalizeMoment(data) {
       icon: d.icon || {},
       payload: d.payload || {},
     };
+  }
+
+  // Quan trọng cho bài vừa đăng: object overlay rỗng vẫn truthy, khiến queue
+  // không dùng được caption local. Chuyển nó về null để fallback hoạt động.
+  if (overlayObj && !hasMeaningfulOverlayContent(overlayObj)) {
+    overlayObj = null;
   }
 
   // Captions list (legacy UI)
