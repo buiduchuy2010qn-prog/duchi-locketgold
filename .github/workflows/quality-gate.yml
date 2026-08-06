@@ -46,6 +46,9 @@ jobs:
       - name: Unit regression tests
         run: npm run test:unit
 
+      - name: API security tests
+        run: npm --prefix api test
+
       - name: Android production smoke tests
         run: npm run test:e2e
 
