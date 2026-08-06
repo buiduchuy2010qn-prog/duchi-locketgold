@@ -278,12 +278,6 @@ const MomentViewer = ({ moment, handleClose }) => {
     }
   };
 
-  useEffect(() => {
-    setIsVideoReady(false);
-    setIsImageReady(false);
-    setMediaFailed(false);
-  }, [moment?.id, thumbnailUrl, videoUrl]);
-
   return (
     <div className="flex w-full flex-col justify-center items-center">
       <div
