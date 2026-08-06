@@ -1,13 +1,81 @@
 import { X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { OverlayRenderer } from "@/components/Overlay";
 import {
   useAuthStore,
   useMomentActivityStore,
+  useUploadQueueStore,
   resolveMomentOwnerUid,
   resolveMyUid,
 } from "@/stores";
 import MomentOwnerInfo from "../../Layout/MomentOwnerInfo";
+
+const NON_TEXT_OVERLAY_TYPES = new Set([
+  "music",
+  "poll",
+  "review",
+  "color_palette",
+  "streak",
+  "locket_count",
+  "weather",
+  "location",
+  "battery",
+  "time",
+  "heart",
+  "special",
+  "decorative",
+  "template",
+  "image_icon",
+  "image_gif",
+  "caption_gif",
+  "caption_image",
+  "star_sign",
+  "static_content",
+]);
+
+function hasObjectContent(value) {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      Object.keys(value).length > 0,
+  );
+}
+
+function isRenderableOverlayData(value) {
+  if (!value) return false;
+  if (Array.isArray(value)) {
+    return value.some((item) => isRenderableOverlayData(item?.data || item));
+  }
+  if (typeof value !== "object") return false;
+
+  const data = value.data && typeof value.data === "object" ? value.data : value;
+  const text = data.text || data.caption || value.alt_text || "";
+  if (typeof text === "string" && text.trim()) return true;
+
+  const type = String(data.type || value.type || "").toLowerCase();
+  const overlayId = String(value.overlay_id || data.overlay_id || "").toLowerCase();
+  const resolvedType =
+    type ||
+    (overlayId.startsWith("caption:")
+      ? overlayId.slice("caption:".length)
+      : "");
+
+  if (NON_TEXT_OVERLAY_TYPES.has(resolvedType)) return true;
+
+  // Unknown non-caption overlays may be image/payload only. A plain caption
+  // object with no text must stay false so it cannot erase the local caption.
+  const isPlainCaption =
+    !resolvedType ||
+    resolvedType === "caption" ||
+    resolvedType === "standard" ||
+    resolvedType === "default";
+
+  return (
+    !isPlainCaption &&
+    (hasObjectContent(data.payload) || hasObjectContent(data.icon))
+  );
+}
 
 function resolveMomentOverlay(moment) {
   if (!moment || typeof moment !== "object") return null;
@@ -21,14 +89,11 @@ function resolveMomentOverlay(moment) {
     moment.caption || legacyCaption?.text || legacyCaption?.caption || "";
 
   if (Array.isArray(moment.overlays)) {
-    if (moment.overlays.length > 0) return moment.overlays;
+    if (isRenderableOverlayData(moment.overlays)) return moment.overlays;
   } else if (moment.overlays && typeof moment.overlays === "object") {
     const overlay = moment.overlays;
     const overlayText = overlay.text || overlay.caption || captionText || "";
-
-    // Không dùng `moment.overlays || captions[0]`: object overlay rỗng vẫn truthy
-    // và từng làm caption alt_text trên app bị mất ở web.
-    return {
+    const resolved = {
       ...overlay,
       type: overlay.type || legacyCaption?.type || "caption",
       text: overlayText,
@@ -39,6 +104,10 @@ function resolveMomentOverlay(moment) {
       background: overlay.background || legacyCaption?.background || {},
       payload: overlay.payload || legacyCaption?.payload || {},
     };
+
+    // API sync can return { type: "caption", text: null, ...style }.
+    // Treat that as empty instead of replacing a valid local caption.
+    if (isRenderableOverlayData(resolved)) return resolved;
   }
 
   if (!captionText) return null;
@@ -59,6 +128,7 @@ function resolveMomentOverlay(moment) {
 const MomentViewer = ({ moment, handleClose }) => {
   const [isVideoReady, setIsVideoReady] = useState(false);
   const [isImageReady, setIsImageReady] = useState(false);
+  const stableOverlayRef = useRef({ momentId: null, data: null });
 
   const { user } = useAuthStore();
   const myUid = resolveMyUid(user);
@@ -69,10 +139,35 @@ const MomentViewer = ({ moment, handleClose }) => {
     isOwnMoment && moment?.id ? s.byMomentId[moment.id]?.pollCounts : null,
   );
 
+  // Upload queue persists the rich local caption/style before the first API
+  // refresh. Use it as a fallback when Locket returns an empty overlay object.
+  const postedMomentFallback = useUploadQueueStore((s) => {
+    if (!moment?.id || !Array.isArray(s.postedMoments)) return null;
+    return (
+      s.postedMoments.find(
+        (item) => item?.id === moment.id || item?.postId === moment.id,
+      ) || null
+    );
+  });
+
   const thumbnailUrl =
     moment?.thumbnailUrl || moment?.thumbnail_url || moment?.image_url;
   const videoUrl = moment?.videoUrl || moment?.video_url;
-  const overlayData = useMemo(() => resolveMomentOverlay(moment), [moment]);
+
+  const resolvedOverlayData = useMemo(
+    () =>
+      resolveMomentOverlay(moment) || resolveMomentOverlay(postedMomentFallback),
+    [moment, postedMomentFallback],
+  );
+
+  const momentId = moment?.id || null;
+  if (stableOverlayRef.current.momentId !== momentId) {
+    stableOverlayRef.current = { momentId, data: null };
+  }
+  if (resolvedOverlayData) {
+    stableOverlayRef.current.data = resolvedOverlayData;
+  }
+  const overlayData = resolvedOverlayData || stableOverlayRef.current.data;
 
   return (
     <div className="flex w-full flex-col justify-center items-center">

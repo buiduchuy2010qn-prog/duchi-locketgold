@@ -21,6 +21,45 @@ function parseFirestoreValue(v) {
   return null;
 }
 
+function hasObjectContent(value) {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      Object.keys(value).length > 0,
+  );
+}
+
+function isMeaningfulOverlay({
+  overlayCount,
+  overlayId,
+  dataType,
+  captionText,
+  icon,
+  payload,
+}) {
+  if (captionText) return true;
+  if (!overlayCount) return false;
+
+  const normalizedType = String(dataType || "").toLowerCase();
+  const isPlainCaption =
+    !normalizedType ||
+    normalizedType === "caption" ||
+    normalizedType === "standard" ||
+    normalizedType === "default";
+
+  // Plain caption without text is the empty object that used to overwrite the
+  // local caption about half a second after posting.
+  if (isPlainCaption) return false;
+
+  return Boolean(
+    overlayId ||
+      normalizedType ||
+      hasObjectContent(icon) ||
+      hasObjectContent(payload),
+  );
+}
+
 // 🔹 Chuẩn hoá 1 moment từ Firestore doc
 function normalizeMoment(doc) {
   if (!doc || !doc.fields) return null;
@@ -39,9 +78,9 @@ function normalizeMoment(doc) {
     f.caption?.stringValue ||
     "";
 
-  const getIsPublic = (f) => {
-    const sentToAll = parseFirestoreValue(f.sent_to_all);
-    const sentToSelfOnly = parseFirestoreValue(f.sent_to_self_only);
+  const getIsPublic = (fields) => {
+    const sentToAll = parseFirestoreValue(fields.sent_to_all);
+    const sentToSelfOnly = parseFirestoreValue(fields.sent_to_self_only);
 
     // Ưu tiên sent_to_self_only nếu có true
     if (sentToSelfOnly) return false;
@@ -57,6 +96,43 @@ function normalizeMoment(doc) {
     (overlayId === "caption:music" ? "music" : null) ||
     overlay.overlay_type?.stringValue ||
     null;
+  const icon = parseFirestoreValue(overlayData.icon);
+  const payload = parseFirestoreValue(overlayData.payload) || {};
+
+  const normalizedOverlay = isMeaningfulOverlay({
+    overlayCount: overlays.length,
+    overlayId,
+    dataType,
+    captionText,
+    icon,
+    payload,
+  })
+    ? {
+        id: overlayId,
+        overlay_id: overlayId,
+        overlay_type: overlay.overlay_type?.stringValue || "caption",
+        type: dataType,
+        // Một số bài Locket chỉ có alt_text/top-level caption, còn data.text rỗng.
+        text: captionText || null,
+        caption: captionText || null,
+        text_color: overlayData.text_color?.stringValue || null,
+        textColor: overlayData.text_color?.stringValue || null,
+        maxLines: overlayData.max_lines?.integerValue
+          ? parseInt(overlayData.max_lines.integerValue, 10)
+          : null,
+        background: {
+          material_blur:
+            overlayData.background?.mapValue?.fields?.material_blur
+              ?.stringValue || null,
+          materialBlur:
+            overlayData.background?.mapValue?.fields?.material_blur
+              ?.stringValue || null,
+          colors: parseFirestoreValue(backgroundFields.colors) || [],
+        },
+        icon,
+        payload,
+      }
+    : null;
 
   return {
     id: f.canonical_uid?.stringValue || doc.name.split("/").pop(),
@@ -70,31 +146,9 @@ function normalizeMoment(doc) {
     md5: f.md5?.stringValue || null,
     date: f.date?.timestampValue || doc.createTime || null,
     isPublic: getIsPublic(f),
-    overlays: {
-      id: overlayId,
-      overlay_id: overlayId,
-      overlay_type: overlay.overlay_type?.stringValue || "caption",
-      type: dataType,
-      // Một số bài Locket chỉ có alt_text/top-level caption, còn data.text rỗng.
-      text: captionText || null,
-      caption: captionText || null,
-      text_color: overlayData.text_color?.stringValue || null,
-      textColor: overlayData.text_color?.stringValue || null,
-      maxLines: overlayData.max_lines?.integerValue
-        ? parseInt(overlayData.max_lines.integerValue, 10)
-        : null,
-      background: {
-        material_blur:
-          overlayData.background?.mapValue?.fields?.material_blur
-            ?.stringValue || null,
-        materialBlur:
-          overlayData.background?.mapValue?.fields?.material_blur
-            ?.stringValue || null,
-        colors: parseFirestoreValue(backgroundFields.colors) || [],
-      },
-      icon: parseFirestoreValue(overlayData.icon),
-      payload: parseFirestoreValue(overlayData.payload) || {},
-    },
+    // Null lets MomentStores keep the richer local overlay instead of replacing
+    // it with a truthy-but-empty API object during the first feed sync.
+    overlays: normalizedOverlay,
     createTime: doc.createTime || null,
     updateTime: doc.updateTime || null,
   };
