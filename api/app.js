@@ -185,9 +185,6 @@ app.use(express.urlencoded({ extended: true, limit: "8mb" }));
 app.use(requireJsonContentType);
 app.use(sanitizeBodyStrings);
 
-// Mở khoá khẩn cấp (bypass WAF)
-app.get("/api/unban-all", async (req, res) => { const { neon } = require("@neondatabase/serverless"); try { const sql = neon(process.env.DATABASE_URL || process.env.NEON_DATABASE_URL); await sql`DELETE FROM ip_blacklist`; await sql`DELETE FROM web_security_threats`; res.send("Unbanned all"); } catch (e) { res.status(500).send(e.message); } }); 
-
 app.use(wafSecurityShield);
 
 // JSON body parse error → 400 rõ ràng (không 500 mơ hồ)
@@ -237,7 +234,7 @@ server.listen(PORT, "0.0.0.0", () => {
 process.on("unhandledRejection", (err) => {
   console.error("[unhandledRejection]", err?.message || err);
 });
+
 process.on("uncaughtException", (err) => {
   console.error("[uncaughtException]", err?.message || err);
 });
-
