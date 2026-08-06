@@ -1,9 +1,10 @@
-import { X } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { ImageOff, RefreshCw, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { OverlayRenderer } from "@/components/Overlay";
 import {
   useAuthStore,
   useMomentActivityStore,
+  useMomentsStoreV2,
   useUploadQueueStore,
   resolveMomentOwnerUid,
   resolveMyUid,
@@ -32,6 +33,28 @@ const NON_TEXT_OVERLAY_TYPES = new Set([
   "star_sign",
   "static_content",
 ]);
+
+const IMAGE_URL_RE = /\.(?:avif|bmp|gif|heic|heif|jpe?g|png|webp)(?:[?#]|$)/i;
+const VIDEO_URL_RE = /\.(?:m4v|mov|mp4|webm)(?:[?#]|$)/i;
+
+function isUsableMediaUrl(value) {
+  if (typeof value !== "string" || !value.trim()) return false;
+  const url = value.trim();
+  return !(
+    url.startsWith("inline:") ||
+    url.startsWith("blob:") ||
+    url.startsWith("data:")
+  );
+}
+
+function looksLikeImageUrl(value) {
+  return typeof value === "string" && IMAGE_URL_RE.test(value);
+}
+
+function looksLikeVideoUrl(value) {
+  if (typeof value !== "string") return false;
+  return VIDEO_URL_RE.test(value) || /\/moments\/videos\//i.test(value);
+}
 
 function hasObjectContent(value) {
   return Boolean(
@@ -63,8 +86,6 @@ function isRenderableOverlayData(value) {
 
   if (NON_TEXT_OVERLAY_TYPES.has(resolvedType)) return true;
 
-  // Unknown non-caption overlays may be image/payload only. A plain caption
-  // object with no text must stay false so it cannot erase the local caption.
   const isPlainCaption =
     !resolvedType ||
     resolvedType === "caption" ||
@@ -105,8 +126,6 @@ function resolveMomentOverlay(moment) {
       payload: overlay.payload || legacyCaption?.payload || {},
     };
 
-    // API sync can return { type: "caption", text: null, ...style }.
-    // Treat that as empty instead of replacing a valid local caption.
     if (isRenderableOverlayData(resolved)) return resolved;
   }
 
@@ -128,19 +147,24 @@ function resolveMomentOverlay(moment) {
 const MomentViewer = ({ moment, handleClose }) => {
   const [isVideoReady, setIsVideoReady] = useState(false);
   const [isImageReady, setIsImageReady] = useState(false);
+  const [videoFailed, setVideoFailed] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const stableOverlayRef = useRef({ momentId: null, data: null });
+  const repairedGhostRef = useRef(null);
 
   const { user } = useAuthStore();
   const myUid = resolveMyUid(user);
   const ownerUid = resolveMomentOwnerUid(moment);
   const isOwnMoment = Boolean(myUid && ownerUid && myUid === ownerUid);
 
+  const pullLatestMoments = useMomentsStoreV2((s) => s.pullLatestMoments);
+  const removeMoment = useMomentsStoreV2((s) => s.removeMoment);
+
   const pollCounts = useMomentActivityStore((s) =>
     isOwnMoment && moment?.id ? s.byMomentId[moment.id]?.pollCounts : null,
   );
 
-  // Upload queue persists the rich local caption/style before the first API
-  // refresh. Use it as a fallback when Locket returns an empty overlay object.
   const postedMomentFallback = useUploadQueueStore((s) => {
     if (!moment?.id || !Array.isArray(s.postedMoments)) return null;
     return (
@@ -150,9 +174,30 @@ const MomentViewer = ({ moment, handleClose }) => {
     );
   });
 
-  const thumbnailUrl =
-    moment?.thumbnailUrl || moment?.thumbnail_url || moment?.image_url;
-  const videoUrl = moment?.videoUrl || moment?.video_url;
+  const rawThumbnailUrl =
+    moment?.thumbnailUrl || moment?.thumbnail_url || null;
+  const rawImageUrl = moment?.imageUrl || moment?.image_url || null;
+  const rawVideoUrl = moment?.videoUrl || moment?.video_url || null;
+
+  const thumbnailUrl = useMemo(() => {
+    const candidates = [rawThumbnailUrl, rawImageUrl];
+
+    // Older optimistic video posts could accidentally store the WebP thumbnail
+    // in video_url. Treat it as an image instead of feeding it to <video>.
+    if (looksLikeImageUrl(rawVideoUrl)) candidates.push(rawVideoUrl);
+
+    return (
+      candidates.find(
+        (url) => isUsableMediaUrl(url) && !looksLikeVideoUrl(url),
+      ) || null
+    );
+  }, [rawImageUrl, rawThumbnailUrl, rawVideoUrl]);
+
+  const videoUrl = useMemo(() => {
+    if (!isUsableMediaUrl(rawVideoUrl)) return null;
+    if (looksLikeImageUrl(rawVideoUrl)) return null;
+    return rawVideoUrl;
+  }, [rawVideoUrl]);
 
   const resolvedOverlayData = useMemo(
     () =>
@@ -169,28 +214,87 @@ const MomentViewer = ({ moment, handleClose }) => {
   }
   const overlayData = resolvedOverlayData || stableOverlayRef.current.data;
 
+  useEffect(() => {
+    setIsVideoReady(false);
+    setIsImageReady(false);
+    setVideoFailed(false);
+    setImageFailed(false);
+    setIsRefreshing(false);
+  }, [momentId, thumbnailUrl, videoUrl]);
+
+  const hasMediaUrl = Boolean(thumbnailUrl || videoUrl);
+  const mediaUnavailable =
+    (!thumbnailUrl || imageFailed) && (!videoUrl || videoFailed);
+
+  // A synthetic local moment without any permanent media URL is a stale
+  // optimistic record. Refresh the official feed, remove only that local ghost,
+  // and close the viewer so the camera layer cannot appear as fake media.
+  useEffect(() => {
+    if (
+      !momentId ||
+      hasMediaUrl ||
+      !String(momentId).startsWith("local_") ||
+      repairedGhostRef.current === momentId
+    ) {
+      return undefined;
+    }
+
+    repairedGhostRef.current = momentId;
+    let cancelled = false;
+
+    const timer = setTimeout(async () => {
+      try {
+        await pullLatestMoments(null);
+        if (cancelled) return;
+        await removeMoment(momentId, null);
+        if (!cancelled) handleClose?.();
+      } catch (error) {
+        console.warn("repair local moment without media:", error);
+      }
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [handleClose, hasMediaUrl, momentId, pullLatestMoments, removeMoment]);
+
+  const handleRefreshMedia = async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    setImageFailed(false);
+    setVideoFailed(false);
+    setIsImageReady(false);
+    setIsVideoReady(false);
+
+    try {
+      await pullLatestMoments(null);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   return (
     <div className="flex w-full flex-col justify-center items-center">
       <div
         className="relative flex flex-col items-center w-full gap-3"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close button */}
         <button
+          type="button"
+          aria-label="Đóng khoảnh khắc"
           onClick={handleClose}
           className="absolute flex justify-center items-center top-4 right-4 z-50 p-2 bg-black/40 rounded-full hover:bg-black/60"
         >
           <X className="w-6 h-6 text-white" />
         </button>
 
-        <div className="h-full w-full border-t border-b border-base-300 sm:max-w-sm max-w-md aspect-square flex items-center justify-center relative bg-gradient-to-br from-base-300/20 to-base-100/20 rounded-[64px] overflow-hidden">
-          {/* Skeleton hiển thị lúc chờ load ảnh/video */}
-          {!isImageReady && !isVideoReady && (
+        <div className="h-full w-full border-t border-b border-base-300 sm:max-w-sm max-w-md aspect-square flex items-center justify-center relative bg-base-300 rounded-[64px] overflow-hidden">
+          {hasMediaUrl && !isImageReady && !isVideoReady && !mediaUnavailable && (
             <div className="absolute inset-0 w-full h-full skeleton rounded-[64px] z-0" />
           )}
 
-          {/* 1️⃣ Thumbnail luôn hiển thị trước */}
-          {thumbnailUrl && (
+          {thumbnailUrl && !imageFailed && (
             <img
               src={thumbnailUrl}
               alt={moment?.caption || "Moment"}
@@ -198,11 +302,12 @@ const MomentViewer = ({ moment, handleClose }) => {
                 isVideoReady ? "opacity-0" : "opacity-100"
               }`}
               onLoad={() => setIsImageReady(true)}
+              onError={() => setImageFailed(true)}
+              referrerPolicy="no-referrer"
             />
           )}
 
-          {/* 2️⃣ Video load ngầm */}
-          {videoUrl && (
+          {videoUrl && !videoFailed && (
             <video
               src={videoUrl}
               className={`absolute inset-0 w-full h-full object-cover rounded-[64px] transition-opacity duration-300 z-20 ${
@@ -212,11 +317,34 @@ const MomentViewer = ({ moment, handleClose }) => {
               muted
               loop
               playsInline
+              preload="metadata"
+              poster={thumbnailUrl || undefined}
               onLoadedData={() => setIsVideoReady(true)}
+              onCanPlay={() => setIsVideoReady(true)}
+              onError={() => setVideoFailed(true)}
             />
           )}
 
-          {/* Caption / music / poll luôn nằm trên ảnh-video */}
+          {mediaUnavailable && (
+            <div className="absolute inset-0 z-25 flex flex-col items-center justify-center gap-3 bg-base-300 px-6 text-center">
+              <ImageOff className="h-10 w-10 opacity-60" />
+              <p className="text-sm font-medium opacity-75">
+                Media của bài này chưa đồng bộ xong.
+              </p>
+              <button
+                type="button"
+                onClick={handleRefreshMedia}
+                disabled={isRefreshing}
+                className="btn btn-sm btn-outline gap-2"
+              >
+                <RefreshCw
+                  className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+                />
+                {isRefreshing ? "Đang đồng bộ" : "Đồng bộ lại"}
+              </button>
+            </div>
+          )}
+
           <div className="absolute inset-0 z-30">
             <OverlayRenderer
               overlayData={overlayData}
