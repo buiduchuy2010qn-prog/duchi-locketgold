@@ -35,7 +35,7 @@ function requireJsonContentType(req, res, next) {
  * nhưng Sharp vẫn có thể giải mã được vài dòng pixel đầu tiên.
  */
 const MAX_STRING_LEN = 10000; // 10K chars — đủ cho bài viết dài
-const MAX_INLINE_BASE64_LEN = 1800000; // phù hợp ảnh inline tối đa 1.2MB
+const MAX_INLINE_BASE64_LEN = 6400000; // ảnh 4.5MB → Base64 khoảng 6.3MB
 const BINARY_STRING_KEYS = new Set([
   "mediaBase64",
   "base64",
