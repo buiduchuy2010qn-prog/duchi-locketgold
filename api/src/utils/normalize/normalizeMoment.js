@@ -33,6 +33,11 @@ function normalizeMoment(doc) {
   const overlayData = overlay.data?.mapValue?.fields || {};
 
   const backgroundFields = overlayData.background?.mapValue?.fields || {};
+  const captionText =
+    overlayData.text?.stringValue ||
+    overlay.alt_text?.stringValue ||
+    f.caption?.stringValue ||
+    "";
 
   const getIsPublic = (f) => {
     const sentToAll = parseFirestoreValue(f.sent_to_all);
@@ -55,7 +60,7 @@ function normalizeMoment(doc) {
 
   return {
     id: f.canonical_uid?.stringValue || doc.name.split("/").pop(),
-    caption: f.caption?.stringValue || overlay.alt_text?.stringValue || "",
+    caption: captionText,
     user: f.user?.stringValue || null,
     thumbnailUrl: replaceFirebaseWithCDN(f.thumbnail_url?.stringValue),
     videoUrl: replaceFirebaseWithCDN(f.video_url?.stringValue),
@@ -70,7 +75,9 @@ function normalizeMoment(doc) {
       overlay_id: overlayId,
       overlay_type: overlay.overlay_type?.stringValue || "caption",
       type: dataType,
-      text: overlayData.text?.stringValue || null,
+      // Một số bài Locket chỉ có alt_text/top-level caption, còn data.text rỗng.
+      text: captionText || null,
+      caption: captionText || null,
       text_color: overlayData.text_color?.stringValue || null,
       textColor: overlayData.text_color?.stringValue || null,
       maxLines: overlayData.max_lines?.integerValue
