@@ -1,13 +1,20 @@
 import { Swiper, SwiperSlide } from "swiper/react";
 import { EffectCards } from "swiper/modules";
-import { useState, useEffect, useRef, useCallback, memo } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+  memo,
+} from "react";
 import "swiper/css";
 import "swiper/css/effect-cards";
 import { Loader2, SmilePlus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
-  getRollcallMainUrl,
-  getRollcallThumbnailUrl,
+  getRollcallMainCandidates,
+  getRollcallThumbnailCandidates,
   isVideoMedia,
   isSignedUrlExpired,
   shouldLoadMediaIndex,
@@ -86,7 +93,7 @@ function RollcallImages({ items, onActiveChange }) {
 
                 {/* COUNTER – chỉ slide active */}
                 {isActive && (
-                  <div className="absolute font-semibold top-2 right-2 bg-base-300/80 backdrop-blur px-3 py-1 rounded-full text-sm">
+                  <div className="absolute z-[2] font-semibold top-2 right-2 bg-base-300/80 backdrop-blur px-3 py-1 rounded-full text-sm">
                     {activeIndex + 1}/{total}
                   </div>
                 )}
@@ -114,7 +121,7 @@ function ReactionButton({ onClick }) {
     <button
       onClick={onClick}
       className="
-        absolute bottom-2 right-2
+        absolute z-[2] bottom-2 right-2
         bg-base-100/80 backdrop-blur
         p-2 rounded-full
       "
@@ -128,7 +135,7 @@ function ReactionList({ reactions = [] }) {
   if (!reactions.length) return null;
 
   return (
-    <div className="absolute bottom-4 left-4 flex">
+    <div className="absolute z-[2] bottom-4 left-4 flex">
       {reactions.map((r) => (
         <span
           key={r.uid}
@@ -150,8 +157,7 @@ function ReactionList({ reactions = [] }) {
 
 /**
  * Loads media only when `load` is true (active ± 1).
- * Images: eager/high for active; lazy/low for neighbors.
- * Video: poster first, preload metadata only when active; no multi-autoplay.
+ * If a URL fails, cycles through raw API URL, CDN, thumbnail and same-origin proxy.
  */
 const RollcallMedia = memo(function RollcallMedia({
   item,
@@ -164,38 +170,78 @@ const RollcallMedia = memo(function RollcallMedia({
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
   const [timedOut, setTimedOut] = useState(false);
-  const [useFallback, setUseFallback] = useState(false);
+  const [candidateIndex, setCandidateIndex] = useState(0);
   const [retryCount, setRetryCount] = useState(0);
   const [retryKey, setRetryKey] = useState(0);
   const loadStarted = useRef(0);
   const id = mediaIdOf(item, index);
+  const video = isVideoMedia(item);
 
-  const mainUrl = getRollcallMainUrl(item);
-  const thumbUrl = getRollcallThumbnailUrl(item);
-  const video = isVideoMedia(item) || isVideoMedia(mainUrl);
-  // Prefer raw main_url for expiry check (CDN rewrite keeps query)
-  const expired = isSignedUrlExpired(item?.main_url || mainUrl);
+  const mainCandidates = useMemo(
+    () =>
+      getRollcallMainCandidates(item, {
+        // Existing media proxy is image-safe. Keep videos direct until range proxy exists.
+        includeProxy: !video,
+      }),
+    [item, video],
+  );
 
-  // Reset visual state when URL / retry / load window changes
+  const thumbnailCandidates = useMemo(
+    () => getRollcallThumbnailCandidates(item, { includeProxy: !video }),
+    [item, video],
+  );
+
+  const mediaCandidates = useMemo(() => {
+    const candidates = video
+      ? mainCandidates
+      : [...mainCandidates, ...thumbnailCandidates];
+    return candidates.filter(
+      (url, position) => url && candidates.indexOf(url) === position,
+    );
+  }, [mainCandidates, thumbnailCandidates, video]);
+
+  const candidateSignature = mediaCandidates.join("|");
+  const currentUrl = mediaCandidates[candidateIndex] || "";
+  const posterUrl = thumbnailCandidates[0] || undefined;
+  const expired = isSignedUrlExpired(
+    item?.main_url || item?.mainUrl || mainCandidates[0] || "",
+  );
+
+  // Reset visual state when item URLs / retry / load window changes
   useEffect(() => {
     if (!load) {
       setLoaded(false);
       setFailed(false);
       setTimedOut(false);
-      setUseFallback(false);
+      setCandidateIndex(0);
       return;
     }
     setLoaded(false);
     setFailed(false);
     setTimedOut(false);
-    setUseFallback(false);
+    setCandidateIndex(0);
     loadStarted.current = performance.now();
-  }, [load, mainUrl, retryKey]);
+  }, [load, candidateSignature, retryKey]);
 
-  // 8–10s timeout → show retry (does not block album)
+  // 8–10s timeout → move to next candidate before showing failure
   useEffect(() => {
-    if (!load || loaded || failed) return;
+    if (!load || loaded || failed || !currentUrl) return;
     const timer = setTimeout(() => {
+      if (candidateIndex < mediaCandidates.length - 1) {
+        setCandidateIndex((value) => value + 1);
+        setTimedOut(false);
+        loadStarted.current = performance.now();
+        logRollcallNet({
+          type: "media_timeout_fallback",
+          status: "next_candidate",
+          ms: LOAD_TIMEOUT_MS,
+          mediaKind: video ? "video" : "image",
+          index,
+          candidate: candidateIndex + 1,
+        });
+        return;
+      }
+
       setTimedOut(true);
       logRollcallNet({
         type: video ? "video_timeout" : "image_timeout",
@@ -203,10 +249,21 @@ const RollcallMedia = memo(function RollcallMedia({
         ms: LOAD_TIMEOUT_MS,
         mediaKind: video ? "video" : "image",
         index,
+        candidate: candidateIndex,
       });
     }, LOAD_TIMEOUT_MS);
     return () => clearTimeout(timer);
-  }, [load, loaded, failed, retryKey, video, index]);
+  }, [
+    load,
+    loaded,
+    failed,
+    retryKey,
+    video,
+    index,
+    currentUrl,
+    candidateIndex,
+    mediaCandidates.length,
+  ]);
 
   const handleLoaded = useCallback(() => {
     setLoaded(true);
@@ -215,22 +272,31 @@ const RollcallMedia = memo(function RollcallMedia({
     logRollcallNet({
       type: video ? "video_ready" : "image_load",
       status: 200,
-      ms: Math.round(performance.now() - (loadStarted.current || performance.now())),
+      ms: Math.round(
+        performance.now() - (loadStarted.current || performance.now()),
+      ),
       mediaKind: video ? "video" : "image",
       index,
+      candidate: candidateIndex,
     });
-  }, [video, index]);
+  }, [video, index, candidateIndex]);
 
   const handleError = useCallback(() => {
-    if (!useFallback && thumbUrl && thumbUrl !== mainUrl) {
-      setUseFallback(true);
+    if (candidateIndex < mediaCandidates.length - 1) {
+      setCandidateIndex((value) => value + 1);
+      setLoaded(false);
+      setFailed(false);
       setTimedOut(false);
+      loadStarted.current = performance.now();
       logRollcallNet({
         type: "media_fallback",
-        status: "retry_thumb",
-        ms: Math.round(performance.now() - (loadStarted.current || performance.now())),
+        status: "next_candidate",
+        ms: Math.round(
+          performance.now() - (loadStarted.current || performance.now()),
+        ),
         mediaKind: video ? "video" : "image",
         index,
+        candidate: candidateIndex + 1,
       });
       return;
     }
@@ -240,11 +306,14 @@ const RollcallMedia = memo(function RollcallMedia({
     logRollcallNet({
       type: video ? "video_error" : "image_error",
       status: "error",
-      ms: Math.round(performance.now() - (loadStarted.current || performance.now())),
+      ms: Math.round(
+        performance.now() - (loadStarted.current || performance.now()),
+      ),
       mediaKind: video ? "video" : "image",
       index,
+      candidate: candidateIndex,
     });
-  }, [video, index, useFallback, thumbUrl, mainUrl]);
+  }, [video, index, candidateIndex, mediaCandidates.length]);
 
   const handleRetry = useCallback(() => {
     if (retryCount >= MAX_RETRIES) return;
@@ -253,8 +322,7 @@ const RollcallMedia = memo(function RollcallMedia({
     setFailed(false);
     setTimedOut(false);
     setLoaded(false);
-    setUseFallback(false);
-    // Staggered backoff: 400ms, 1200ms
+    setCandidateIndex(0);
     const delay = next === 1 ? 400 : 1200;
     logRollcallNet({
       type: "media_retry",
@@ -263,7 +331,7 @@ const RollcallMedia = memo(function RollcallMedia({
       mediaKind: video ? "video" : "image",
       index,
     });
-    setTimeout(() => setRetryKey((k) => k + 1), delay);
+    setTimeout(() => setRetryKey((key) => key + 1), delay);
   }, [retryCount, video, index]);
 
   useEffect(() => {
@@ -281,10 +349,14 @@ const RollcallMedia = memo(function RollcallMedia({
     return <div className="relative w-full h-full bg-base-300" />;
   }
 
-  if (!mainUrl) {
+  if (!currentUrl) {
     return (
       <div className="relative w-full h-full bg-base-300 flex flex-col items-center justify-center gap-2">
-        <span className="text-sm opacity-70">{t("left.image_loading")}</span>
+        <span className="text-sm opacity-70">
+          {t("left.image_load_failed", {
+            defaultValue: "Không tìm thấy đường dẫn media",
+          })}
+        </span>
       </div>
     );
   }
@@ -298,13 +370,17 @@ const RollcallMedia = memo(function RollcallMedia({
           {!failed && !timedOut && (
             <>
               <Loader2 className="w-6 h-6 animate-spin opacity-70" />
-              <span className="text-sm opacity-70">{t("left.image_loading")}</span>
+              <span className="text-sm opacity-70">
+                {t("left.image_loading")}
+              </span>
             </>
           )}
           {(timedOut || failed) && (
             <>
               <span className="text-sm opacity-70">
-                {t("left.image_load_failed", { defaultValue: "Tải media thất bại" })}
+                {t("left.image_load_failed", {
+                  defaultValue: "Tải media thất bại",
+                })}
               </span>
               {retryCount < MAX_RETRIES && (
                 <button
@@ -320,15 +396,14 @@ const RollcallMedia = memo(function RollcallMedia({
         </div>
       )}
 
-      {!useFallback && video ? (
+      {video ? (
         <video
-          key={`${id}-v-${retryKey}`}
-          src={mainUrl}
-          poster={thumbUrl || undefined}
+          key={`${id}-v-${retryKey}-${candidateIndex}`}
+          src={currentUrl}
+          poster={posterUrl}
           preload={isActive ? "metadata" : "none"}
           playsInline
           controls={isActive}
-          // Never autoplay multiple videos
           autoPlay={false}
           onLoadedData={handleLoaded}
           onLoadedMetadata={handleLoaded}
@@ -341,8 +416,8 @@ const RollcallMedia = memo(function RollcallMedia({
         />
       ) : (
         <img
-          key={`${id}-i-${retryKey}-${useFallback ? "fb" : "main"}`}
-          src={useFallback ? thumbUrl : mainUrl}
+          key={`${id}-i-${retryKey}-${candidateIndex}`}
+          src={currentUrl}
           alt=""
           loading={priority === "active" ? "eager" : "lazy"}
           fetchPriority={priority === "active" ? "high" : "low"}
