@@ -124,10 +124,19 @@ const MomentsGallery = ({
                   isLoaded ? "opacity-100" : "opacity-0"
                 }`}
                 onLoad={() => handleLoaded(item.id)}
+<<<<<<< Updated upstream
                 onError={() => handleLoaded(item.id)}
                 loading={shouldPrioritize ? "eager" : "lazy"}
                 fetchPriority={shouldPrioritize ? "high" : "auto"}
                 decoding="async"
+=======
+                onError={(event) => {
+                  event.currentTarget.style.opacity = "0.35";
+                  event.currentTarget.style.filter = "grayscale(1)";
+                  event.currentTarget.alt = "Không tải được ảnh";
+                }}
+                loading="lazy"
+>>>>>>> Stashed changes
               />
 
               {(item.video_url || item.videoUrl) && (
