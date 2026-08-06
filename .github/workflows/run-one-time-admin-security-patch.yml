@@ -9,6 +9,7 @@ permissions:
 
 jobs:
   patch-branch:
+    # This second commit triggers the workflow after it already exists on main.
     if: ${{ contains(github.event.head_commit.message, '[trigger-admin-security-patch]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
