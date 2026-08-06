@@ -14,18 +14,18 @@ function simplifyMoment(data) {
   if (!document || !fields) return null;
 
   const overlays = fields.overlays?.array_value?.values || [];
-
-  // chỉ lấy overlay đầu tiên (nếu có)
   const overlay = overlays[0]?.map_value?.fields || {};
   const overlayData = overlay.data?.map_value?.fields || {};
-
   const backgroundFields = overlayData.background?.map_value?.fields || {};
 
-  const getIsPublic = (fields) => {
-    const sentToAll = parseFirestoreValue(fields.sent_to_all);
-    const sentToSelfOnly = parseFirestoreValue(fields.sent_to_self_only);
+  const topLevelCaption = fields.caption?.string_value || "";
+  const altText = overlay.alt_text?.string_value || "";
+  const overlayText = getString(overlayData.text) || altText || topLevelCaption || "";
 
-    // Ưu tiên sent_to_self_only nếu có true
+  const getIsPublic = (momentFields) => {
+    const sentToAll = parseFirestoreValue(momentFields.sent_to_all);
+    const sentToSelfOnly = parseFirestoreValue(momentFields.sent_to_self_only);
+
     if (sentToSelfOnly) return false;
     if (sentToAll) return true;
     return true;
@@ -35,8 +35,7 @@ function simplifyMoment(data) {
     id: getString(fields.canonical_uid),
     canonical_uid: getString(fields.canonical_uid),
     group_id: getString(fields.group_id) || null,
-    caption:
-      fields.caption?.string_value || overlay.alt_text?.string_value || "",
+    caption: topLevelCaption || altText || overlayText,
     user: fields.user?.string_value || null,
     thumbnailUrl: replaceFirebaseWithCDN(getString(fields.thumbnail_url)),
     videoUrl: replaceFirebaseWithCDN(getString(fields.video_url)),
@@ -47,7 +46,8 @@ function simplifyMoment(data) {
       overlay_id: getString(overlay.overlay_id),
       overlay_type: getString(overlay.overlay_type),
       type: getString(overlayData.type),
-      text: getString(overlayData.text),
+      text: overlayText,
+      caption: overlayText,
       text_color: getString(overlayData.text_color),
       max_lines: overlayData.max_lines?.integer_value
         ? parseInt(overlayData.max_lines.integer_value, 10)
