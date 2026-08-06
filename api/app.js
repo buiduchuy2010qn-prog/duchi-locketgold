@@ -179,8 +179,9 @@ app.put(
   draftsController.uploadMedia,
 );
 
-app.use(express.json({ limit: "2mb" }));
-app.use(express.urlencoded({ extended: true, limit: "2mb" }));
+// Ảnh inline tối đa 4.5MB sẽ thành khoảng 6MB Base64 trong JSON.
+app.use(express.json({ limit: "8mb" }));
+app.use(express.urlencoded({ extended: true, limit: "8mb" }));
 app.use(requireJsonContentType);
 app.use(sanitizeBodyStrings);
 
@@ -239,5 +240,4 @@ process.on("unhandledRejection", (err) => {
 process.on("uncaughtException", (err) => {
   console.error("[uncaughtException]", err?.message || err);
 });
-
 
