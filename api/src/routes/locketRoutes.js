@@ -13,6 +13,65 @@ const {
   friendSearchLimiter,
 } = require("../middlewares/rateLimit");
 
+function isAllowedRollcallMediaUrl(urlValue) {
+  try {
+    const url = new URL(String(urlValue || ""));
+    if (url.protocol !== "https:") return false;
+
+    const host = url.hostname.toLowerCase();
+    return (
+      host === "firebasestorage.googleapis.com" ||
+      host === "storage.googleapis.com" ||
+      host.endsWith(".googleapis.com") ||
+      host.endsWith(".googleusercontent.com") ||
+      host === "cdn.locketcamera.com" ||
+      host.endsWith(".locketcamera.com")
+    );
+  } catch {
+    return false;
+  }
+}
+
+async function fetchRollcallMediaWithRedirects(mediaUrl, idToken) {
+  let currentUrl = mediaUrl;
+
+  for (let hop = 0; hop <= 3; hop += 1) {
+    if (!isAllowedRollcallMediaUrl(currentUrl)) {
+      const error = new Error("Blocked Rollcall media host");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const upstream = await instanceLocketV2.get(currentUrl, {
+      meta: { idToken },
+      responseType: "arraybuffer",
+      timeout: 30000,
+      maxRedirects: 0,
+      maxContentLength: 25 * 1024 * 1024,
+      maxBodyLength: 25 * 1024 * 1024,
+      validateStatus: (status) => status >= 200 && status < 400,
+      headers: {
+        Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+      },
+    });
+
+    if (
+      upstream.status >= 300 &&
+      upstream.status < 400 &&
+      upstream.headers?.location
+    ) {
+      currentUrl = new URL(upstream.headers.location, currentUrl).toString();
+      continue;
+    }
+
+    return upstream;
+  }
+
+  const error = new Error("Too many Rollcall media redirects");
+  error.statusCode = 502;
+  throw error;
+}
+
 //Moment V2
 // router.post("/getMomentV2", verifyIdToken, momentcontroll.GetMomentsControll);
 
@@ -65,6 +124,73 @@ router.post("/getRollcallPostsV2", verifyIdToken, async (req, res) => {
                 : "Rollcalls upstream unavailable",
           },
     );
+  }
+});
+
+// Ảnh Rollcalls đôi khi không cho tải trực tiếp từ WebView/Chrome Android.
+// Route này dùng token hiện tại + bộ header Locket ở server rồi trả blob ảnh về frontend.
+router.get("/getRollcallMediaV2", verifyIdToken, async (req, res) => {
+  const mediaUrl = String(req.query.url || "").trim();
+  if (!isAllowedRollcallMediaUrl(mediaUrl)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid Rollcall media URL",
+    });
+  }
+
+  try {
+    const upstream = await fetchRollcallMediaWithRedirects(
+      mediaUrl,
+      req.user.idToken,
+    );
+
+    const contentType = String(
+      upstream.headers?.["content-type"] || "application/octet-stream",
+    ).split(";")[0];
+
+    if (!contentType.startsWith("image/")) {
+      return res.status(415).json({
+        success: false,
+        message: "Rollcall media is not an image",
+        contentType,
+      });
+    }
+
+    const buffer = Buffer.from(upstream.data);
+    if (!buffer.length) {
+      return res.status(502).json({
+        success: false,
+        message: "Empty Rollcall media response",
+      });
+    }
+
+    res.set({
+      "Content-Type": contentType,
+      "Content-Length": String(buffer.length),
+      "Cache-Control": "private, max-age=300",
+      "X-Content-Type-Options": "nosniff",
+    });
+    return res.status(200).send(buffer);
+  } catch (error) {
+    const status =
+      error?.statusCode || error?.response?.status ||
+      (error?.code === "ECONNABORTED" ? 504 : 502);
+
+    console.warn("[rollcall-media-proxy] failed", {
+      status,
+      code: error?.code || null,
+      message: error?.message || "Unknown upstream error",
+    });
+
+    return res.status(status).json({
+      success: false,
+      message:
+        status === 401
+          ? "Rollcall media session expired"
+          : status === 403
+            ? "Rollcall media access denied"
+            : "Rollcall media unavailable",
+    });
   }
 });
 
