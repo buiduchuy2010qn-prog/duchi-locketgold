@@ -31,6 +31,16 @@ test("trusted-device JWT remains inside an HttpOnly cookie", () => {
   assert.match(clientSource, /credentials:\s*["']include["']/);
 });
 
+test("bootstrap admin identities come only from environment variables", () => {
+  const source = read("api/src/services/locketAdminVerifier.js");
+
+  assert.doesNotMatch(source, /DEFAULT_BOOTSTRAP/);
+  assert.doesNotMatch(source, /buiduchuy2010qn@gmail\.com/);
+  assert.doesNotMatch(source, /y82fIv1QyDXLrMZ012MKYoYmAVz2/);
+  assert.match(source, /process\.env\.ADMIN_LOCKET_UIDS/);
+  assert.match(source, /process\.env\.ADMIN_LOCKET_EMAILS/);
+});
+
 test("Vercel builds the current source instead of accepting stale output", () => {
   const config = JSON.parse(read("vercel.json"));
 
