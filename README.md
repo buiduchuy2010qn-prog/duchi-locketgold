@@ -387,26 +387,7 @@ Khi báo cáo lỗi, vui lòng bao gồm:
 
 </div>
 
----
 
-## 👥 Tác Giả
-
-<div align="center">
-
-**🚀 Được tạo với ❤️ bởi**
-
-[![Huy](https://img.shields.io/badge/👨‍💻_Huy-Lead_Developer-4285f4?style=for-the-badge)](https://github.com/buiduchuy2010qn-prog)
-
-<a href="https://github.com/buiduchuy2010qn-prog">
-  <img src="https://github.com/buiduchuy2010qn-prog.png" width="100px" style="border-radius: 50%;">
-</a>
-
-**[Huy (@buiduchuy2010qn-prog)](https://github.com/buiduchuy2010qn-prog)**  
-*Full Stack Developer*
-
-</div>
-
----
 
 ## 🙏 Lời Cảm Ơn
 
