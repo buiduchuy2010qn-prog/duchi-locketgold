@@ -1,5 +1,10 @@
+<<<<<<< Updated upstream
 import { ImageOff, RefreshCw, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+=======
+import { X } from "lucide-react";
+import { useEffect, useState } from "react";
+>>>>>>> Stashed changes
 import { OverlayRenderer } from "@/components/Overlay";
 import { applyLocalOverlayToMoment } from "@/utils/overlay/reconcilePostedOverlay";
 import {
@@ -148,11 +153,15 @@ function resolveMomentOverlay(moment) {
 const MomentViewer = ({ moment, handleClose }) => {
   const [isVideoReady, setIsVideoReady] = useState(false);
   const [isImageReady, setIsImageReady] = useState(false);
+<<<<<<< Updated upstream
   const [videoFailed, setVideoFailed] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const stableOverlayRef = useRef({ momentId: null, data: null });
   const repairedGhostRef = useRef(null);
+=======
+  const [mediaFailed, setMediaFailed] = useState(false);
+>>>>>>> Stashed changes
 
   const { user } = useAuthStore();
   const myUid = resolveMyUid(user);
@@ -278,6 +287,12 @@ const MomentViewer = ({ moment, handleClose }) => {
     }
   };
 
+  useEffect(() => {
+    setIsVideoReady(false);
+    setIsImageReady(false);
+    setMediaFailed(false);
+  }, [moment?.id, thumbnailUrl, videoUrl]);
+
   return (
     <div className="flex w-full flex-col justify-center items-center">
       <div
@@ -293,12 +308,30 @@ const MomentViewer = ({ moment, handleClose }) => {
           <X className="w-6 h-6 text-white" />
         </button>
 
+<<<<<<< Updated upstream
         <div className="h-full w-full border-t border-b border-base-300 sm:max-w-sm max-w-md aspect-square flex items-center justify-center relative bg-base-300 rounded-[64px] overflow-hidden">
           {hasMediaUrl && !isImageReady && !isVideoReady && !mediaUnavailable && (
             <div className="absolute inset-0 w-full h-full skeleton rounded-[64px] z-0" />
           )}
 
           {thumbnailUrl && !imageFailed && (
+=======
+        <div className="h-full w-full border-t border-b border-base-300 sm:max-w-sm max-w-md aspect-square flex items-center justify-center relative bg-gradient-to-br from-base-300/20 to-base-100/20 rounded-[64px] overflow-hidden">
+          {/* Skeleton hiển thị lúc chờ load ảnh/video */}
+          {!mediaFailed && !isImageReady && !isVideoReady && (
+            <div className="absolute inset-0 w-full h-full skeleton rounded-[64px] z-0" />
+          )}
+
+          {mediaFailed && (
+            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-2 bg-base-300/90 text-center p-6">
+              <span className="text-4xl">:(</span>
+              <span>Không tải được ảnh</span>
+            </div>
+          )}
+
+          {/* 1️⃣ Thumbnail luôn hiển thị trước */}
+          {thumbnailUrl && (
+>>>>>>> Stashed changes
             <img
               src={thumbnailUrl}
               alt={resolvedMoment?.caption || "Moment"}
@@ -306,8 +339,15 @@ const MomentViewer = ({ moment, handleClose }) => {
                 isVideoReady ? "opacity-0" : "opacity-100"
               }`}
               onLoad={() => setIsImageReady(true)}
+<<<<<<< Updated upstream
               onError={() => setImageFailed(true)}
               referrerPolicy="no-referrer"
+=======
+              onError={() => {
+                setIsImageReady(false);
+                setMediaFailed(true);
+              }}
+>>>>>>> Stashed changes
             />
           )}
 
@@ -324,6 +364,7 @@ const MomentViewer = ({ moment, handleClose }) => {
               preload="metadata"
               poster={thumbnailUrl || undefined}
               onLoadedData={() => setIsVideoReady(true)}
+<<<<<<< Updated upstream
               onCanPlay={() => setIsVideoReady(true)}
               onError={() => setVideoFailed(true)}
             />
@@ -357,6 +398,32 @@ const MomentViewer = ({ moment, handleClose }) => {
               pollVariant={isOwnMoment ? "owner" : "friend"}
             />
           </div>
+=======
+              onError={() => {
+                if (!thumbnailUrl) setMediaFailed(true);
+              }}
+            />
+          )}
+          {/* Caption / music pill — fallback captions[] nếu overlays trống */}
+          <OverlayRenderer
+            overlayData={
+              moment?.overlays ||
+              (Array.isArray(moment?.captions) && moment.captions[0]
+                ? {
+                    ...moment.captions[0],
+                    type: moment.captions[0].type || "caption",
+                    overlay_id:
+                      moment.captions[0].type === "music"
+                        ? "caption:music"
+                        : undefined,
+                  }
+                : null)
+            }
+            momentId={moment?.id}
+            pollCounts={pollCounts}
+            pollVariant={isOwnMoment ? "owner" : "friend"}
+          />
+>>>>>>> Stashed changes
         </div>
 
         <MomentOwnerInfo

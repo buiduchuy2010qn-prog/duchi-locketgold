@@ -52,6 +52,7 @@ export const createRequestPayloadV6 = async () => {
     // Chuẩn bị dữ liệu tùy chọn (caption, overlay, v.v.)
     const optionsDataObj = {
       ...overlayData,
+      caption: overlayData?.caption || overlayData?.text || "",
       audience, // Gắn audience vào options luôn
       recipients: determineRecipients(audience, selectedRecipients, localId),
     };

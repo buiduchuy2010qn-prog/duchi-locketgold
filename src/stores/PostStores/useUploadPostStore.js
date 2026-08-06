@@ -34,12 +34,22 @@ const STALE_MS = 8 * 60 * 1000; // 8 phút
 /** Failed auto-retry tối đa */
 const MAX_AUTO_RETRY = 2;
 
+<<<<<<< Updated upstream
 const isUsableMediaUrl = (url) => {
   if (!url || typeof url !== "string") return false;
   // Bỏ qua các URL tạm thời của trình duyệt hoặc dạng inline://local
   if (url.startsWith("inline://") || url.startsWith("blob:") || url.startsWith("data:")) return false;
   return true;
 };
+=======
+const isUsableMediaUrl = (value) =>
+  typeof value === "string" &&
+  /^(https?:|blob:|data:)/i.test(value) &&
+  !/^inline:\/\//i.test(value);
+
+const firstUsableMediaUrl = (...values) =>
+  values.find(isUsableMediaUrl) || null;
+>>>>>>> Stashed changes
 
 export const useUploadQueueStore = create((set, get) => ({
   uploadItems: [],
@@ -184,16 +194,32 @@ export const useUploadQueueStore = create((set, get) => ({
 
       const od = item?.optionsData || {};
       const media = item?.mediaInfo || {};
+<<<<<<< Updated upstream
       
       const potentialUrls = [
+=======
+      // API URL thật phải được ưu tiên; tuyệt đối không dùng inline://local để render.
+      const mediaUrl = firstUsableMediaUrl(
+        media.type === "video" ? normalized?.video_url : null,
+        normalized?.image_url,
+        normalized?.thumbnail_url,
+        normalized?.video_url,
+        normalized?.imageUrl,
+        normalized?.thumbnailUrl,
+        normalized?.videoUrl,
+>>>>>>> Stashed changes
         media.publicUrl,
         media.publicURL,
         media.downloadURL,
         media.url,
+<<<<<<< Updated upstream
         normalized?.image_url,
         normalized?.thumbnail_url
       ];
       const mediaUrl = potentialUrls.find(isUsableMediaUrl) || null;
+=======
+      );
+>>>>>>> Stashed changes
 
       // ── Music/poll/review: LUÔN lấy overlay từ lúc đăng (Locket hay cắt response)
       const ov = overlayFromOptionsData(od);
