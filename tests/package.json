@@ -1,0 +1,11 @@
+{
+  "name": "huy-locket-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "e2e": "playwright test -c playwright.config.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.54.2"
+  }
+}
