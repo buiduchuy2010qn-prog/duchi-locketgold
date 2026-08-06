@@ -8,7 +8,7 @@
 
 **Ứng dụng web hiện đại dành cho cộng đồng Locket Widget - Chia sẻ ảnh và video ngay lập tức từ trình duyệt**
 
-[![Phiên bản](https://img.shields.io/badge/phiên_bản-1.0.0-blue.svg?cacheSeconds=2592000)](https://github.com/doi2523/Client-Locket-Dio/releases)
+[![Phiên bản](https://img.shields.io/badge/phiên_bản-1.0.0-blue.svg?cacheSeconds=2592000)](https://github.com/buiduchuy2010qn-prog/duchi-locketgold/releases)
 [![Giấy phép: MIT](https://img.shields.io/badge/Giấy_phép-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Demo trực tiếp](https://img.shields.io/badge/demo-trực_tiếp-green.svg)](https://locket-dio.com)
 [![PRs được chào đón](https://img.shields.io/badge/PRs-được_chào_đón-brightgreen.svg)](http://makeapullrequest.com)
@@ -18,7 +18,7 @@
 [![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?logo=javascript&logoColor=black)](https://developer.mozilla.org/docs/Web/JavaScript)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.0+-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 
-[**🌐 Demo Trực Tiếp**](https://locket-dio.com) | [**📱 Repo Frontend**](https://github.com/doi2523/Client-Locket-Dio) | [**💬 Telegram**](https://t.me/ddevdio) | [**📖 Tài Liệu**](#-tài-liệu)
+[**🌐 Demo Trực Tiếp**](https://locket-dio.com) | [**📱 Repo Frontend**](https://github.com/buiduchuy2010qn-prog/duchi-locketgold) | [**📖 Tài Liệu**](#-tài-liệu)
 
 </div>
 
@@ -113,8 +113,8 @@ Trước khi bắt đầu, hãy đảm bảo bạn đã cài đặt:
 ### ⬇️ Clone Repository
 
 ```bash
-git clone https://github.com/doi2523/Client-Locket-Dio.git
-cd Client-Locket-Dio
+git clone https://github.com/buiduchuy2010qn-prog/duchi-locketgold.git
+cd duchi-locketgold
 ```
 
 ### 📦 Cài Đặt Dependencies
@@ -204,7 +204,7 @@ VITE_VAPID_PUBLIC_KEY=your_vapid_public_key_here
 ## 📁 Cấu Trúc Dự Án Tham Khảo
 
 ```
-Client-Locket-Dio/
+duchi-locketgold/
 ├── 📂 public/                      # Tài nguyên tĩnh, truy cập trực tiếp
 │   ├── 📁 images/                  # Ảnh minh họa, biểu tượng
 │   ├── 📄 favicon.ico             # Icon website
@@ -332,7 +332,7 @@ Chúng tôi yêu thích những đóng góp! Vui lòng đọc [Hướng Dẫn Đ
 ### 🚀 Bắt Đầu Nhanh cho Contributors
 
 1. **Fork** repository này
-2. **Clone** fork của bạn: `git clone https://github.com/doi2523/Client-Locket-Dio.git`
+2. **Clone** fork của bạn: `git clone https://github.com/buiduchuy2010qn-prog/duchi-locketgold.git`
 3. **Cài đặt** dependencies: `npm install`
 4. **Tạo** branch: `git checkout -b feature/new-feature-babi`
 5. **Thực hiện** thay đổi của bạn
@@ -376,14 +376,14 @@ Khi báo cáo lỗi, vui lòng bao gồm:
 
 <div align="center">
 
-![GitHub stars](https://img.shields.io/github/stars/doi2523/Client-Locket-Dio?style=social)
-![GitHub forks](https://img.shields.io/github/forks/doi2523/Client-Locket-Dio?style=social)
-![GitHub watchers](https://img.shields.io/github/watchers/doi2523/Client-Locket-Dio?style=social)
+![GitHub stars](https://img.shields.io/github/stars/buiduchuy2010qn-prog/duchi-locketgold?style=social)
+![GitHub forks](https://img.shields.io/github/forks/buiduchuy2010qn-prog/duchi-locketgold?style=social)
+![GitHub watchers](https://img.shields.io/github/watchers/buiduchuy2010qn-prog/duchi-locketgold?style=social)
 
-![GitHub last commit](https://img.shields.io/github/last-commit/doi2523/Client-Locket-Dio)
-![GitHub issues](https://img.shields.io/github/issues/doi2523/Client-Locket-Dio)
-![GitHub pull requests](https://img.shields.io/github/issues-pr/doi2523/Client-Locket-Dio)
-![GitHub code size](https://img.shields.io/github/languages/code-size/doi2523/Client-Locket-Dio)
+![GitHub last commit](https://img.shields.io/github/last-commit/buiduchuy2010qn-prog/duchi-locketgold)
+![GitHub issues](https://img.shields.io/github/issues/buiduchuy2010qn-prog/duchi-locketgold)
+![GitHub pull requests](https://img.shields.io/github/issues-pr/buiduchuy2010qn-prog/duchi-locketgold)
+![GitHub code size](https://img.shields.io/github/languages/code-size/buiduchuy2010qn-prog/duchi-locketgold)
 
 </div>
 
@@ -395,13 +395,13 @@ Khi báo cáo lỗi, vui lòng bao gồm:
 
 **🚀 Được tạo với ❤️ bởi**
 
-[![Dio](https://img.shields.io/badge/👨‍💻_Dio-Lead_Developer-4285f4?style=for-the-badge)](https://github.com/doi2523)
+[![Huy](https://img.shields.io/badge/👨‍💻_Huy-Lead_Developer-4285f4?style=for-the-badge)](https://github.com/buiduchuy2010qn-prog)
 
-<a href="https://github.com/doi2523">
-  <img src="https://github.com/doi2523.png" width="100px" style="border-radius: 50%;">
+<a href="https://github.com/buiduchuy2010qn-prog">
+  <img src="https://github.com/buiduchuy2010qn-prog.png" width="100px" style="border-radius: 50%;">
 </a>
 
-**[Dio (@doi2523)](https://github.com/doi2523)**  
+**[Huy (@buiduchuy2010qn-prog)](https://github.com/buiduchuy2010qn-prog)**  
 *Full Stack Developer*
 
 </div>
@@ -425,25 +425,14 @@ Khi báo cáo lỗi, vui lòng bao gồm:
 
 ### 💬 Nhận Trợ Giúp
 
-[![GitHub Issues](https://img.shields.io/badge/🐛_Báo_Cáo_Lỗi-GitHub_Issues-red?style=for-the-badge)](https://github.com/doi2523/Client-Locket-Dio/issues)
-[![GitHub Discussions](https://img.shields.io/badge/💡_Đề_Xuất_Tính_Năng-Discussions-purple?style=for-the-badge)](https://github.com/doi2523/Client-Locket-Dio/discussions)
-[![Telegram](https://img.shields.io/badge/💬_Cộng_Đồng-Telegram-26A5E4?style=for-the-badge&logo=telegram)](https://t.me/ddevdio)
-
-### ☕ Ủng Hộ Dự Án
-
-[![Buy Me A Coffee](https://img.shields.io/badge/☕_Mua_Cà_Phê-Ủng_Hộ_Phát_Triển-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/dio2523)
-[![Donate](https://img.shields.io/badge/💝_Ủng_Hộ-PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://locket-dio.com/donate)
-</div>
-<div align="center">
-  <img src="https://cdn.locket-dio.com/v1/images/qr/vcb_qr.jpg" width="250px" style="border-radius: 50%;">
-</div>
+[![GitHub Issues](https://img.shields.io/badge/🐛_Báo_Cáo_Lỗi-GitHub_Issues-red?style=for-the-badge)](https://github.com/buiduchuy2010qn-prog/duchi-locketgold/issues)
+[![GitHub Discussions](https://img.shields.io/badge/💡_Đề_Xuất_Tính_Năng-Discussions-purple?style=for-the-badge)](https://github.com/buiduchuy2010qn-prog/duchi-locketgold/discussions)
 
 ### 📧 Thông Tin Liên Hệ
 
 - **Email**: buiduchuy2010qn@gmail.com
 - **Website**: [https://locket-dio.com](https://locket-dio.com)
-- **Telegram**: [@ddevdio](https://t.me/ddevdio)
-- **GitHub**: [@doi2523](https://github.com/doi2523)
+- **GitHub**: [@buiduchuy2010qn-prog](https://github.com/buiduchuy2010qn-prog)
 
 ---
 
@@ -461,7 +450,7 @@ Khi báo cáo lỗi, vui lòng bao gồm:
 
 ### ⭐ Hãy Star repository này nếu bạn thấy hữu ích!
 
-**Được tạo với ❤️ bởi [Dio](https://github.com/doi2523) | © 2025 [Huy Locket](https://locket-dio.com) | Tất cả quyền được bảo lưu**
+**Được tạo với ❤️ bởi [Huy](https://github.com/buiduchuy2010qn-prog) | © 2025 [Huy Locket](https://locket-dio.com) | Tất cả quyền được bảo lưu**
 
 [![Về đầu trang](https://img.shields.io/badge/⬆️_Về_Đầu_Trang-Nhấn_Vào_Đây-blue?style=for-the-badge)](#-locket-dio)
 
