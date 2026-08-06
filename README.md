@@ -7,7 +7,7 @@
 
 [![Phiên bản](https://img.shields.io/badge/phiên_bản-1.0.0-blue.svg?cacheSeconds=2592000)](https://github.com/buiduchuy2010qn-prog/duchi-locketgold/releases)
 [![Giấy phép: MIT](https://img.shields.io/badge/Giấy_phép-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Demo trực tiếp](https://img.shields.io/badge/demo-trực_tiếp-green.svg)](https://locket-dio.com)
+[![Demo trực tiếp](https://img.shields.io/badge/demo-trực_tiếp-green.svg)](https://duchi.vercel.app)
 [![PRs được chào đón](https://img.shields.io/badge/PRs-được_chào_đón-brightgreen.svg)](http://makeapullrequest.com)
 
 [![React](https://img.shields.io/badge/React-18.2+-61DAFB?logo=react&logoColor=white)](https://reactjs.org/)
@@ -15,7 +15,7 @@
 [![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?logo=javascript&logoColor=black)](https://developer.mozilla.org/docs/Web/JavaScript)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.0+-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 
-[**🌐 Demo Trực Tiếp**](https://locket-dio.com) | [**📱 Repo Frontend**](https://github.com/buiduchuy2010qn-prog/duchi-locketgold) | [**📖 Tài Liệu**](#-tài-liệu)
+[**🌐 Demo Trực Tiếp**](https://duchi.vercel.app) | [**📱 Repo Frontend**](https://github.com/buiduchuy2010qn-prog/duchi-locketgold) | [**📖 Tài Liệu**](#-tài-liệu)
 
 </div>
 
@@ -78,7 +78,7 @@
 
 <div align="center">
 
-[![Demo Trực Tiếp](https://img.shields.io/badge/🎯_Demo_Trực_Tiếp-Truy_Cập_Ngay-FF6B6B?style=for-the-badge)](https://locket-dio.com)
+[![Demo Trực Tiếp](https://img.shields.io/badge/🎯_Demo_Trực_Tiếp-Truy_Cập_Ngay-FF6B6B?style=for-the-badge)](https://duchi.vercel.app)
 
 </div>
 
@@ -409,7 +409,7 @@ Khi báo cáo lỗi, vui lòng bao gồm:
 ### 📧 Thông Tin Liên Hệ
 
 - **Email**: buiduchuy2010qn@gmail.com
-- **Website**: [https://locket-dio.com](https://locket-dio.com)
+- **Website**: [https://duchi.vercel.app](https://duchi.vercel.app)
 - **GitHub**: [@buiduchuy2010qn-prog](https://github.com/buiduchuy2010qn-prog)
 
 ---
@@ -428,7 +428,7 @@ Khi báo cáo lỗi, vui lòng bao gồm:
 
 ### ⭐ Hãy Star repository này nếu bạn thấy hữu ích!
 
-**Được tạo với ❤️ bởi [Huy](https://github.com/buiduchuy2010qn-prog) | © 2025 [Huy Locket](https://locket-dio.com) | Tất cả quyền được bảo lưu**
+**Được tạo với ❤️ bởi [Huy](https://github.com/buiduchuy2010qn-prog) | © 2025 [Huy Locket](https://duchi.vercel.app) | Tất cả quyền được bảo lưu**
 
 [![Về đầu trang](https://img.shields.io/badge/⬆️_Về_Đầu_Trang-Nhấn_Vào_Đây-blue?style=for-the-badge)](#-locket-dio)
 
