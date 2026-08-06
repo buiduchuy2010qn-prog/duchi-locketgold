@@ -1,6 +1,19 @@
 const express = require("express");
 const crypto = require("node:crypto");
 const jwt = require("jsonwebtoken");
+
+const JWT_SECRET = String(process.env.JWT_SECRET || "").trim();
+if (JWT_SECRET.length < 32) {
+  throw new Error("JWT_SECRET is required and must be at least 32 characters");
+}
+
+const TRUST_DEVICE_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "none",
+  path: "/api/admin",
+};
+
 const userActivityStore = require("../services/userActivityStore");
 const { generateSecret, generateURI, verify } = require("otplib");
 const qrcode = require("qrcode");
@@ -230,11 +243,11 @@ router.post("/session/create", requireActivityDatabase, async (req, res) => {
     const info2fa = await getAdmin2FAInfo(req.adminUid);
     let isTrustedDevice = false;
     if (info2fa?.is_two_factor_enabled && info2fa?.two_factor_secret) {
-      // 🟢 TÍNH NĂNG MỚI: Kiểm tra Token "Ghi nhớ thiết bị" (Trusted Device) từ Cookie hoặc Header
-      const trustToken = req.cookies?.trust_device_token || req.body?.trustedDeviceToken || req.headers["x-trust-device-token"];
+      // Token thiết bị tin cậy chỉ được nhận từ cookie HttpOnly.
+      const trustToken = req.cookies?.trust_device_token;
       if (trustToken) {
         try {
-          const trustDecoded = jwt.verify(trustToken, process.env.JWT_SECRET || "HUY_LOCKET_SECURE_KEY_2FA");
+          const trustDecoded = jwt.verify(trustToken, JWT_SECRET);
           if (trustDecoded.uid === req.adminUid && trustDecoded.purpose === "TRUSTED_DEVICE") {
             isTrustedDevice = true;
             console.log(`[🟢 Trusted Device] Admin ${req.adminUid} verified via 30-day trusted device token! Skipping 2FA OTP.`);
@@ -248,7 +261,7 @@ router.post("/session/create", requireActivityDatabase, async (req, res) => {
       if (!isTrustedDevice) {
         const tempToken = jwt.sign(
           { uid: req.adminUid, purpose: "2FA_PENDING_AUTH", role: req.adminRole },
-          process.env.JWT_SECRET || "HUY_LOCKET_SECURE_KEY_2FA",
+          JWT_SECRET,
           { expiresIn: "10m" }
         );
         return res.status(200).json({
@@ -287,7 +300,7 @@ router.post("/session/verify-2fa", requireActivityDatabase, async (req, res) => 
     }
     let decoded;
     try {
-      decoded = jwt.verify(tempToken, process.env.JWT_SECRET || "HUY_LOCKET_SECURE_KEY_2FA");
+      decoded = jwt.verify(tempToken, JWT_SECRET);
     } catch (err) {
       return res.status(401).json({ success: false, error: "Phiên xác thực 2FA tạm thời đã hết hạn. Vui lòng nhập lại PIN!" });
     }
@@ -313,19 +326,16 @@ router.post("/session/verify-2fa", requireActivityDatabase, async (req, res) => 
     await createAdminSession(req.adminUid, hash, 30);
     await audit(req, "CREATE_ADMIN_SESSION_2FA", req.adminUid, "Started privileged admin session via PIN + 2FA");
 
-    // 🟢 TÍNH NĂNG MỚI: Nếu Admin chọn "Ghi nhớ thiết bị này trong 30 ngày", sinh jwt token và set HttpOnly Cookie
     let trustToken = null;
     if (rememberDevice === true || String(rememberDevice) === "true") {
       trustToken = jwt.sign(
         { uid: req.adminUid, purpose: "TRUSTED_DEVICE", role: req.adminRole },
-        process.env.JWT_SECRET || "HUY_LOCKET_SECURE_KEY_2FA",
+        JWT_SECRET,
         { expiresIn: "30d" }
       );
       res.cookie("trust_device_token", trustToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "none",
-        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 ngày (ms)
+        ...TRUST_DEVICE_COOKIE_OPTIONS,
+        maxAge: 30 * 24 * 60 * 60 * 1000,
       });
       console.log(`[🛡️ Trusted Device] Granted 30-day trust token for Admin: ${req.adminUid}`);
     }
@@ -333,7 +343,7 @@ router.post("/session/verify-2fa", requireActivityDatabase, async (req, res) => 
     return res.status(200).json({
       success: true,
       adminSessionToken: token,
-      trust_device_token: trustToken, // Hỗ trợ lưu dự phòng trong localStorage nếu Cookie cross-domain bị chặn
+      trustedDeviceSet: Boolean(trustToken),
       expiresAt: Date.now() + 30 * 60 * 1000,
       role: req.adminRole,
     });
@@ -392,14 +402,13 @@ router.post("/confirm-2fa", requireActivityDatabase, requireActiveAdminSession, 
     return res.status(200).json({ success: true, message: "🎉 Kích hoạt Bảo Mật 2FA Google Authenticator thành công!" });
   } catch (error) {
     console.error("Failed confirm 2FA:", error?.message || "unknown", error);
-    return res.status(500).json({ success: false, error: error?.message ? `Lỗi kích hoạt 2FA: ${error.message}` : "Lỗi kích hoạt 2FA" });
+    return res.status(500).json({ success: false, error: error?.message ? `Lỗi kích hoạt 2FA: ${error.message}` : "Lỗi kích hoạt bảo mật 2FA" });
   }
 });
 
 router.post("/disable-2fa", requireActivityDatabase, requireActiveAdminSession, async (req, res) => {
   res.setHeader("Cache-Control", "no-store, max-age=0");
   try {
-    // 🔴 BẮT BUỘC xác minh mã OTP trước khi cho phép tắt 2FA
     const { otpCode } = req.body || {};
     if (!otpCode || !/^\d{6}$/.test(String(otpCode).trim())) {
       return res.status(400).json({ success: false, error: "Vui lòng nhập mã OTP 6 số từ Google Authenticator để xác nhận tắt 2FA." });
@@ -418,7 +427,7 @@ router.post("/disable-2fa", requireActivityDatabase, requireActiveAdminSession, 
     }
 
     await setAdmin2FAEnabled(req.adminUid, false);
-    res.clearCookie("trust_device_token", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "none" });
+    res.clearCookie("trust_device_token", TRUST_DEVICE_COOKIE_OPTIONS);
     await audit(req, "DISABLE_ADMIN_2FA", req.adminUid, "Disabled 2FA protection for Admin (verified via OTP)");
     return res.status(200).json({ success: true, message: "Đã tắt xác thực 2FA và hủy thiết bị tin cậy." });
   } catch (error) {
@@ -868,7 +877,7 @@ router.post("/content/reports/:id/resolve", requireActivityDatabase, requireActi
     await audit(req, "RESOLVE_REPORT", null, `Resolved report #${req.params.id} with action: ${actionTaken}`);
     return res.status(200).json({ success: true });
   } catch (error) {
-    console.error("Failed to resolve report:", error?.message || "unknown");
+    console.error("Failed to resolve reported content:", error?.message || "unknown");
     return res.status(500).json({ success: false, error: "Không thể xử lý báo cáo vi phạm" });
   }
 });
@@ -906,7 +915,6 @@ router.delete("/users/:uid/auth", requireActiveAdminSession, async (req, res) =>
   }
 });
 
-// 1. Quyền Phát Sóng Thông Báo
 router.get("/broadcast", async (req, res) => {
   try {
     const data = await getGlobalBroadcast();
@@ -953,7 +961,6 @@ router.delete("/broadcast/:id", requireActiveAdminSession, async (req, res) => {
   }
 });
 
-// 2. Quyền Khóa IP Vĩnh Viễn
 router.get("/ip-blacklist", async (req, res) => {
   const list = await listBlacklistedIps();
   res.json({ success: true, count: list.length, list });
@@ -974,7 +981,6 @@ router.delete("/ip-blacklist/:ip", requireActiveAdminSession, async (req, res) =
   res.json({ success: true, message: `Đã mở khóa IP: ${ip}` });
 });
 
-// 3. Quyền Xóa Khởi Tử Vĩnh Viễn Từng Tài Khoản (Nuke User)
 router.delete("/users/:uid/nuke", requireActiveAdminSession, async (req, res) => {
   if (req.adminRole !== "super_admin" && req.adminRole !== "admin") {
     return res.status(403).json({ success: false, error: "Quyền Moderator hoặc Support không được nuke tài khoản" });
@@ -991,13 +997,11 @@ router.delete("/users/:uid/nuke", requireActiveAdminSession, async (req, res) =>
   res.json({ success: true, message: "Đã tiêu hủy vĩnh viễn toàn bộ hồ sơ và lịch sử tài khoản khỏi cơ sở dữ liệu Huy Locket!" });
 });
 
-// 4. Cảm Biến Giám Sát Tài Nguyên Máy Chủ
 router.get("/server-health", async (req, res) => {
   const health = await getServerHealthStats();
   res.json({ success: true, data: health });
 });
 
-// 5. Quyền Quản lý Khôi phục & Trạng thái Mật Khẩu (Password Status)
 router.get("/users/:uid/password-status", async (req, res) => {
   const u = await getWebUser(req.params.uid);
   if (!u) return res.status(404).json({ success: false, error: "Không tìm thấy người dùng trong hệ thống Huy Locket" });
@@ -1005,9 +1009,6 @@ router.get("/users/:uid/password-status", async (req, res) => {
   res.json({ success: true, data: { uid: u.uid, displayName: u.displayName || u.email, ...status } });
 });
 
-// ═══════════════════════════════════════════════════════════════════
-// 6. Kim Bài Miễn Tử — Whitelist CRUD
-// ═══════════════════════════════════════════════════════════════════
 router.get("/whitelist", async (req, res) => {
   try {
     const rows = await listWhitelist();
@@ -1038,4 +1039,3 @@ router.delete("/whitelist/:identifier", async (req, res) => {
 });
 
 module.exports = router;
-
