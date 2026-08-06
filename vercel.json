@@ -7,35 +7,35 @@
   "rewrites": [
     {
       "source": "/dio-api",
-      "destination": "https://api.locket-dio.com/"
+      "destination": "https://huy-locket-api-production.up.railway.app/"
     },
     {
       "source": "/dio-api/:path*",
-      "destination": "https://api.locket-dio.com/:path*"
+      "destination": "https://huy-locket-api-production.up.railway.app/:path*"
     },
     {
       "source": "/api/admin",
-      "destination": "https://api.locket-dio.com/api/admin"
+      "destination": "https://huy-locket-api-production.up.railway.app/api/admin"
     },
     {
       "source": "/api/admin/:path*",
-      "destination": "https://api.locket-dio.com/api/admin/:path*"
+      "destination": "https://huy-locket-api-production.up.railway.app/api/admin/:path*"
     },
     {
       "source": "/api/activity",
-      "destination": "https://api.locket-dio.com/api/activity"
+      "destination": "https://huy-locket-api-production.up.railway.app/api/activity"
     },
     {
       "source": "/api/activity/:path*",
-      "destination": "https://api.locket-dio.com/api/activity/:path*"
+      "destination": "https://huy-locket-api-production.up.railway.app/api/activity/:path*"
     },
     {
       "source": "/dio-auth",
-      "destination": "https://auth.locket-dio.com/"
+      "destination": "https://huy-locket-api-production.up.railway.app/"
     },
     {
       "source": "/dio-auth/:path*",
-      "destination": "https://auth.locket-dio.com/:path*"
+      "destination": "https://huy-locket-api-production.up.railway.app/:path*"
     },
     {
       "source": "/dio-data",
