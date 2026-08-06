@@ -12,6 +12,7 @@ import "swiper/css";
 import "swiper/css/effect-cards";
 import { Loader2, SmilePlus } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { getRollcallMediaObjectUrl } from "@/services";
 import {
   getRollcallMainCandidates,
   getRollcallThumbnailCandidates,
@@ -157,7 +158,7 @@ function ReactionList({ reactions = [] }) {
 
 /**
  * Loads media only when `load` is true (active ± 1).
- * If a URL fails, cycles through raw API URL, CDN, thumbnail and same-origin proxy.
+ * Images try direct URLs and an authenticated server blob in parallel.
  */
 const RollcallMedia = memo(function RollcallMedia({
   item,
@@ -173,9 +174,32 @@ const RollcallMedia = memo(function RollcallMedia({
   const [candidateIndex, setCandidateIndex] = useState(0);
   const [retryCount, setRetryCount] = useState(0);
   const [retryKey, setRetryKey] = useState(0);
+  const [authenticatedUrl, setAuthenticatedUrl] = useState("");
+  const [authenticatedState, setAuthenticatedState] = useState("idle");
   const loadStarted = useRef(0);
+  const authenticatedAbortRef = useRef(null);
+  const authenticatedUrlRef = useRef("");
   const id = mediaIdOf(item, index);
   const video = isVideoMedia(item);
+
+  const replaceAuthenticatedUrl = useCallback((nextUrl) => {
+    if (authenticatedUrlRef.current) {
+      URL.revokeObjectURL(authenticatedUrlRef.current);
+    }
+    authenticatedUrlRef.current = nextUrl || "";
+    setAuthenticatedUrl(nextUrl || "");
+  }, []);
+
+  useEffect(
+    () => () => {
+      authenticatedAbortRef.current?.abort();
+      if (authenticatedUrlRef.current) {
+        URL.revokeObjectURL(authenticatedUrlRef.current);
+        authenticatedUrlRef.current = "";
+      }
+    },
+    [],
+  );
 
   const mainCandidates = useMemo(
     () =>
@@ -200,8 +224,22 @@ const RollcallMedia = memo(function RollcallMedia({
     );
   }, [mainCandidates, thumbnailCandidates, video]);
 
+  const authenticatedCandidates = useMemo(() => {
+    if (video) return [];
+    const candidates = [
+      ...getRollcallMainCandidates(item, { includeProxy: false }),
+      ...getRollcallThumbnailCandidates(item, { includeProxy: false }),
+    ];
+    return candidates.filter(
+      (url, position) =>
+        /^https:\/\//i.test(url) && candidates.indexOf(url) === position,
+    );
+  }, [item, video]);
+
   const candidateSignature = mediaCandidates.join("|");
+  const authenticatedSignature = authenticatedCandidates.join("|");
   const currentUrl = mediaCandidates[candidateIndex] || "";
+  const displayUrl = authenticatedUrl || currentUrl;
   const posterUrl = thumbnailCandidates[0] || undefined;
   const expired = isSignedUrlExpired(
     item?.main_url || item?.mainUrl || mainCandidates[0] || "",
@@ -209,6 +247,10 @@ const RollcallMedia = memo(function RollcallMedia({
 
   // Reset visual state when item URLs / retry / load window changes
   useEffect(() => {
+    authenticatedAbortRef.current?.abort();
+    replaceAuthenticatedUrl("");
+    setAuthenticatedState("idle");
+
     if (!load) {
       setLoaded(false);
       setFailed(false);
@@ -221,11 +263,114 @@ const RollcallMedia = memo(function RollcallMedia({
     setTimedOut(false);
     setCandidateIndex(0);
     loadStarted.current = performance.now();
-  }, [load, candidateSignature, retryKey]);
+  }, [
+    load,
+    candidateSignature,
+    authenticatedSignature,
+    retryKey,
+    replaceAuthenticatedUrl,
+  ]);
 
-  // 8–10s timeout → move to next candidate before showing failure
+  // Authenticated backend fallback for images. Runs in parallel with direct <img>.
   useEffect(() => {
-    if (!load || loaded || failed || !currentUrl) return;
+    if (!load || video || !authenticatedCandidates.length || loaded) return;
+
+    const controller = new AbortController();
+    authenticatedAbortRef.current = controller;
+    let disposed = false;
+    setAuthenticatedState("loading");
+
+    (async () => {
+      for (let i = 0; i < authenticatedCandidates.length; i += 1) {
+        try {
+          const objectUrl = await getRollcallMediaObjectUrl(
+            authenticatedCandidates[i],
+            { signal: controller.signal },
+          );
+
+          if (disposed || controller.signal.aborted) {
+            URL.revokeObjectURL(objectUrl);
+            return;
+          }
+
+          setLoaded(false);
+          setFailed(false);
+          setTimedOut(false);
+          loadStarted.current = performance.now();
+          replaceAuthenticatedUrl(objectUrl);
+          setAuthenticatedState("success");
+          logRollcallNet({
+            type: "image_authenticated_proxy",
+            status: 200,
+            mediaKind: "image",
+            index,
+            candidate: i,
+          });
+          return;
+        } catch (error) {
+          if (
+            disposed ||
+            controller.signal.aborted ||
+            error?.name === "CanceledError" ||
+            error?.code === "ERR_CANCELED"
+          ) {
+            return;
+          }
+
+          logRollcallNet({
+            type: "image_authenticated_proxy_error",
+            status: error?.response?.status || "error",
+            mediaKind: "image",
+            index,
+            candidate: i,
+          });
+        }
+      }
+
+      if (!disposed && !controller.signal.aborted) {
+        setAuthenticatedState("error");
+      }
+    })();
+
+    return () => {
+      disposed = true;
+      controller.abort();
+    };
+  }, [
+    load,
+    video,
+    authenticatedSignature,
+    retryKey,
+    loaded,
+    authenticatedCandidates,
+    index,
+    replaceAuthenticatedUrl,
+  ]);
+
+  // If direct URLs are exhausted and authenticated fetch also failed, show failure.
+  useEffect(() => {
+    if (
+      load &&
+      !video &&
+      !loaded &&
+      authenticatedState === "error" &&
+      candidateIndex >= mediaCandidates.length - 1
+    ) {
+      setFailed(true);
+      setTimedOut(true);
+    }
+  }, [
+    load,
+    video,
+    loaded,
+    authenticatedState,
+    candidateIndex,
+    mediaCandidates.length,
+  ]);
+
+  // 8–10s timeout → move to next direct candidate before showing failure
+  useEffect(() => {
+    if (!load || loaded || failed || !currentUrl || authenticatedUrl) return;
     const timer = setTimeout(() => {
       if (candidateIndex < mediaCandidates.length - 1) {
         setCandidateIndex((value) => value + 1);
@@ -241,6 +386,9 @@ const RollcallMedia = memo(function RollcallMedia({
         });
         return;
       }
+
+      // Wait for authenticated image request before declaring final failure.
+      if (!video && authenticatedState === "loading") return;
 
       setTimedOut(true);
       logRollcallNet({
@@ -261,6 +409,8 @@ const RollcallMedia = memo(function RollcallMedia({
     video,
     index,
     currentUrl,
+    authenticatedUrl,
+    authenticatedState,
     candidateIndex,
     mediaCandidates.length,
   ]);
@@ -269,6 +419,13 @@ const RollcallMedia = memo(function RollcallMedia({
     setLoaded(true);
     setTimedOut(false);
     setFailed(false);
+
+    // Direct URL worked: stop the extra authenticated request.
+    if (!authenticatedUrl && authenticatedState === "loading") {
+      authenticatedAbortRef.current?.abort();
+      setAuthenticatedState("idle");
+    }
+
     logRollcallNet({
       type: video ? "video_ready" : "image_load",
       status: 200,
@@ -277,11 +434,27 @@ const RollcallMedia = memo(function RollcallMedia({
       ),
       mediaKind: video ? "video" : "image",
       index,
-      candidate: candidateIndex,
+      candidate: authenticatedUrl ? "authenticated" : candidateIndex,
     });
-  }, [video, index, candidateIndex]);
+  }, [
+    video,
+    index,
+    candidateIndex,
+    authenticatedUrl,
+    authenticatedState,
+  ]);
 
   const handleError = useCallback(() => {
+    // Authenticated blob itself failed to decode: fall back to direct candidates.
+    if (authenticatedUrl) {
+      replaceAuthenticatedUrl("");
+      setAuthenticatedState("error");
+      setLoaded(false);
+      setFailed(false);
+      setTimedOut(false);
+      return;
+    }
+
     if (candidateIndex < mediaCandidates.length - 1) {
       setCandidateIndex((value) => value + 1);
       setLoaded(false);
@@ -301,6 +474,13 @@ const RollcallMedia = memo(function RollcallMedia({
       return;
     }
 
+    // Image backend is still trying; do not show a false failure yet.
+    if (!video && authenticatedState === "loading") {
+      setFailed(false);
+      setTimedOut(false);
+      return;
+    }
+
     setFailed(true);
     setTimedOut(true);
     logRollcallNet({
@@ -313,7 +493,15 @@ const RollcallMedia = memo(function RollcallMedia({
       index,
       candidate: candidateIndex,
     });
-  }, [video, index, candidateIndex, mediaCandidates.length]);
+  }, [
+    video,
+    index,
+    authenticatedUrl,
+    authenticatedState,
+    candidateIndex,
+    mediaCandidates.length,
+    replaceAuthenticatedUrl,
+  ]);
 
   const handleRetry = useCallback(() => {
     if (retryCount >= MAX_RETRIES) return;
@@ -323,6 +511,9 @@ const RollcallMedia = memo(function RollcallMedia({
     setTimedOut(false);
     setLoaded(false);
     setCandidateIndex(0);
+    authenticatedAbortRef.current?.abort();
+    replaceAuthenticatedUrl("");
+    setAuthenticatedState("idle");
     const delay = next === 1 ? 400 : 1200;
     logRollcallNet({
       type: "media_retry",
@@ -332,7 +523,7 @@ const RollcallMedia = memo(function RollcallMedia({
       index,
     });
     setTimeout(() => setRetryKey((key) => key + 1), delay);
-  }, [retryCount, video, index]);
+  }, [retryCount, video, index, replaceAuthenticatedUrl]);
 
   useEffect(() => {
     if (!load || !expired) return;
@@ -349,7 +540,7 @@ const RollcallMedia = memo(function RollcallMedia({
     return <div className="relative w-full h-full bg-base-300" />;
   }
 
-  if (!currentUrl) {
+  if (!displayUrl && authenticatedState !== "loading") {
     return (
       <div className="relative w-full h-full bg-base-300 flex flex-col items-center justify-center gap-2">
         <span className="text-sm opacity-70">
@@ -414,14 +605,15 @@ const RollcallMedia = memo(function RollcallMedia({
             ${loaded ? "opacity-100" : "opacity-0"}
           `}
         />
-      ) : (
+      ) : displayUrl ? (
         <img
-          key={`${id}-i-${retryKey}-${candidateIndex}`}
-          src={currentUrl}
+          key={`${id}-i-${retryKey}-${authenticatedUrl ? "auth" : candidateIndex}`}
+          src={displayUrl}
           alt=""
           loading={priority === "active" ? "eager" : "lazy"}
           fetchPriority={priority === "active" ? "high" : "low"}
           decoding="async"
+          referrerPolicy="no-referrer"
           onLoad={handleLoaded}
           onError={handleError}
           className={`
@@ -431,7 +623,7 @@ const RollcallMedia = memo(function RollcallMedia({
           `}
           draggable={false}
         />
-      )}
+      ) : null}
     </div>
   );
 });
