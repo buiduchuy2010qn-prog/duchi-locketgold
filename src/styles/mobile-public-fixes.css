@@ -1,0 +1,13 @@
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+/* The closed drawer keeps its shadow outside the viewport on narrow phones. */
+#huy-locket-nav-drawer.translate-x-full {
+  box-shadow: none !important;
+  pointer-events: none;
+}
