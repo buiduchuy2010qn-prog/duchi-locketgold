@@ -167,7 +167,6 @@ const postImageToLocketV2 = async ({
     const responseData = await postResponse.data;
     logInfo("postImageToLocketV2", "End");
 
-<<<<<<< Updated upstream
     const data = preserveSubmittedOverlay(
       responseData.result?.data || {},
       postData,
@@ -175,16 +174,6 @@ const postImageToLocketV2 = async ({
     data.image_url = imageUrl;
     data.thumbnail_url = imageUrl;
     return data;
-=======
-    // Locket đôi khi không trả lại URL media trong response dù đã đăng thành công.
-    // Giữ URL Firebase vừa upload để frontend không rơi về URL giả inline://local.
-    const postedData = responseData.result?.data;
-    return {
-      ...(postedData && typeof postedData === "object" ? postedData : {}),
-      image_url: imageUrl,
-      thumbnail_url: imageUrl,
-    };
->>>>>>> Stashed changes
   } catch (error) {
     logError("postImageToLocketV2", error.message);
     console.error("Status:", error.response?.status);
