@@ -18,6 +18,8 @@
 #     LOCKETDIO_JWT_SECRET=<cố định>
 #     COOKIE_SECRET=<cố định>
 #     JWT_SECRET=<chuỗi ngẫu nhiên tối thiểu 32 ký tự, dùng riêng cho Admin PIN/2FA>
+#     ADMIN_LOCKET_UIDS=<UID Admin, có thể phân tách bằng dấu phẩy>
+#     ADMIN_LOCKET_EMAILS=<email Admin, có thể phân tách bằng dấu phẩy>
 #     SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET
 #     FIREBASE_API_KEY=<set trên Railway Variables — không commit key>
 
