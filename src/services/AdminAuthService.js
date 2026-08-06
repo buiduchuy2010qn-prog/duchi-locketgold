@@ -1,5 +1,13 @@
 import { CONFIG } from "@/config";
 
+// Older builds exposed the 30-day trusted-device token to JavaScript.
+// Remove that legacy copy once; new builds rely only on the HttpOnly cookie.
+try {
+  localStorage.removeItem("huy_locket_trust_device");
+} catch {
+  /* storage may be unavailable */
+}
+
 function endpoint(path) {
   const baseUrl = String(CONFIG.api.baseUrl || "").replace(/\/$/, "");
   return `${baseUrl}/api/admin${path}`;
@@ -49,23 +57,6 @@ async function parseResponse(response) {
   return data;
 }
 
-export function getTrustedDeviceToken() {
-  try {
-    return localStorage.getItem("huy_locket_trust_device") || "";
-  } catch {
-    return "";
-  }
-}
-
-export function setTrustedDeviceToken(token) {
-  try {
-    if (token) localStorage.setItem("huy_locket_trust_device", token);
-    else localStorage.removeItem("huy_locket_trust_device");
-  } catch {
-    /* ignore */
-  }
-}
-
 export async function adminRequest(path, options = {}) {
   const token = getLocketToken();
   if (!token) {
@@ -75,7 +66,6 @@ export async function adminRequest(path, options = {}) {
   }
 
   const adminSessionToken = getShortAdminSessionToken();
-  const trustedToken = getTrustedDeviceToken();
   const headers = {
     "Content-Type": "application/json",
     ...(options.headers || {}),
@@ -83,9 +73,6 @@ export async function adminRequest(path, options = {}) {
   };
   if (adminSessionToken) {
     headers["X-Admin-Session"] = adminSessionToken;
-  }
-  if (trustedToken) {
-    headers["X-Trust-Device-Token"] = trustedToken;
   }
 
   const response = await fetch(endpoint(path), {
@@ -115,10 +102,9 @@ export async function getAdminRoleInfo() {
 }
 
 export async function startShortAdminSession(pin) {
-  const trustedDeviceToken = getTrustedDeviceToken();
   const result = await adminRequest("/session/create", {
     method: "POST",
-    body: JSON.stringify({ pin, trustedDeviceToken }),
+    body: JSON.stringify({ pin }),
   });
   if (result.adminSessionToken) {
     setShortAdminSessionToken(result.adminSessionToken);
@@ -133,9 +119,6 @@ export async function verifyAdmin2FAOTP(tempToken, otpCode, rememberDevice = tru
   });
   if (result.adminSessionToken) {
     setShortAdminSessionToken(result.adminSessionToken);
-  }
-  if (result.trust_device_token) {
-    setTrustedDeviceToken(result.trust_device_token);
   }
   return result;
 }
