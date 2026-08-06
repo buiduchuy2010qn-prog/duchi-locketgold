@@ -1,7 +1,4 @@
 import React from "react";
-import { Zoomies } from "ldrs/react";
-import "ldrs/react/Zoomies.css";
-import "./styles.css";
 import clsx from "clsx";
 import { useTranslation } from "react-i18next";
 
@@ -10,36 +7,48 @@ const LoadingPageMain = ({ isLoading }) => {
 
   return (
     <div
+      role="status"
+      aria-live="polite"
+      aria-busy={isLoading}
+      aria-hidden={!isLoading}
       className={clsx(
-        "fixed inset-0 flex flex-col items-center justify-center z-50 bg-base-100 gap-2 text-base-content transition-opacity duration-700",
+        "fixed inset-0 z-50 flex items-center justify-center bg-base-100 text-base-content transition-opacity duration-300",
         {
           "opacity-100": isLoading,
-          "opacity-0 pointer-events-none": !isLoading,
+          "pointer-events-none opacity-0": !isLoading,
         },
       )}
     >
-      <div>
-        <img
-          src="/apple-touch-icon.png"
-          alt="Huy Locket"
-          loading="lazy"
-          className="w-20 h-20 shadow-md rounded-2xl loading-bounce-y"
-        />
+      <span className="sr-only">
+        {t("loading_page.description", { defaultValue: "Đang tải dữ liệu" })}
+      </span>
+
+      <div className="w-full max-w-md animate-pulse px-5 motion-reduce:animate-none">
+        <div className="mb-5 flex items-center gap-3">
+          <div className="h-12 w-12 shrink-0 rounded-full bg-base-300" />
+          <div className="flex-1 space-y-2">
+            <div className="h-4 w-2/5 rounded-full bg-base-300" />
+            <div className="h-3 w-1/4 rounded-full bg-base-200" />
+          </div>
+          <div className="h-10 w-10 rounded-full bg-base-200" />
+        </div>
+
+        <div className="relative aspect-square w-full overflow-hidden rounded-[36px] bg-base-200">
+          <div className="absolute inset-0 bg-gradient-to-br from-base-300/70 via-base-200 to-base-300/40" />
+          <div className="absolute bottom-5 left-1/2 h-10 w-2/3 -translate-x-1/2 rounded-3xl bg-base-300/80" />
+        </div>
+
+        <div className="mt-5 space-y-3">
+          <div className="h-4 w-3/5 rounded-full bg-base-300" />
+          <div className="h-3 w-2/5 rounded-full bg-base-200" />
+        </div>
+
+        <div className="mt-8 grid grid-cols-3 items-center">
+          <div className="h-12 w-12 justify-self-start rounded-full bg-base-200" />
+          <div className="h-12 w-12 justify-self-center rounded-full bg-base-300" />
+          <div className="h-12 w-12 justify-self-end rounded-full bg-base-200" />
+        </div>
       </div>
-
-      <h1 className="text-xl font-semibold">{t("loading_page.title")}</h1>
-
-      <p className="text-sm opacity-70 animate-pulse">
-        {t("loading_page.description")}
-      </p>
-
-      <Zoomies
-        size="80"
-        stroke="5"
-        bgOpacity="0.1"
-        speed="1.4"
-        color="currentColor"
-      />
     </div>
   );
 };
