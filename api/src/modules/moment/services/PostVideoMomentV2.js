@@ -4,7 +4,6 @@ const {
   logInfo,
   logError,
   logBanner,
-  logWarning,
 } = require("../../../utils/logEventUtils");
 const { videoPayloadV2 } = require("../payloads");
 const { instanceLocketV2 } = require("../../../libs");
@@ -16,8 +15,10 @@ const { generateFirestoreId } = require("../../../utils");
 const {
   ensureMusicOptionsData,
 } = require("../../music/services/ensureMusicPayload");
+const {
+  preserveSubmittedOverlay,
+} = require("../utils/preserveSubmittedOverlay");
 
-//#region postVideoToLocket
 const postVideoToLocket = async (
   idToken,
   videoUrl,
@@ -44,26 +45,23 @@ const postVideoToLocket = async (
         throw err;
       }
     }
+
     const { type } = optionsData;
-    // Xử lý theo từng loại type
     const postData = (() => {
-      logBanner(`Type đang sử dụng: ${type}`); // Thêm log kiểm tra loại type
+      logBanner(`Type đang sử dụng: ${type}`);
       switch (type) {
-        //Loại mặc định đăng caption với nền mặc định
         case "default":
           return videoPayloadV2.videoPostPayloadDefault({
             videoUrl,
             thumbnailUrl,
             optionsData,
           });
-        //Loại caption decorative bởi Locket
         case "decorative":
           return videoPayloadV2.videoPostPayloadDecorative({
             videoUrl,
             thumbnailUrl,
             optionsData,
           });
-        //Loại caption được custom bởi Người dùng
         case "custome":
         case "custom":
           return videoPayloadV2.videoPostPayloadCustome({
@@ -87,7 +85,6 @@ const postVideoToLocket = async (
             thumbnailUrl,
             optionsData,
           });
-        //Loại caption decorative bởi Locket
         case "time":
           return videoPayloadV2.videoPostPayloadTime({
             videoUrl,
@@ -118,7 +115,6 @@ const postVideoToLocket = async (
             thumbnailUrl,
             optionsData,
           });
-
         case "streak":
           return videoPayloadV2.videoPostPayloadStreak({
             videoUrl,
@@ -166,7 +162,6 @@ const postVideoToLocket = async (
       }
     })();
 
-    // Gửi request tạo bài post
     const response = await instanceLocketV2.post("postMomentV2", postData, {
       meta: { idToken },
     });
@@ -175,10 +170,14 @@ const postVideoToLocket = async (
       throw new Error(`Failed to create post: ${response?.statusText}`);
     }
 
-    const responseData = await response.data; // 👈 Lấy dữ liệu JSON từ phản hồi
+    const responseData = await response.data;
+    const submittedMoment = preserveSubmittedOverlay(
+      responseData.result?.data || {},
+      postData,
+    );
 
     logInfo("postVideoToLocket", "End");
-    return responseData;
+    return submittedMoment;
   } catch (error) {
     logError("postVideoToLocket", error.message);
     console.error("Status:", error.response?.status);
@@ -193,7 +192,6 @@ const postVideoToLocket = async (
     );
   }
 };
-//#endregion
 
 const postVideoToLocketV2 = async ({
   idToken,
@@ -202,31 +200,25 @@ const postVideoToLocketV2 = async ({
   optionsData,
 }) => {
   try {
-    // Kiểm tra xem mediaData có tồn tại và có thuộc tính fileBuffer không
     if (!mediaData || !mediaData.fileBuffer) {
       throw new Error("File buffer is missing from media data");
     }
 
     const { fileBuffer, thumbnail } = mediaData;
-
     logInfo("postVideoToLocketV2", "Start");
 
-    // Sinh một mediaId duy nhất để thumbnail và video có cùng tên file (chỉ khác đuôi)
-    // Ví dụ: abc123.webp (thumbnail) và abc123.mp4 (video)
     const mediaId = generateFirestoreId();
     logInfo("postVideoToLocketV2", `Shared mediaId: ${mediaId}`);
 
-    // Kiểm tra xem fileBuffer là Buffer hay có thuộc tính path không
     let videoAsBuffer;
     if (Buffer.isBuffer(fileBuffer)) {
-      videoAsBuffer = fileBuffer; // Nếu fileBuffer là Buffer, không cần phải đọc từ file
+      videoAsBuffer = fileBuffer;
     } else if (fileBuffer && fileBuffer.path) {
-      videoAsBuffer = fs.readFileSync(fileBuffer.path); // Nếu có path, đọc từ file
+      videoAsBuffer = fs.readFileSync(fileBuffer.path);
     } else {
       throw new Error("Invalid fileBuffer: path or Buffer is required.");
     }
 
-    // Upload thumbnail trước, sử dụng mediaId chia sẻ → tên file: <mediaId>.webp
     const thumbnailUrl = await uploadMomentVideoThumbnail(
       localId,
       idToken,
@@ -239,7 +231,6 @@ const postVideoToLocketV2 = async ({
       throw new Error("Failed to upload thumbnail");
     }
 
-    // Upload video, sử dụng cùng mediaId → tên file: <mediaId>.mp4
     const videoUrl = await uploadMomentVideo(
       localId,
       idToken,
@@ -251,7 +242,7 @@ const postVideoToLocketV2 = async ({
       throw new Error("Failed to upload video");
     }
 
-    const responseData = await postVideoToLocket(
+    const data = await postVideoToLocket(
       idToken,
       videoUrl,
       thumbnailUrl,
@@ -259,17 +250,13 @@ const postVideoToLocketV2 = async ({
     );
 
     logInfo("postVideoToLocketV2", "End");
-
-    const data = responseData.result?.data || {}; // Ensure it's not null
     data.video_url = videoUrl;
     data.thumbnail_url = thumbnailUrl;
-
     return data;
   } catch (error) {
     logError("postVideoToLocketV2", error.message);
     throw error;
   } finally {
-    // Kiểm tra xem video.path có tồn tại trước khi xóa
     if (mediaData && mediaData.fileBuffer && mediaData.fileBuffer.path) {
       fs.unlinkSync(mediaData.fileBuffer.path);
     }
