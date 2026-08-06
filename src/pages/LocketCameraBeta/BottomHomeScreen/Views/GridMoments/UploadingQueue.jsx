@@ -4,6 +4,40 @@ import LoadingOverlay from "@/components/uikit/Loading/LineSpinner";
 import { useSelectedStore, useUploadQueueStore } from "@/stores";
 import ConfirmDeleteModal from "@/components/uikit/ConfirmDeleteModal";
 
+const isRenderableUrl = (url) =>
+  typeof url === "string" &&
+  (url.startsWith("https://") ||
+    url.startsWith("http://") ||
+    url.startsWith("blob:") ||
+    url.startsWith("data:"));
+
+/**
+ * Trả preview dùng được ngay cho hàng đợi.
+ * Ảnh inline có URL `inline://local`, nên phải dựng data URL từ mediaBase64
+ * thay vì chờ server xử lý xong mới có URL Firebase.
+ */
+const getQueuePreviewUrl = (item) => {
+  const media = item?.mediaInfo || {};
+
+  const directUrl = [
+    item?.clientPreviewUrl,
+    media.previewUrl,
+    media.publicUrl,
+    media.publicURL,
+    media.downloadURL,
+    media.url,
+  ].find(isRenderableUrl);
+
+  if (directUrl) return directUrl;
+
+  if (media.type !== "video" && typeof media.mediaBase64 === "string") {
+    const mime = media.contentType || "image/jpeg";
+    return `data:${mime};base64,${media.mediaBase64}`;
+  }
+
+  return null;
+};
+
 /**
  * Hàng đợi đăng — gọn, không chữ dài.
  * Tự retry + dọn item kẹt khi mount.
@@ -26,17 +60,14 @@ const UploadingQueue = () => {
     resumeQueue?.();
   }, [resumeQueue]);
 
-  const visible = uploadItems.filter(
-    (item) => item.status !== "done" && !brokenIds.has(item.id),
-  );
+  // Item lỗi preview vẫn phải hiện spinner/trạng thái; không được biến mất khỏi lưới.
+  const visible = uploadItems.filter((item) => item.status !== "done");
 
   const openConfirm = (e, item) => {
     e.stopPropagation();
-    const media = item.mediaInfo;
-    const url = media?.publicUrl || media?.publicURL || media?.url;
     setConfirmPreview({
-      url: url || null,
-      mediaType: media?.type === "video" ? "video" : "image",
+      url: getQueuePreviewUrl(item),
+      mediaType: item?.mediaInfo?.type === "video" ? "video" : "image",
     });
     setConfirmId(item.id);
   };
@@ -64,7 +95,8 @@ const UploadingQueue = () => {
               const media = item.mediaInfo;
               const status = item.status || "uploading";
               const isVideo = media?.type === "video";
-              const url = media?.publicUrl || media?.publicURL || media?.url;
+              const url = getQueuePreviewUrl(item);
+              const previewBroken = brokenIds.has(item.id);
 
               return (
                 <div
@@ -75,7 +107,7 @@ const UploadingQueue = () => {
                     setSelectedQueueId(item.id);
                   }}
                 >
-                  {url ? (
+                  {url && !previewBroken ? (
                     isVideo ? (
                       <video
                         src={url}
@@ -92,13 +124,14 @@ const UploadingQueue = () => {
                         src={url}
                         alt=""
                         className="object-cover w-full h-full"
+                        decoding="async"
                         onError={() =>
                           setBrokenIds((prev) => new Set(prev).add(item.id))
                         }
                       />
                     )
                   ) : (
-                    <div className="w-full h-full bg-base-300" />
+                    <div className="w-full h-full bg-base-300 skeleton" />
                   )}
 
                   {/* Xóa — không xóa ngay, mở confirm */}
@@ -111,7 +144,7 @@ const UploadingQueue = () => {
                     <X className="w-3.5 h-3.5" />
                   </button>
 
-                  <div className="absolute inset-0 bg-black/35 flex items-center justify-center z-10 pointer-events-none">
+                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center z-10 pointer-events-none">
                     {(status === "uploading" || status === "queued") && (
                       <LoadingOverlay color="white" />
                     )}
