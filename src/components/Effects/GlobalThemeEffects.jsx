@@ -92,7 +92,7 @@ const GlobalThemeEffects = () => {
       aiMode: isAi,
       reduceMotion: false,
     };
-  }, [intensity, onCameraRoute, reduceMotion, snowTheme, theme]);
+  }, [intensity, onCameraRoute, perfMode, reduceMotion, snowTheme, theme]);
 
   if (isOceanBlueTheme(theme)) {
     if (perfMode === "lite") return null;
