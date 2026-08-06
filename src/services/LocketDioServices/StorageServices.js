@@ -45,7 +45,7 @@ function resolvePublicUrl(data) {
 
 /**
  * Upload media:
- * - Image ≤ 1.2MB: gửi base64 inline, vẫn nằm an toàn dưới JSON limit 2MB
+ * - Image ≤ 4.5MB: gửi base64 inline (postMoment đọc trực tiếp, không phụ thuộc temp PUT)
  * - Video / file lớn: PUT temp + verify GET
  */
 export const uploadFileAndGetInfoR2 = async (
@@ -69,11 +69,10 @@ export const uploadFileAndGetInfoR2 = async (
     console.warn("[gdrive] auto backup error:", e);
   }
 
-  // Base64 phình khoảng 4/3. Giữ mức này để cả payload luôn dưới express.json 2MB.
-  const INLINE_MAX = 1.2 * 1024 * 1024;
+  const INLINE_MAX = 4.5 * 1024 * 1024; // JSON 20MB limit, base64 ~1.33x
   const preferInline = safeType === "image" && file.size <= INLINE_MAX;
 
-  // ── Image nhỏ: base64 inline ──
+  // ── Image: base64 inline (ổn định nhất trên Render free) ──
   if (preferInline) {
     const mediaBase64 = await fileToBase64(file);
     if (!mediaBase64 || mediaBase64.length < 100) {
@@ -98,7 +97,7 @@ export const uploadFileAndGetInfoR2 = async (
     };
   }
 
-  // ── Video / ảnh lớn: presign + PUT + verify ──
+  // ── Video / large: presign + PUT + verify ──
   const body = {
     filename: fileName,
     contentType,
@@ -128,7 +127,7 @@ export const uploadFileAndGetInfoR2 = async (
 
   if (!uploadRes.ok) {
     const t = await uploadRes.text().catch(() => "");
-    // Fallback inline chỉ dùng cho ảnh đủ nhỏ để không vượt JSON limit.
+    // Fallback: nếu PUT fail và là ảnh → inline
     if (safeType === "image" && file.size <= INLINE_MAX) {
       const mediaBase64 = await fileToBase64(file);
       return {
