@@ -7,6 +7,7 @@ const { verifyIdToken, verifyplanAuth, verifyDioToken, onlyMemberCheck } = requi
 const { checkAppMeta } = require("../middlewares/checkMeta");
 const { initializeAppCheck } = require("../modules/appcheck");
 const { validateOverlayType } = require("../middlewares/validateOverlayType");
+const { instanceLocketV2 } = require("../libs/instanceLocket");
 const {
   friendRequestLimiter,
   friendSearchLimiter,
@@ -18,6 +19,54 @@ const {
 router.post("/getInfoMomentV2", checkAppMeta, verifyIdToken, verifyDioToken, momentcontroll.GetInfoMomentsControll);
 router.get("/getLatestMomentV2", verifyIdToken, momentcontroll.GetLastestMomentsControll);
 router.post("/reactMomentV2", verifyIdToken, momentcontroll.ReactMomentsControll);
+
+// Rollcalls — gọi server-to-server để tránh CORS / chặn request trên Android.
+// Giữ nguyên response chính thức để frontend không phải đổi cấu trúc dữ liệu.
+router.post("/getRollcallPostsV2", verifyIdToken, async (req, res) => {
+  const authHeader = String(req.headers.authorization || "");
+  const idToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+
+  if (!idToken) {
+    return res.status(401).json({
+      success: false,
+      message: "Missing Firebase ID token",
+    });
+  }
+
+  try {
+    const upstream = await instanceLocketV2.post(
+      "getRollcallPosts",
+      req.body,
+      {
+        meta: { idToken },
+        timeout: 30000,
+      },
+    );
+
+    return res.status(upstream.status || 200).json(upstream.data);
+  } catch (error) {
+    const status = error?.response?.status || 502;
+    const upstreamData = error?.response?.data;
+
+    console.warn("[rollcall-proxy] getRollcallPosts failed", {
+      status,
+      code: error?.code || null,
+      message: error?.message || "Unknown upstream error",
+    });
+
+    return res.status(status).json(
+      upstreamData && typeof upstreamData === "object"
+        ? upstreamData
+        : {
+            success: false,
+            message:
+              status === 504
+                ? "Rollcalls upstream timeout"
+                : "Rollcalls upstream unavailable",
+          },
+    );
+  }
+});
 
 //Message V2
 // router.post("/getAllMessageV2", verifyIdToken, messageControll.GetAllMessagesControll);
