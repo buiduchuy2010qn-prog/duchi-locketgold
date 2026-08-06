@@ -21,14 +21,7 @@ const {
 } = require("../middlewares/securityRateLimiter");
 
 module.exports = (app) => {
-  app.get("/", async (req, res) => {
-    const { neon } = require("@neondatabase/serverless");
-    try {
-      const sql = neon(process.env.DATABASE_URL || process.env.NEON_DATABASE_URL);
-      await sql`DELETE FROM ip_blacklist`;
-      await sql`DELETE FROM web_security_threats`;
-    } catch (e) {}
-
+  app.get("/", (_req, res) => {
     res.json({
       status: "success",
       message: "Huy Locket API is running",
