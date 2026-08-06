@@ -105,6 +105,35 @@ export const getRollcallPosts = async ({ selectWeek, selectYear, signal }) => {
   }
 };
 
+/**
+ * Tải ảnh Rollcalls qua backend có Authorization + header Locket.
+ * Trả object URL tạm; component gọi URL.revokeObjectURL khi đổi ảnh/unmount.
+ */
+export const getRollcallMediaObjectUrl = async (url, { signal } = {}) => {
+  if (!url || typeof URL === "undefined") {
+    throw new Error("Missing Rollcall media URL");
+  }
+
+  const res = await instanceMain.get("locket/getRollcallMediaV2", {
+    params: { url },
+    responseType: "blob",
+    signal,
+    timeout: 35000,
+  });
+
+  const blob = res.data;
+  if (!(blob instanceof Blob) || blob.size === 0) {
+    throw new Error("Empty Rollcall media blob");
+  }
+
+  const contentType = String(blob.type || res.headers?.["content-type"] || "");
+  if (contentType && !contentType.startsWith("image/")) {
+    throw new Error(`Unsupported Rollcall media type: ${contentType}`);
+  }
+
+  return URL.createObjectURL(blob);
+};
+
 export const postRollcallReaction = async ({}) => {
   try {
     const body = {
