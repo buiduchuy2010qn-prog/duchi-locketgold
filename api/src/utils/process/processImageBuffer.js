@@ -12,7 +12,8 @@ const prepareImageForProcessing = async (imageBuffer) => {
       throw new Error("Input Buffer is empty");
     }
 
-    let image = sharp(imageBuffer, { failOn: "none" }).rotate(); // Auto-fix
+    // Không cho Sharp âm thầm điền vùng xám khi JPEG/PNG bị cắt dữ liệu.
+    let image = sharp(imageBuffer, { failOn: "truncated" }).rotate(); // Auto-fix
     const metadata = await image.metadata();
     const { format } = metadata;
 
@@ -38,7 +39,7 @@ const prepareImageForProcessing = async (imageBuffer) => {
         throw new Error("HEIC convert produced empty buffer");
       }
 
-      image = sharp(jpegBuffer, { failOn: "none" }).rotate();
+      image = sharp(jpegBuffer, { failOn: "truncated" }).rotate();
       logInfo("prepareImage", "✅ Successfully converted HEIC to JPEG");
     }
 
