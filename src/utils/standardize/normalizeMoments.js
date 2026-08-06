@@ -35,22 +35,30 @@ function hasObjectContent(value) {
 }
 
 /**
- * API đăng bài đôi khi trả một overlay caption rỗng dù caption thật vẫn nằm
- * trong optionsData ở máy. Overlay rỗng phải được xem như "không có" để
- * upload queue có thể gắn lại caption local ngay sau khi đăng.
+ * API đăng bài đôi khi trả overlay caption chỉ có icon/background nhưng thiếu
+ * text trong vài nhịp đầu. Với caption standard/default, icon không đủ để coi
+ * overlay là hoàn chỉnh vì nó sẽ chặn caption local trong upload queue.
  */
 function hasMeaningfulOverlayContent(overlay) {
   if (!overlay || typeof overlay !== "object") return false;
 
   const text = overlay.text || overlay.caption;
-  if (typeof text === "string" && text.trim()) return true;
-
-  if (hasObjectContent(overlay.payload) || hasObjectContent(overlay.icon)) {
-    return true;
-  }
-
+  const hasText = typeof text === "string" && text.trim();
   const type = String(overlay.type || "").toLowerCase();
-  return NON_TEXT_OVERLAY_TYPES.has(type);
+  const overlayId = String(overlay.overlay_id || "").toLowerCase();
+  const isPlainCaption =
+    !type ||
+    type === "caption" ||
+    type === "standard" ||
+    type === "default" ||
+    overlayId === "caption:standard" ||
+    overlayId === "standard";
+
+  if (isPlainCaption) return Boolean(hasText);
+  if (hasText) return true;
+  if (NON_TEXT_OVERLAY_TYPES.has(type)) return true;
+
+  return hasObjectContent(overlay.payload) || hasObjectContent(overlay.icon);
 }
 
 export function normalizeMoment(data) {
@@ -149,7 +157,6 @@ export function normalizeMoment(data) {
   let overlayObj = null;
   if (overlays && typeof overlays === "object" && !Array.isArray(overlays)) {
     const oid = overlays.overlay_id || overlays.id || null;
-    // REST normalize đôi khi gán type = overlay_type ("caption") — suy ra music từ id/payload
     let resolvedType = overlays.type || null;
     if (
       !resolvedType ||
@@ -170,7 +177,6 @@ export function normalizeMoment(data) {
       ...overlays,
       overlay_id: oid,
       type: resolvedType,
-      // Locket có bài chỉ lưu caption ở alt_text/top-level caption.
       text: overlayText,
       caption: overlayText,
       payload: overlays.payload || {},
@@ -202,13 +208,10 @@ export function normalizeMoment(data) {
     };
   }
 
-  // Quan trọng cho bài vừa đăng: object overlay rỗng vẫn truthy, khiến queue
-  // không dùng được caption local. Chuyển nó về null để fallback hoạt động.
   if (overlayObj && !hasMeaningfulOverlayContent(overlayObj)) {
     overlayObj = null;
   }
 
-  // Captions list (legacy UI)
   const captions = [];
   const displayCaption = overlayObj?.text || legacyCaption;
   if (displayCaption) {
@@ -240,7 +243,6 @@ export function normalizeMoment(data) {
     group_id: group_id || groupId || null,
     caption: displayCaption || "",
     captions,
-    // Critical: keep overlays for MusicOverlay / Poll / Review
     overlays: overlayObj,
   };
 }
