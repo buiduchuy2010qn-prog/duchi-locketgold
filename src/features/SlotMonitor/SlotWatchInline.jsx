@@ -167,6 +167,10 @@ export default function SlotWatchInline() {
       ? "Railway đang canh 24/7. Thiết bị này chưa bật được thông báo hệ thống."
       : "Bật Canh Slot 24/7 để Railway vẫn theo dõi khi bạn đóng Huy Locket.";
 
+  const openFriendsFromSlot = (path = "/friends") => {
+    navigate(path, { state: { fromSlotPage: true } });
+  };
+
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:py-8 text-base-content">
       <section className="rounded-3xl border border-base-300 bg-base-100/90 shadow-xl overflow-hidden">
@@ -185,7 +189,7 @@ export default function SlotWatchInline() {
             <button
               type="button"
               className="btn btn-outline btn-sm self-start"
-              onClick={() => navigate("/friends")}
+              onClick={() => openFriendsFromSlot()}
             >
               <Search size={15} /> Tìm thêm Celeb
             </button>
@@ -253,7 +257,7 @@ export default function SlotWatchInline() {
                 <button
                   type="button"
                   className="btn btn-primary btn-sm mt-4"
-                  onClick={() => navigate("/friends")}
+                  onClick={() => openFriendsFromSlot()}
                 >
                   <Search size={15} /> Tìm Celeb để Canh Slot
                 </button>
@@ -317,7 +321,7 @@ export default function SlotWatchInline() {
                         <button
                           className="btn btn-error btn-sm"
                           onClick={() =>
-                            navigate(
+                            openFriendsFromSlot(
                               `/friends?username=${encodeURIComponent(celeb.username)}`,
                             )
                           }

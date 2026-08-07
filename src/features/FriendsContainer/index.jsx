@@ -13,7 +13,7 @@ import FriendList from "./FriendList";
 import clsx from "clsx";
 import { useTranslation } from "react-i18next";
 
-const FriendsContainer = () => {
+const FriendsContainer = ({ onClose }) => {
   const { t } = useTranslation("features");
   const popupRef = useRef(null);
   const navigation = useAppNavigation();
@@ -34,6 +34,11 @@ const FriendsContainer = () => {
 
   const [showModal, setShowModal] = useState(false);
   const [animate, setAnimate] = useState(false);
+
+  const closeFriends = () => {
+    setFriendsTabOpen(false);
+    if (typeof onClose === "function") onClose();
+  };
 
   useEffect(() => {
     document.body.style.overflow = showModal ? "hidden" : "";
@@ -112,9 +117,7 @@ const FriendsContainer = () => {
           "opacity-0 pointer-events-none": !animate,
         },
       )}
-      onClick={() => {
-        setFriendsTabOpen(false);
-      }}
+      onClick={closeFriends}
     >
       <div
         ref={popupRef}
@@ -130,9 +133,7 @@ const FriendsContainer = () => {
         onClick={(e) => e.stopPropagation()}
       >
         <button
-          onClick={() => {
-            setFriendsTabOpen(false);
-          }}
+          onClick={closeFriends}
           className="absolute top-2 right-3 z-10"
         >
           <X className="w-8 h-8 btn btn-circle p-1" />
