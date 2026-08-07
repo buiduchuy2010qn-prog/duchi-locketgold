@@ -26,6 +26,12 @@ function mapWatch(row) {
     lastCheckedAt: row.last_checked_at ? new Date(row.last_checked_at).getTime() : null,
     notifiedAt: row.notified_at ? new Date(row.notified_at).getTime() : null,
     enabled: Boolean(row.enabled),
+    autoRequestEnabled: Boolean(row.auto_request_enabled),
+    lastAutoRequestAt: row.last_auto_request_at
+      ? new Date(row.last_auto_request_at).getTime()
+      : null,
+    lastAutoRequestStatus: row.last_auto_request_status || "",
+    lastAutoRequestError: row.last_auto_request_error || "",
   };
 }
 
@@ -108,8 +114,40 @@ router.post("/watch", verifyIdToken, async (req, res, next) => {
 
 router.patch("/watch/:uid", verifyIdToken, async (req, res, next) => {
   try {
-    await store.setWatchEnabled(req.user.uid, req.params.uid, req.body?.enabled !== false);
-    return res.json({ success: true });
+    const hasEnabled = typeof req.body?.enabled === "boolean";
+    const hasAutoRequest = typeof req.body?.autoRequestEnabled === "boolean";
+    if (!hasEnabled && !hasAutoRequest) {
+      return res.status(400).json({
+        success: false,
+        code: "INVALID_SLOT_WATCH_UPDATE",
+        message: "Không có cấu hình Canh Slot hợp lệ để cập nhật.",
+      });
+    }
+
+    if (hasEnabled) {
+      await store.setWatchEnabled(req.user.uid, req.params.uid, req.body.enabled);
+    }
+    if (hasAutoRequest) {
+      await store.setWatchAutoRequestEnabled(
+        req.user.uid,
+        req.params.uid,
+        req.body.autoRequestEnabled,
+      );
+    }
+
+    const rows = await store.listUserWatches(req.user.uid);
+    const updated = rows.find(
+      (item) => String(item.celeb_uid) === String(req.params.uid),
+    );
+    if (!updated) {
+      return res.status(404).json({
+        success: false,
+        code: "SLOT_WATCH_NOT_FOUND",
+        message: "Không tìm thấy Celeb đang canh.",
+      });
+    }
+
+    return res.json({ success: true, data: mapWatch(updated) });
   } catch (error) {
     return next(error);
   }
