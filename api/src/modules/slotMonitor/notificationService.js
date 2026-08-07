@@ -1,3 +1,4 @@
+const { neon } = require("@neondatabase/serverless");
 const store = require("./store");
 const {
   getProviderConfig,
@@ -61,10 +62,50 @@ async function rememberTelegramUser(userUid, rawChatId) {
   return String(userUid);
 }
 
+async function findLegacyTelegramUser(chatId) {
+  const databaseUrl = String(
+    process.env.DATABASE_URL || process.env.NEON_DATABASE_URL || "",
+  ).trim();
+  if (!databaseUrl) return "";
+
+  try {
+    const sql = neon(databaseUrl);
+    const rows = await sql`
+      SELECT user_uid
+      FROM slot_notification_channels
+      WHERE telegram_chat_id = ${chatId}
+        AND telegram_enabled = TRUE
+      ORDER BY updated_at DESC
+      LIMIT 2
+    `;
+    const unique = [...new Set(rows.map((row) => String(row?.user_uid || "").trim()).filter(Boolean))];
+    return unique.length === 1 ? unique[0] : "";
+  } catch (error) {
+    console.warn("[slot-monitor] telegram legacy link lookup failed", {
+      code: error?.code || null,
+    });
+    return "";
+  }
+}
+
 async function getUserUidByTelegramChatId(rawChatId) {
   const chatId = String(rawChatId || "").trim().slice(0, 120);
   if (!/^-?\d{4,24}$/.test(chatId)) return "";
-  return String(await store.getConfigValue(telegramUserConfigKey(chatId)) || "").trim();
+
+  const mapped = String(
+    await store.getConfigValue(telegramUserConfigKey(chatId)) || "",
+  ).trim();
+  if (mapped) return mapped;
+
+  // Tương thích tài khoản đã liên kết Telegram trước khi bot /slots được thêm.
+  // Nếu tìm thấy đúng 1 tài khoản đang bật Telegram với Chat ID này thì tự tạo mapping.
+  const legacyUserUid = await findLegacyTelegramUser(chatId);
+  if (legacyUserUid) {
+    await rememberTelegramUser(legacyUserUid, chatId).catch(() => {});
+    return legacyUserUid;
+  }
+
+  return "";
 }
 
 async function getNotificationWebOrigin(userUid) {
