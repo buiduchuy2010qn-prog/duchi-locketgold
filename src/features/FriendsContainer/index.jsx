@@ -41,9 +41,12 @@ const FriendsContainer = () => {
   }, [showModal]);
 
   useEffect(() => {
+    let animationTimer = null;
+    let closeTimer = null;
+
     if (isFriendsTabOpen) {
       setShowModal(true);
-      setTimeout(() => setAnimate(true), 10);
+      animationTimer = window.setTimeout(() => setAnimate(true), 10);
       // Mở tab bạn bè → luôn thử sync (force nếu list rỗng)
       refreshFriendsData().catch(() => {});
       logWebUserAction({
@@ -55,11 +58,18 @@ const FriendsContainer = () => {
       setAnimate(false);
       // Giữ full list khi mở lại — không collapse về 3
       setShowAllFriends(true);
-      setTimeout(() => {
+      closeTimer = window.setTimeout(() => {
         setShowModal(false);
-        setFriendsTabOpen(false);
       }, 300);
     }
+
+    // Quan trọng: nếu trạng thái đổi từ đóng → mở trước khi 300ms kết thúc,
+    // hủy timer đóng cũ. Nếu không timer cũ sẽ đóng modal ngay sau khi route
+    // /friends?slot=1 vừa yêu cầu mở, khiến người dùng chỉ thấy trang nền.
+    return () => {
+      if (animationTimer) window.clearTimeout(animationTimer);
+      if (closeTimer) window.clearTimeout(closeTimer);
+    };
   }, [isFriendsTabOpen]);
 
   const handleAcceptRequest = (uid) =>
