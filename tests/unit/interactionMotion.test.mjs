@@ -14,8 +14,29 @@ test("interaction motion pack is loaded and respects accessibility/performance",
   assert.match(main, /interaction-motion\.css/);
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
   assert.match(css, /data-performance-mode="lite"/);
+  assert.match(css, /#huy-locket-nav-drawer/);
+  assert.match(css, /hl-moment-enter-lite/);
   assert.match(pageTransition, /useReducedMotion/);
+  assert.match(pageTransition, /litePageVariants/);
+  assert.match(pageTransition, /litePageTransition/);
   assert.doesNotMatch(pageTransition, /filter:\s*["']blur/);
+});
+
+test("menu slide and lightweight lite mode remain visible", () => {
+  const css = read("src/styles/interaction-motion.css");
+
+  assert.match(
+    css,
+    /#huy-locket-nav-drawer\s*\{[\s\S]*transition-property:\s*transform, opacity/i,
+  );
+  assert.match(
+    css,
+    /data-performance-mode="lite"\]\s+#huy-locket-nav-drawer[\s\S]*170ms/i,
+  );
+  assert.match(
+    css,
+    /data-performance-mode="lite"\]\s+\.moment-enter\s*\{[\s\S]*hl-moment-enter-lite/i,
+  );
 });
 
 test("moment loading and modal motion stay opt-in", () => {
