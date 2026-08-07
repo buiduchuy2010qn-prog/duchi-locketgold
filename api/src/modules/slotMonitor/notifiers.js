@@ -1,5 +1,6 @@
 const TELEGRAM_API_BASE = "https://api.telegram.org";
 const DEFAULT_ZALO_MESSAGE_URL = "https://openapi.zalo.me/v3.0/oa/message/cs";
+const EMAIL_BRAND = "Duchi Locket";
 
 const clean = (value, max = 1000) => String(value || "").trim().slice(0, max);
 
@@ -118,21 +119,132 @@ function escapeHtml(value) {
     .replace(/'/g, "&#039;");
 }
 
-function buildEmailHtml(message) {
-  return `
-    <div style="font-family:Arial,sans-serif;line-height:1.55;color:#111827">
-      <h2 style="margin:0 0 12px">${escapeHtml(message.title)}</h2>
-      <p style="margin:0 0 8px">${escapeHtml(message.body)}</p>
-      ${message.maxFriends > 0 ? `<p style="margin:0 0 16px">👥 ${escapeHtml(formatNumber(message.friendCount))} / ${escapeHtml(formatNumber(message.maxFriends))} bạn</p>` : ""}
-      <a href="${escapeHtml(message.url)}" style="display:inline-block;padding:10px 14px;border-radius:10px;background:#111827;color:#fff;text-decoration:none">Mở Huy Locket</a>
-    </div>
-  `.trim();
+function stripEmailSymbols(value) {
+  return clean(value, 240)
+    .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, "")
+    .replace(/[\uFFFD�]+/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function buildEmailSubject(payload, message) {
+  if (payload?.type === "slot-test") {
+    return `${EMAIL_BRAND} | Xác nhận kết nối Canh Slot`;
+  }
+  if (payload?.type === "slot-open" && message.username) {
+    return `${EMAIL_BRAND} | @${message.username} vừa mở slot`.slice(0, 200);
+  }
+  const cleanTitle = stripEmailSymbols(message.title)
+    .replace(/^Huy Locket\s*/i, "")
+    .replace(/^Duchi Locket\s*[|:-]?\s*/i, "");
+  return `${EMAIL_BRAND} | ${cleanTitle || "Thông báo Canh Slot"}`.slice(0, 200);
+}
+
+function buildEmailText(payload, message) {
+  const lines = [
+    EMAIL_BRAND,
+    "Canh Slot",
+    "",
+    stripEmailSymbols(message.body),
+  ];
+
+  if (message.maxFriends > 0) {
+    lines.push(`Trạng thái bạn bè: ${formatNumber(message.friendCount)} / ${formatNumber(message.maxFriends)}`);
+  }
+
+  lines.push("", `Mở Duchi Locket: ${message.url}`);
+
+  if (payload?.type === "slot-test") {
+    lines.push("", "Đây là email kiểm tra để xác nhận kênh Gmail đã được kết nối thành công.");
+  } else {
+    lines.push("", "Bạn nhận email này vì đã bật thông báo Gmail trong tính năng Canh Slot.");
+  }
+
+  lines.push("Nếu không muốn nhận email, hãy tắt Gmail trong phần Kênh báo khi Celeb mở slot.");
+  return lines.filter((line, index, all) => line !== "" || all[index - 1] !== "").join("\n");
+}
+
+function buildEmailHtml(payload, message) {
+  const isTest = payload?.type === "slot-test";
+  const heading = isTest
+    ? "Kết nối Gmail thành công"
+    : message.username
+      ? `@${message.username} vừa mở slot`
+      : "Thông báo Canh Slot";
+  const description = isTest
+    ? "Kênh Gmail của bạn đã được kết nối với Duchi Locket và sẵn sàng nhận thông báo Canh Slot."
+    : stripEmailSymbols(message.body);
+  const friendStatus = message.maxFriends > 0
+    ? `<tr><td style="padding:12px 0 0;color:#475569;font-size:14px;">Trạng thái bạn bè</td></tr>
+       <tr><td style="padding:3px 0 0;color:#0f172a;font-size:15px;font-weight:700;">${escapeHtml(formatNumber(message.friendCount))} / ${escapeHtml(formatNumber(message.maxFriends))}</td></tr>`
+    : "";
+
+  return `<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>${escapeHtml(buildEmailSubject(payload, message))}</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f7fb;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${escapeHtml(description)}</div>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f4f7fb;padding:28px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;background:#ffffff;border:1px solid #e2e8f0;border-radius:18px;overflow:hidden;box-shadow:0 8px 28px rgba(15,23,42,.08);">
+          <tr>
+            <td style="padding:22px 28px;background:#ffffff;border-bottom:1px solid #eef2f7;">
+              <div style="font-size:20px;font-weight:800;letter-spacing:.2px;color:#7c3aed;">DUCHI LOCKET</div>
+              <div style="margin-top:4px;font-size:12px;color:#64748b;">Thông báo hệ thống Canh Slot</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:30px 28px 24px;">
+              <div style="font-size:13px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.7px;">Canh Slot</div>
+              <h1 style="margin:8px 0 12px;font-size:24px;line-height:1.3;color:#0f172a;">${escapeHtml(heading)}</h1>
+              <p style="margin:0;color:#475569;font-size:15px;line-height:1.7;">${escapeHtml(description)}</p>
+              ${friendStatus ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:18px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;">
+                <tr>
+                  <td style="padding:16px 18px;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                      ${friendStatus}
+                    </table>
+                  </td>
+                </tr>
+              </table>` : ""}
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-top:24px;">
+                <tr>
+                  <td style="border-radius:10px;background:#111827;">
+                    <a href="${escapeHtml(message.url)}" style="display:inline-block;padding:12px 20px;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;">Mở Duchi Locket</a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:24px 0 0;color:#64748b;font-size:12px;line-height:1.6;">
+                ${isTest
+                  ? "Đây là email kiểm tra để xác nhận kênh Gmail đã được kết nối thành công."
+                  : "Bạn nhận email này vì đã bật thông báo Gmail trong tính năng Canh Slot."}
+                Nếu không muốn nhận email, hãy tắt Gmail trong phần Kênh báo khi Celeb mở slot.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:18px 28px;background:#f8fafc;border-top:1px solid #eef2f7;color:#94a3b8;font-size:11px;line-height:1.6;">
+              Email tự động từ Duchi Locket. Vui lòng không gửi mật khẩu, mã OTP hoặc thông tin đăng nhập qua email.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`.trim();
 }
 
 async function sendEmail(email, payload, { idempotencyKey = "" } = {}) {
   const endpoint = clean(process.env.GMAIL_APPS_SCRIPT_URL, 1000);
   const secret = clean(process.env.GMAIL_APPS_SCRIPT_SECRET, 500);
-  const fromName = clean(process.env.GMAIL_FROM_NAME, 120) || "Duchi Locket";
+  const fromName = clean(process.env.GMAIL_FROM_NAME, 120) || EMAIL_BRAND;
   const target = clean(email, 320).toLowerCase();
   if (!endpoint || !secret) {
     const error = new Error("Gmail chưa được cấu hình trên Railway.");
@@ -151,19 +263,22 @@ async function sendEmail(email, payload, { idempotencyKey = "" } = {}) {
   }
 
   const message = buildSlotMessage(payload);
+  const subject = buildEmailSubject(payload, message);
+  const text = buildEmailText(payload, message);
+  const html = buildEmailHtml(payload, message);
   try {
     const response = await fetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "text/plain;charset=utf-8",
-        "User-Agent": "Huy-Locket-Slot-Monitor/1.0",
+        "User-Agent": "Duchi-Locket-Mail/1.0",
       },
       body: JSON.stringify({
         secret,
         to: target,
-        subject: message.title,
-        text: message.text,
-        html: buildEmailHtml(message),
+        subject,
+        text,
+        html,
         fromName,
         idempotencyKey: clean(idempotencyKey, 240),
       }),
@@ -241,6 +356,9 @@ async function sendZalo(userId, payload) {
 module.exports = {
   getProviderConfig,
   buildSlotMessage,
+  buildEmailSubject,
+  buildEmailText,
+  buildEmailHtml,
   sendTelegram,
   sendEmail,
   sendZalo,
