@@ -4,12 +4,23 @@ const {
   getNotificationSettings,
   saveNotificationSettings,
   testNotificationChannel,
+  rememberNotificationWebOrigin,
 } = require("./notificationService");
 
 const router = express.Router();
 
+function requestWebOrigin(req) {
+  return String(
+    req.body?.webOrigin ||
+      req.query?.webOrigin ||
+      req.headers.origin ||
+      "",
+  ).trim();
+}
+
 router.get("/", verifyIdToken, async (req, res, next) => {
   try {
+    await rememberNotificationWebOrigin(req.user.uid, requestWebOrigin(req));
     const settings = await getNotificationSettings(req.user.uid);
     return res.json({ success: true, data: settings });
   } catch (error) {
@@ -19,6 +30,7 @@ router.get("/", verifyIdToken, async (req, res, next) => {
 
 router.put("/", verifyIdToken, async (req, res, next) => {
   try {
+    await rememberNotificationWebOrigin(req.user.uid, requestWebOrigin(req));
     const settings = await saveNotificationSettings(req.user.uid, req.body || {});
     return res.json({
       success: true,
@@ -40,7 +52,11 @@ router.put("/", verifyIdToken, async (req, res, next) => {
 
 router.post("/test/:channel", verifyIdToken, async (req, res, next) => {
   try {
-    const result = await testNotificationChannel(req.user.uid, req.params.channel);
+    const webOrigin = requestWebOrigin(req);
+    await rememberNotificationWebOrigin(req.user.uid, webOrigin);
+    const result = await testNotificationChannel(req.user.uid, req.params.channel, {
+      webOrigin,
+    });
     return res.json({
       success: true,
       message: "Đã gửi thông báo thử.",
