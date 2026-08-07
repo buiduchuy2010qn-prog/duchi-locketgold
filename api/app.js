@@ -22,6 +22,7 @@ const { printServerBanner } = require("./src/utils/printServerBanner.js");
 const { antiBotMiddleware, globalDDoSShield, wafSecurityShield } = require("./src/middlewares/antiBot.js");
 const { securityHeaders } = require("./src/middlewares/securityHeaders.js");
 const { requireJsonContentType, sanitizeBodyStrings, validateUploadBuffer, ALLOWED_IMAGE_MIMES, ALLOWED_VIDEO_MIMES } = require("./src/middlewares/payloadValidation.js");
+const { startSlotMonitorWorker } = require("./src/modules/slotMonitor");
 
 const allowedMediaMimes = new Set([...ALLOWED_IMAGE_MIMES, ...ALLOWED_VIDEO_MIMES]);
 
@@ -228,6 +229,7 @@ server.listen(PORT, "0.0.0.0", () => {
     isProd: process.env.NODE_ENV === "production",
     PORT,
   });
+  startSlotMonitorWorker();
 });
 
 // Không crash process vì unhandled rejection nhỏ
