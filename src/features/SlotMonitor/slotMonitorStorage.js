@@ -1,4 +1,4 @@
-import { SLOT_STATUS, SLOT_WATCH_LIMIT } from "./slotMonitorCore";
+import { SLOT_STATUS, SLOT_WATCH_LIMIT } from "./slotMonitorCore.js";
 
 export const SLOT_MONITOR_STORAGE_KEY = "huy_locket_slot_watch_v1";
 export const SLOT_MONITOR_LEADER_KEY = "huy_locket_slot_monitor_leader_v1";
