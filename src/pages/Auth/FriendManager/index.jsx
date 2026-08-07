@@ -1,15 +1,32 @@
 import React, { useEffect } from "react";
 import { BookUser } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import { useAppNavigation } from "@/context/AppContext";
 import FriendsContainer from "@/features/FriendsContainer";
+import SlotWatchInline from "@/features/SlotMonitor/SlotWatchInline";
 
 const FriendManager = () => {
+  const location = useLocation();
   const { isFriendsTabOpen, setFriendsTabOpen } = useAppNavigation();
+  const isSlotPage = new URLSearchParams(location.search).get("slot") === "1";
 
   useEffect(() => {
+    if (isSlotPage) {
+      setFriendsTabOpen(false);
+      return undefined;
+    }
+
     setFriendsTabOpen(true);
     return () => setFriendsTabOpen(false);
-  }, [setFriendsTabOpen]);
+  }, [isSlotPage, setFriendsTabOpen]);
+
+  if (isSlotPage) {
+    return (
+      <div className="min-h-[80vh] bg-base-100">
+        <SlotWatchInline />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[80vh] flex flex-col items-center justify-center bg-base-100 text-base-content px-4 text-center gap-3">
