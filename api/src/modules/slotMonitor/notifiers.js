@@ -1,5 +1,4 @@
 const TELEGRAM_API_BASE = "https://api.telegram.org";
-const RESEND_API_BASE = "https://api.resend.com";
 const DEFAULT_ZALO_MESSAGE_URL = "https://openapi.zalo.me/v3.0/oa/message/cs";
 
 const clean = (value, max = 1000) => String(value || "").trim().slice(0, max);
@@ -12,7 +11,8 @@ function getProviderConfig() {
     },
     email: {
       configured: Boolean(
-        clean(process.env.RESEND_API_KEY) && clean(process.env.RESEND_FROM_EMAIL, 320),
+        clean(process.env.GMAIL_APPS_SCRIPT_URL, 1000) &&
+          clean(process.env.GMAIL_APPS_SCRIPT_SECRET, 500),
       ),
     },
     zalo: {
@@ -118,13 +118,30 @@ function escapeHtml(value) {
     .replace(/'/g, "&#039;");
 }
 
+function buildEmailHtml(message) {
+  return `
+    <div style="font-family:Arial,sans-serif;line-height:1.55;color:#111827">
+      <h2 style="margin:0 0 12px">${escapeHtml(message.title)}</h2>
+      <p style="margin:0 0 8px">${escapeHtml(message.body)}</p>
+      ${message.maxFriends > 0 ? `<p style="margin:0 0 16px">👥 ${escapeHtml(formatNumber(message.friendCount))} / ${escapeHtml(formatNumber(message.maxFriends))} bạn</p>` : ""}
+      <a href="${escapeHtml(message.url)}" style="display:inline-block;padding:10px 14px;border-radius:10px;background:#111827;color:#fff;text-decoration:none">Mở Huy Locket</a>
+    </div>
+  `.trim();
+}
+
 async function sendEmail(email, payload, { idempotencyKey = "" } = {}) {
-  const apiKey = clean(process.env.RESEND_API_KEY, 500);
-  const from = clean(process.env.RESEND_FROM_EMAIL, 320);
-  const target = clean(email, 320);
-  if (!apiKey || !from) {
-    const error = new Error("Email/Gmail chưa được cấu hình trên Railway.");
+  const endpoint = clean(process.env.GMAIL_APPS_SCRIPT_URL, 1000);
+  const secret = clean(process.env.GMAIL_APPS_SCRIPT_SECRET, 500);
+  const fromName = clean(process.env.GMAIL_FROM_NAME, 120) || "Duchi Locket";
+  const target = clean(email, 320).toLowerCase();
+  if (!endpoint || !secret) {
+    const error = new Error("Gmail chưa được cấu hình trên Railway.");
     error.code = "EMAIL_NOT_CONFIGURED";
+    throw error;
+  }
+  if (!/^https:\/\//i.test(endpoint)) {
+    const error = new Error("URL Google Apps Script không hợp lệ.");
+    error.code = "EMAIL_RELAY_URL_INVALID";
     throw error;
   }
   if (!target) {
@@ -134,40 +151,49 @@ async function sendEmail(email, payload, { idempotencyKey = "" } = {}) {
   }
 
   const message = buildSlotMessage(payload);
-  const headers = {
-    Authorization: `Bearer ${apiKey}`,
-    "Content-Type": "application/json",
-    "User-Agent": "Huy-Locket-Slot-Monitor/1.0",
-  };
-  const key = clean(idempotencyKey, 240);
-  if (key) headers["Idempotency-Key"] = key;
-
-  const response = await fetch(`${RESEND_API_BASE}/emails`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({
-      from,
-      to: [target],
-      subject: message.title,
-      text: message.text,
-      html: `
-        <div style="font-family:Arial,sans-serif;line-height:1.55;color:#111827">
-          <h2 style="margin:0 0 12px">${escapeHtml(message.title)}</h2>
-          <p style="margin:0 0 8px">${escapeHtml(message.body)}</p>
-          ${message.maxFriends > 0 ? `<p style="margin:0 0 16px">👥 ${escapeHtml(formatNumber(message.friendCount))} / ${escapeHtml(formatNumber(message.maxFriends))} bạn</p>` : ""}
-          <a href="${escapeHtml(message.url)}" style="display:inline-block;padding:10px 14px;border-radius:10px;background:#111827;color:#fff;text-decoration:none">Mở Huy Locket</a>
-        </div>
-      `,
-    }),
-  });
-  const { data } = await parseResponse(response);
-  if (!response.ok) {
-    const error = new Error(data?.message || "Email/Gmail gửi thông báo thất bại.");
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8",
+        "User-Agent": "Huy-Locket-Slot-Monitor/1.0",
+      },
+      body: JSON.stringify({
+        secret,
+        to: target,
+        subject: message.title,
+        text: message.text,
+        html: buildEmailHtml(message),
+        fromName,
+        idempotencyKey: clean(idempotencyKey, 240),
+      }),
+      signal: AbortSignal.timeout(15000),
+    });
+    const { data } = await parseResponse(response);
+    if (!response.ok || data?.ok !== true) {
+      const error = new Error(data?.message || "Gmail relay từ chối gửi thông báo.");
+      error.code = data?.code || "EMAIL_RELAY_REJECTED";
+      error.status = response.status;
+      throw error;
+    }
+    return {
+      ok: true,
+      provider: "gmail-apps-script",
+      messageId: data?.messageId || null,
+      deduped: Boolean(data?.deduped),
+    };
+  } catch (cause) {
+    if (cause?.code === "EMAIL_RELAY_REJECTED" || String(cause?.code || "").startsWith("EMAIL_")) {
+      cause.code = "EMAIL_SEND_FAILED";
+      cause.status = Number(cause.status) || 502;
+      throw cause;
+    }
+    const error = new Error("Gmail gửi thông báo thất bại.");
     error.code = "EMAIL_SEND_FAILED";
-    error.status = response.status;
+    error.status = 502;
+    error.cause = cause;
     throw error;
   }
-  return { ok: true, provider: "email", messageId: data?.id || null };
 }
 
 async function sendZalo(userId, payload) {
