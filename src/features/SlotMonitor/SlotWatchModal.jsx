@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Bell,
   BellRing,
@@ -12,6 +12,20 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useSlotMonitor } from "./useSlotMonitor";
 import { SLOT_STATUS } from "./slotMonitorCore";
+import {
+  fetchServerSlotWatches,
+  syncExistingWatches,
+} from "./slotPushService";
+import {
+  getSlotMonitorOwner,
+  getWatchedCelebs,
+  hasServerSyncForOwner,
+  markServerSyncForOwner,
+  saveWatchedCelebs,
+  setSlotMonitorOwner,
+  SLOT_MONITOR_STORAGE_KEY,
+} from "./slotMonitorStorage";
+import { getMyLocalId } from "@/utils/auth/getMyLocalId";
 
 const statusLabel = (status) => {
   switch (status) {
@@ -35,8 +49,43 @@ const timeAgo = (value) => {
   return `${Math.floor(minutes / 60)} giờ trước`;
 };
 
+const serverWatchToLocal = (item) => ({
+  uid: item?.uid,
+  username: item?.username,
+  displayName: item?.displayName || item?.username,
+  avatar: item?.avatar || "",
+  friendCount: Number(item?.friendCount) || 0,
+  maxFriends: Number(item?.maxFriends) || 0,
+  status: item?.enabled === false ? SLOT_STATUS.PAUSED : item?.status,
+  createdAt: Date.now(),
+  lastCheckedAt: item?.lastCheckedAt || null,
+  notifiedAt: item?.notifiedAt || null,
+  errorCount: 0,
+  lastWasFull:
+    typeof item?.lastWasFull === "boolean"
+      ? item.lastWasFull
+      : Number(item?.maxFriends || 0) > 0 &&
+        Number(item?.friendCount || 0) >= Number(item?.maxFriends || 0),
+});
+
+function notifySameTabStorageRefresh(items) {
+  try {
+    window.dispatchEvent(
+      new StorageEvent("storage", {
+        key: SLOT_MONITOR_STORAGE_KEY,
+        newValue: JSON.stringify(items),
+        storageArea: window.localStorage,
+      }),
+    );
+  } catch {
+    window.dispatchEvent(new Event("storage"));
+  }
+}
+
 export default function SlotWatchModal({ isOpen, onClose }) {
   const navigate = useNavigate();
+  const [syncingAccount, setSyncingAccount] = useState(false);
+  const [syncError, setSyncError] = useState("");
   const {
     watchedCelebs,
     checkingUids,
@@ -57,9 +106,78 @@ export default function SlotWatchModal({ isOpen, onClose }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [isOpen, onClose]);
 
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    let cancelled = false;
+
+    const syncAccountWatches = async () => {
+      const ownerUid = getMyLocalId();
+      if (!ownerUid) return;
+
+      setSyncingAccount(true);
+      setSyncError("");
+      try {
+        let local = getWatchedCelebs();
+        const storedOwner = getSlotMonitorOwner();
+
+        if (storedOwner && storedOwner !== ownerUid) {
+          local = saveWatchedCelebs([]);
+        }
+
+        const serverRaw = await fetchServerSlotWatches();
+        const server = serverRaw
+          .map(serverWatchToLocal)
+          .filter((item) => item.uid && item.username)
+          .slice(0, 20);
+
+        const alreadyHydrated = hasServerSyncForOwner(ownerUid);
+        let next = server;
+
+        // Migration V1: nếu server chưa có dữ liệu nhưng máy này đã có danh sách local,
+        // upload một lần. Sau đó server trở thành nguồn chuẩn để nhiều thiết bị đồng bộ.
+        if (!alreadyHydrated && server.length === 0 && local.length > 0) {
+          await syncExistingWatches(local);
+          next = local;
+        }
+
+        if (cancelled) return;
+        const saved = saveWatchedCelebs(next);
+        setSlotMonitorOwner(ownerUid);
+        markServerSyncForOwner(ownerUid);
+        notifySameTabStorageRefresh(saved);
+      } catch (error) {
+        if (!cancelled) {
+          setSyncError(
+            error?.response?.data?.message ||
+              "Chưa đồng bộ được danh sách từ tài khoản. Danh sách trên máy vẫn được giữ.",
+          );
+        }
+      } finally {
+        if (!cancelled) setSyncingAccount(false);
+      }
+    };
+
+    syncAccountWatches();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const pushEnabled = slotPushState?.enabled;
+  const backgroundEnabled = slotPushState?.backgroundEnabled;
+  const pushUnsupported = [
+    "NOTIFICATION_UNSUPPORTED",
+    "PUSH_UNSUPPORTED",
+    "SERVICE_WORKER_UNAVAILABLE",
+  ].includes(slotPushState?.reason);
+
+  const subtitle = pushEnabled
+    ? "Canh 24/7 đang bật — có slot sẽ báo ra điện thoại/màn hình khóa."
+    : backgroundEnabled
+      ? "Railway đang canh 24/7. Thiết bị này chưa bật được thông báo hệ thống."
+      : "Bật Canh Slot 24/7 để Railway vẫn theo dõi khi bạn đóng Huy Locket.";
 
   return (
     <div
@@ -78,11 +196,7 @@ export default function SlotWatchModal({ isOpen, onClose }) {
           <div className="flex items-start justify-between gap-3">
             <div>
               <h2 className="flex items-center gap-2 font-bold"><Bell size={18} /> Canh Slot</h2>
-              <p className="text-xs text-base-content/60">
-                {pushEnabled
-                  ? "Canh 24/7 đang bật — có slot sẽ báo ra điện thoại/màn hình khóa."
-                  : "Bật thông báo 24/7 để vẫn nhận slot khi không mở Huy Locket."}
-              </p>
+              <p className="text-xs text-base-content/60">{subtitle}</p>
             </div>
             <button className="btn btn-ghost btn-circle btn-sm" onClick={onClose} aria-label="Đóng">
               <X size={18} />
@@ -102,7 +216,11 @@ export default function SlotWatchModal({ isOpen, onClose }) {
               ) : (
                 <Bell size={15} />
               )}
-              {pushEnabled ? "Đã bật 24/7" : "Bật thông báo 24/7"}
+              {pushEnabled
+                ? "Đã bật 24/7"
+                : backgroundEnabled
+                  ? "Bật thông báo thiết bị"
+                  : "Bật Canh 24/7"}
             </button>
 
             <button
@@ -114,9 +232,20 @@ export default function SlotWatchModal({ isOpen, onClose }) {
             </button>
           </div>
 
+          {syncingAccount && (
+            <p className="mt-2 text-xs text-info">⟳ Đang đồng bộ Canh Slot của tài khoản này...</p>
+          )}
+          {syncError && (
+            <p className="mt-2 text-xs text-warning">{syncError}</p>
+          )}
           {slotPushState?.permission === "denied" && (
             <p className="mt-2 text-xs text-warning">
               Trình duyệt đang chặn thông báo. Hãy bật quyền thông báo cho Huy Locket trong cài đặt trình duyệt/điện thoại.
+            </p>
+          )}
+          {backgroundEnabled && pushUnsupported && (
+            <p className="mt-2 text-xs text-info">
+              Railway vẫn canh slot 24/7 và đồng bộ tài khoản. Muốn nhận ngoài màn hình khóa, hãy bật Web Push trên điện thoại/trình duyệt có hỗ trợ.
             </p>
           )}
         </header>
@@ -125,7 +254,9 @@ export default function SlotWatchModal({ isOpen, onClose }) {
           {watchedCelebs.length === 0 ? (
             <div className="py-10 text-center text-base-content/55">
               <Bell className="mx-auto mb-2 opacity-30" />
-              Chưa có Celeb nào đang được canh.
+              {syncingAccount
+                ? "Đang lấy danh sách Canh Slot từ tài khoản..."
+                : "Chưa có Celeb nào đang được canh."}
             </div>
           ) : watchedCelebs.map((celeb) => {
             const checking = checkingUids.includes(celeb.uid);
@@ -194,7 +325,7 @@ export default function SlotWatchModal({ isOpen, onClose }) {
 
         {watchedCelebs.length > 0 && (
           <footer className="flex items-center justify-between border-t border-base-300 p-3 text-xs">
-            <span className="text-base-content/60">{watchedCelebs.length}/20 tài khoản</span>
+            <span className="text-base-content/60">{watchedCelebs.length}/20 tài khoản • đồng bộ theo tài khoản</span>
             <button
               className="btn btn-ghost btn-xs text-error"
               onClick={() => {
