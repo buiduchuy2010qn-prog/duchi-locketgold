@@ -75,6 +75,19 @@ async function ensureSchema() {
       CREATE INDEX IF NOT EXISTS idx_slot_push_subscriptions_user_active
       ON slot_push_subscriptions (user_uid, active)
     `;
+    await sql`
+      CREATE TABLE IF NOT EXISTS slot_notification_channels (
+        user_uid TEXT PRIMARY KEY,
+        telegram_chat_id TEXT,
+        telegram_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+        email_address TEXT,
+        email_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+        zalo_user_id TEXT,
+        zalo_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `;
   })().catch((error) => {
     schemaPromise = null;
     throw error;
@@ -293,6 +306,59 @@ async function deactivateSubscription(endpoint) {
   `;
 }
 
+async function getNotificationSettings(userUid) {
+  await ensureSchema();
+  const rows = await sql`
+    SELECT telegram_chat_id, telegram_enabled,
+           email_address, email_enabled,
+           zalo_user_id, zalo_enabled
+    FROM slot_notification_channels
+    WHERE user_uid = ${String(userUid)}
+    LIMIT 1
+  `;
+  const row = rows[0] || {};
+  return {
+    telegramChatId: row.telegram_chat_id || "",
+    telegramEnabled: Boolean(row.telegram_enabled),
+    emailAddress: row.email_address || "",
+    emailEnabled: Boolean(row.email_enabled),
+    zaloUserId: row.zalo_user_id || "",
+    zaloEnabled: Boolean(row.zalo_enabled),
+  };
+}
+
+async function saveNotificationSettings(userUid, settings = {}) {
+  await ensureSchema();
+  const telegramChatId = String(settings.telegramChatId || "").trim().slice(0, 120);
+  const emailAddress = String(settings.emailAddress || "").trim().slice(0, 320);
+  const zaloUserId = String(settings.zaloUserId || "").trim().slice(0, 160);
+  const telegramEnabled = Boolean(settings.telegramEnabled && telegramChatId);
+  const emailEnabled = Boolean(settings.emailEnabled && emailAddress);
+  const zaloEnabled = Boolean(settings.zaloEnabled && zaloUserId);
+
+  await sql`
+    INSERT INTO slot_notification_channels (
+      user_uid, telegram_chat_id, telegram_enabled,
+      email_address, email_enabled,
+      zalo_user_id, zalo_enabled, updated_at
+    ) VALUES (
+      ${String(userUid)}, ${telegramChatId || null}, ${telegramEnabled},
+      ${emailAddress || null}, ${emailEnabled},
+      ${zaloUserId || null}, ${zaloEnabled}, NOW()
+    )
+    ON CONFLICT (user_uid) DO UPDATE SET
+      telegram_chat_id = EXCLUDED.telegram_chat_id,
+      telegram_enabled = EXCLUDED.telegram_enabled,
+      email_address = EXCLUDED.email_address,
+      email_enabled = EXCLUDED.email_enabled,
+      zalo_user_id = EXCLUDED.zalo_user_id,
+      zalo_enabled = EXCLUDED.zalo_enabled,
+      updated_at = NOW()
+  `;
+
+  return getNotificationSettings(userUid);
+}
+
 module.exports = {
   isConfigured,
   ensureSchema,
@@ -312,4 +378,6 @@ module.exports = {
   upsertSubscription,
   listSubscriptionsForUser,
   deactivateSubscription,
+  getNotificationSettings,
+  saveNotificationSettings,
 };

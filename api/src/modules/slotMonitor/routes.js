@@ -2,6 +2,7 @@ const express = require("express");
 const { verifyIdToken } = require("../../middlewares/Auth");
 const store = require("./store");
 const { sanitizeWatchInput } = require("./core");
+const notificationRoutes = require("./notificationRoutes");
 const {
   enableBackgroundPush,
   getPublicConfig,
@@ -40,6 +41,8 @@ router.get("/config", async (_req, res) => {
     });
   }
 });
+
+router.use("/notifications", notificationRoutes);
 
 router.get("/watches", verifyIdToken, async (req, res, next) => {
   try {

@@ -109,6 +109,46 @@ test("full to open notifies exactly once until the celeb becomes full again", ()
   assert.equal(secondOpen.shouldNotify, true);
 });
 
+test("raising max_friends from 20k to 30k opens and notifies 10k slots", () => {
+  const transition = computeTransition(
+    {
+      friend_count: 20000,
+      max_friends: 20000,
+      last_was_full: true,
+    },
+    {
+      friendCount: 20000,
+      maxFriends: 30000,
+      availableSlots: 10000,
+      isFull: false,
+    },
+  );
+
+  assert.equal(transition.shouldNotify, true);
+  assert.equal(transition.capacityIncreased, true);
+  assert.equal(transition.availableSlots, 10000);
+  assert.equal(transition.status, "SLOT_OPEN");
+});
+
+test("raising capacity again while already open still creates a new alert", () => {
+  const transition = computeTransition(
+    {
+      friend_count: 19999,
+      max_friends: 20000,
+      last_was_full: false,
+    },
+    {
+      friendCount: 19999,
+      maxFriends: 30000,
+      availableSlots: 10001,
+      isFull: false,
+    },
+  );
+
+  assert.equal(transition.shouldNotify, true);
+  assert.equal(transition.capacityIncreased, true);
+});
+
 test("decodeFirebaseUid extracts authenticated user id", () => {
   const token = makeJwt({ user_id: "user-123" });
   assert.equal(decodeFirebaseUid(token), "user-123");
