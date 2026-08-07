@@ -7,7 +7,7 @@
     }
   },
   "ignoreCommand": "if [ \"$VERCEL_ENV\" = \"preview\" ]; then exit 0; else exit 1; fi",
-  "framework": null,
+  "framework": "vite",
   "installCommand": "npm ci --no-audit --no-fund",
   "buildCommand": "npm run build:deploy",
   "outputDirectory": "vercel-static",
