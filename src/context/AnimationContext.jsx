@@ -17,7 +17,13 @@ export const AnimationProvider = ({ children }) => {
   // Lấy trạng thái từ localStorage, mặc định là true nếu chưa từng set
   const [isAnimationEnabled, setIsAnimationEnabled] = useState(() => {
     const saved = localStorage.getItem('global_animation_enabled');
-    return saved !== null ? JSON.parse(saved) : true;
+
+    if (saved === 'true') return true;
+    if (saved === 'false') return false;
+
+    // Recover from empty or malformed values left by an interrupted write.
+    localStorage.removeItem('global_animation_enabled');
+    return true;
   });
 
   // Đồng bộ với localStorage mỗi khi state thay đổi
