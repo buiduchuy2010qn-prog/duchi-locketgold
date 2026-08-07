@@ -43,11 +43,28 @@ function webOriginConfigKey(userUid) {
   return `slot-notification-web-origin:${String(userUid || "").slice(0, 200)}`;
 }
 
+function telegramUserConfigKey(chatId) {
+  return `slot-telegram-user:${String(chatId || "").trim().slice(0, 120)}`;
+}
+
 async function rememberNotificationWebOrigin(userUid, rawOrigin) {
   const origin = sanitizeWebOrigin(rawOrigin);
   if (!origin) return "";
   await store.setConfigValue(webOriginConfigKey(userUid), origin);
   return origin;
+}
+
+async function rememberTelegramUser(userUid, rawChatId) {
+  const chatId = String(rawChatId || "").trim().slice(0, 120);
+  if (!userUid || !/^-?\d{4,24}$/.test(chatId)) return "";
+  await store.setConfigValue(telegramUserConfigKey(chatId), String(userUid));
+  return String(userUid);
+}
+
+async function getUserUidByTelegramChatId(rawChatId) {
+  const chatId = String(rawChatId || "").trim().slice(0, 120);
+  if (!/^-?\d{4,24}$/.test(chatId)) return "";
+  return String(await store.getConfigValue(telegramUserConfigKey(chatId)) || "").trim();
 }
 
 async function getNotificationWebOrigin(userUid) {
@@ -110,6 +127,9 @@ async function getNotificationSettings(userUid) {
     store.getNotificationSettings(userUid),
     getNotificationWebOrigin(userUid),
   ]);
+  if (settings.telegramChatId) {
+    await rememberTelegramUser(userUid, settings.telegramChatId);
+  }
   return {
     ...settings,
     webOrigin,
@@ -120,6 +140,9 @@ async function getNotificationSettings(userUid) {
 async function saveNotificationSettings(userUid, raw) {
   const settings = sanitizeSettings(raw);
   const saved = await store.saveNotificationSettings(userUid, settings);
+  if (saved.telegramChatId) {
+    await rememberTelegramUser(userUid, saved.telegramChatId);
+  }
   return {
     ...saved,
     webOrigin: await getNotificationWebOrigin(userUid),
@@ -140,6 +163,9 @@ async function sendConfiguredNotifications(userUid, payload, { eventId = "" } = 
     store.getNotificationSettings(userUid),
     getNotificationWebOrigin(userUid),
   ]);
+  if (settings.telegramChatId) {
+    await rememberTelegramUser(userUid, settings.telegramChatId).catch(() => {});
+  }
   const deliveryPayload = {
     ...payload,
     url: resolveNotificationUrl(webOrigin, payload?.url || "/friends?slot=1"),
@@ -197,6 +223,9 @@ async function testNotificationChannel(userUid, channel, { webOrigin = "" } = {}
     store.getNotificationSettings(userUid),
     getNotificationWebOrigin(userUid),
   ]);
+  if (settings.telegramChatId) {
+    await rememberTelegramUser(userUid, settings.telegramChatId);
+  }
   const payload = {
     type: "slot-test",
     title: "Duchi Locket | Xác nhận kết nối Canh Slot",
@@ -219,6 +248,8 @@ module.exports = {
   sanitizeSettings,
   sanitizeWebOrigin,
   rememberNotificationWebOrigin,
+  rememberTelegramUser,
+  getUserUidByTelegramChatId,
   getNotificationSettings,
   saveNotificationSettings,
   sendConfiguredNotifications,
