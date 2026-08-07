@@ -23,8 +23,8 @@ export function ReplaceDraftPrompt() {
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60">
-      <div className="w-full max-w-sm rounded-2xl bg-base-100 p-4 border border-base-300 shadow-xl">
+    <div className="interaction-modal-backdrop fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60">
+      <div className="interaction-modal-card w-full max-w-sm rounded-2xl bg-base-100 p-4 border border-base-300 shadow-xl">
         <h3 className="font-semibold mb-2">Bạn đang có bản nháp</h3>
         <p className="text-sm opacity-70 mb-4">
           Chụp mới sẽ lưu thành bản nháp riêng — không ghi đè bản cũ.
