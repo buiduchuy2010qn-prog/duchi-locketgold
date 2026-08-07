@@ -120,7 +120,7 @@ async function testNotificationChannel(userUid, channel) {
   const settings = await store.getNotificationSettings(userUid);
   const payload = {
     type: "slot-test",
-    title: "🔔 Huy Locket Canh Slot",
+    title: "Duchi Locket | Xác nhận kết nối Canh Slot",
     body: "Kênh thông báo đã kết nối thành công.",
     url: "/friends?slot=1",
   };
