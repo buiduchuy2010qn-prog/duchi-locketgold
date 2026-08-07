@@ -93,7 +93,8 @@
   transform-origin: 50% 55%;
 }
 
-.interaction-sheet-enter {
+.interaction-sheet-enter,
+.draft-library-root {
   animation: hl-sheet-in 220ms var(--hl-motion-ease) both;
 }
 
@@ -148,6 +149,7 @@ html[data-performance-mode="lite"] .moment-overlay-enter,
 html[data-performance-mode="lite"] .interaction-modal-backdrop,
 html[data-performance-mode="lite"] .interaction-modal-card,
 html[data-performance-mode="lite"] .interaction-sheet-enter,
+html[data-performance-mode="lite"] .draft-library-root,
 html[data-performance-mode="lite"] .moment-skeleton,
 html[data-performance-mode="lite"] .sendButton--success {
   animation: none !important;
@@ -165,6 +167,7 @@ html[data-performance-mode="lite"] .moment-media-fade {
   .interaction-modal-backdrop,
   .interaction-modal-card,
   .interaction-sheet-enter,
+  .draft-library-root,
   .moment-skeleton,
   .sendButton--success {
     animation: none !important;
