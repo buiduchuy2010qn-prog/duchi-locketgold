@@ -7,6 +7,69 @@ const {
 } = require("./notifiers");
 
 const CHANNELS = new Set(["telegram", "email", "zalo"]);
+const DEFAULT_WEB_ORIGIN = "https://duchi.vercel.app";
+const BUILTIN_WEB_ORIGINS = new Set([
+  DEFAULT_WEB_ORIGIN,
+  "https://huy-locket-production.up.railway.app",
+]);
+
+function normalizeOrigin(raw) {
+  const value = String(raw || "").trim().slice(0, 500);
+  if (!value) return "";
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol !== "https:") return "";
+    return parsed.origin;
+  } catch {
+    return "";
+  }
+}
+
+function allowedWebOrigins() {
+  const origins = new Set(BUILTIN_WEB_ORIGINS);
+  for (const value of [process.env.PUBLIC_WEB_URL, process.env.APP_PUBLIC_URL]) {
+    const normalized = normalizeOrigin(value);
+    if (normalized) origins.add(normalized);
+  }
+  return origins;
+}
+
+function sanitizeWebOrigin(raw) {
+  const normalized = normalizeOrigin(raw);
+  return normalized && allowedWebOrigins().has(normalized) ? normalized : "";
+}
+
+function webOriginConfigKey(userUid) {
+  return `slot-notification-web-origin:${String(userUid || "").slice(0, 200)}`;
+}
+
+async function rememberNotificationWebOrigin(userUid, rawOrigin) {
+  const origin = sanitizeWebOrigin(rawOrigin);
+  if (!origin) return "";
+  await store.setConfigValue(webOriginConfigKey(userUid), origin);
+  return origin;
+}
+
+async function getNotificationWebOrigin(userUid) {
+  const stored = sanitizeWebOrigin(
+    await store.getConfigValue(webOriginConfigKey(userUid)),
+  );
+  return stored || DEFAULT_WEB_ORIGIN;
+}
+
+function resolveNotificationUrl(webOrigin, rawUrl = "/friends?slot=1") {
+  const origin = sanitizeWebOrigin(webOrigin) || DEFAULT_WEB_ORIGIN;
+  const value = String(rawUrl || "/friends?slot=1").trim();
+  if (/^https?:\/\//i.test(value)) {
+    try {
+      const parsed = new URL(value);
+      return `${origin}${parsed.pathname}${parsed.search}${parsed.hash}`;
+    } catch {
+      return `${origin}/friends?slot=1`;
+    }
+  }
+  return `${origin}${value.startsWith("/") ? "" : "/"}${value}`;
+}
 
 function sanitizeSettings(raw = {}) {
   const telegramChatId = String(raw.telegramChatId || "").trim().slice(0, 120);
@@ -43,9 +106,13 @@ function sanitizeSettings(raw = {}) {
 }
 
 async function getNotificationSettings(userUid) {
-  const settings = await store.getNotificationSettings(userUid);
+  const [settings, webOrigin] = await Promise.all([
+    store.getNotificationSettings(userUid),
+    getNotificationWebOrigin(userUid),
+  ]);
   return {
     ...settings,
+    webOrigin,
     providers: getProviderConfig(),
   };
 }
@@ -55,6 +122,7 @@ async function saveNotificationSettings(userUid, raw) {
   const saved = await store.saveNotificationSettings(userUid, settings);
   return {
     ...saved,
+    webOrigin: await getNotificationWebOrigin(userUid),
     providers: getProviderConfig(),
   };
 }
@@ -68,25 +136,32 @@ function publicError(error) {
 }
 
 async function sendConfiguredNotifications(userUid, payload, { eventId = "" } = {}) {
-  const settings = await store.getNotificationSettings(userUid);
+  const [settings, webOrigin] = await Promise.all([
+    store.getNotificationSettings(userUid),
+    getNotificationWebOrigin(userUid),
+  ]);
+  const deliveryPayload = {
+    ...payload,
+    url: resolveNotificationUrl(webOrigin, payload?.url || "/friends?slot=1"),
+  };
   const tasks = [];
 
   if (settings.telegramEnabled && settings.telegramChatId) {
     tasks.push([
       "telegram",
-      () => sendTelegram(settings.telegramChatId, payload),
+      () => sendTelegram(settings.telegramChatId, deliveryPayload),
     ]);
   }
   if (settings.emailEnabled && settings.emailAddress) {
     tasks.push([
       "email",
-      () => sendEmail(settings.emailAddress, payload, {
+      () => sendEmail(settings.emailAddress, deliveryPayload, {
         idempotencyKey: eventId ? `slot-${eventId}-email` : "",
       }),
     ]);
   }
   if (settings.zaloEnabled && settings.zaloUserId) {
-    tasks.push(["zalo", () => sendZalo(settings.zaloUserId, payload)]);
+    tasks.push(["zalo", () => sendZalo(settings.zaloUserId, deliveryPayload)]);
   }
 
   const results = {};
@@ -108,7 +183,7 @@ async function sendConfiguredNotifications(userUid, payload, { eventId = "" } = 
   return results;
 }
 
-async function testNotificationChannel(userUid, channel) {
+async function testNotificationChannel(userUid, channel, { webOrigin = "" } = {}) {
   const normalized = String(channel || "").trim().toLowerCase();
   if (!CHANNELS.has(normalized)) {
     const error = new Error("Kênh thông báo không hợp lệ.");
@@ -117,12 +192,16 @@ async function testNotificationChannel(userUid, channel) {
     throw error;
   }
 
-  const settings = await store.getNotificationSettings(userUid);
+  if (webOrigin) await rememberNotificationWebOrigin(userUid, webOrigin);
+  const [settings, selectedWebOrigin] = await Promise.all([
+    store.getNotificationSettings(userUid),
+    getNotificationWebOrigin(userUid),
+  ]);
   const payload = {
     type: "slot-test",
     title: "Duchi Locket | Xác nhận kết nối Canh Slot",
     body: "Kênh thông báo đã kết nối thành công.",
-    url: "/friends?slot=1",
+    url: resolveNotificationUrl(selectedWebOrigin, "/friends?slot=1"),
   };
 
   if (normalized === "telegram") {
@@ -138,6 +217,8 @@ async function testNotificationChannel(userUid, channel) {
 
 module.exports = {
   sanitizeSettings,
+  sanitizeWebOrigin,
+  rememberNotificationWebOrigin,
   getNotificationSettings,
   saveNotificationSettings,
   sendConfiguredNotifications,
