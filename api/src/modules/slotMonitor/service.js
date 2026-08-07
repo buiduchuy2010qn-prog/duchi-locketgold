@@ -328,7 +328,7 @@ function startSlotMonitorWorker() {
 }
 
 async function checkNowForUser(userUid, celebUid, idToken) {
-  const watches = await store.listUserWatchesForUser?.(userUid) || await store.listUserWatches(userUid);
+  const watches = await store.listUserWatches(userUid);
   const watch = watches.find((item) => String(item.celeb_uid) === String(celebUid));
   if (!watch) {
     const error = new Error("Không tìm thấy Celeb đang canh.");
