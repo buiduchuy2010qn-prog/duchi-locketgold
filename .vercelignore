@@ -45,3 +45,4 @@ firebase.json
 # Vercel runs npm run build:deploy, so src/ and public/ must be uploaded.
 # The leading slash on /data keeps nested source folders such as
 # src/features/CustomeStudio/data available to Vite.
+# redeploy trigger 2026-08-07
