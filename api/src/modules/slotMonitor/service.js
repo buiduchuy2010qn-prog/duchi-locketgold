@@ -18,7 +18,7 @@ function readIntervalMs(value, fallback) {
 
 const POLL_INTERVAL_MS = Math.min(
   3 * 60 * 1000,
-  Math.max(5_000, readIntervalMs(process.env.SLOT_POLL_INTERVAL_MS, 10_000)),
+  Math.max(5_000, readIntervalMs(process.env.SLOT_POLL_INTERVAL_MS, 45_000)),
 );
 const POLL_JITTER_MS = Math.min(2_000, Math.max(500, Math.floor(POLL_INTERVAL_MS * 0.15)));
 const BATCH_SIZE = 2;
@@ -328,7 +328,7 @@ function startSlotMonitorWorker() {
 }
 
 async function checkNowForUser(userUid, celebUid, idToken) {
-  const watches = await store.listUserWatches(userUid);
+  const watches = await store.listUserWatchesForUser?.(userUid) || await store.listUserWatches(userUid);
   const watch = watches.find((item) => String(item.celeb_uid) === String(celebUid));
   if (!watch) {
     const error = new Error("Không tìm thấy Celeb đang canh.");
