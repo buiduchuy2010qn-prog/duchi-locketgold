@@ -66,6 +66,10 @@ const serverWatchToLocal = (item) => ({
       ? item.lastWasFull
       : Number(item?.maxFriends || 0) > 0 &&
         Number(item?.friendCount || 0) >= Number(item?.maxFriends || 0),
+  autoRequestEnabled: Boolean(item?.autoRequestEnabled),
+  lastAutoRequestAt: item?.lastAutoRequestAt || null,
+  lastAutoRequestStatus: item?.lastAutoRequestStatus || "",
+  lastAutoRequestError: item?.lastAutoRequestError || "",
 });
 
 function notifySameTabStorageRefresh(items) {
@@ -278,6 +282,11 @@ export default function SlotWatchModal({ isOpen, onClose }) {
                       <span>{celeb.friendCount.toLocaleString()} / {celeb.maxFriends.toLocaleString()}</span>
                       <span>{timeAgo(celeb.lastCheckedAt)}</span>
                     </div>
+                    {celeb.autoRequestEnabled && (
+                      <p className="mt-1 text-[11px] font-medium text-warning">
+                        ⚡ Tự gửi request Celeb thật đang bật
+                      </p>
+                    )}
                   </div>
                 </div>
 
