@@ -38,3 +38,19 @@ test("Railway API mounts persistent slot monitor worker", () => {
   assert.match(app, /startSlotMonitorWorker/);
   assert.match(routes, /slot-monitor/);
 });
+
+test("auto Celeb request is opt-in and wired to the real Locket follow request", () => {
+  const worker = read("api/src/modules/slotMonitor/service.js");
+  const requestService = read("api/src/services/LocketFriend/RequestServices.js");
+  const store = read("api/src/modules/slotMonitor/store.js");
+  const ui = read("src/features/SlotMonitor/SlotWatchInline.jsx");
+
+  assert.match(store, /auto_request_enabled BOOLEAN NOT NULL DEFAULT FALSE/);
+  assert.match(worker, /appCheckServices\.getOrCreateAppCheckToken/);
+  assert.match(worker, /requestServices\.SendAddCelebrity/);
+  assert.match(requestService, /instanceLocketV2\.post\("sendFollowRequest"/);
+  assert.match(requestService, /intent:\s*"add-friend"/);
+  assert.match(worker, /status:\s*"SENT"/);
+  assert.match(worker, /status:\s*"FAILED"/);
+  assert.match(ui, /Tự gửi request Celeb khi có slot/);
+});
