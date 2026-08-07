@@ -1,0 +1,182 @@
+/* Lightweight interaction motion pack.
+ * Only opacity + transform are used for motion-sensitive UI paths.
+ * Lite mode and prefers-reduced-motion disable decorative motion.
+ */
+
+:root {
+  --hl-motion-fast: 140ms;
+  --hl-motion-normal: 200ms;
+  --hl-motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 1) Button feedback: posting button feels tactile without moving layout. */
+.sendButton {
+  transition:
+    transform var(--hl-motion-fast) var(--hl-motion-ease),
+    opacity var(--hl-motion-fast) ease;
+  transform: translateZ(0);
+}
+
+.sendButton:not(:disabled):active {
+  transform: scale(0.94);
+}
+
+.sendButton--success {
+  animation: hl-send-success 300ms var(--hl-motion-ease) both;
+}
+
+.sendStatusLayer {
+  transition:
+    opacity var(--hl-motion-fast) ease,
+    transform var(--hl-motion-fast) var(--hl-motion-ease);
+}
+
+.sendStatusLayer.is-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.sendStatusLayer.is-hidden {
+  opacity: 0;
+  transform: scale(0.86);
+  pointer-events: none;
+}
+
+@keyframes hl-send-success {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+/* 2) Newly displayed moment: subtle lift, then media/overlay settle together. */
+.moment-enter {
+  animation: hl-moment-enter var(--hl-motion-normal) var(--hl-motion-ease) both;
+}
+
+.moment-overlay-enter {
+  animation: hl-overlay-enter 180ms 45ms var(--hl-motion-ease) both;
+}
+
+.moment-media-fade {
+  transition: opacity 220ms ease !important;
+}
+
+@keyframes hl-moment-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes hl-overlay-enter {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 3) Modal / sheet entry. */
+.interaction-modal-backdrop {
+  animation: hl-backdrop-in 160ms ease-out both;
+}
+
+.interaction-modal-card {
+  animation: hl-modal-in var(--hl-motion-normal) var(--hl-motion-ease) both;
+  transform-origin: 50% 55%;
+}
+
+.interaction-sheet-enter {
+  animation: hl-sheet-in 220ms var(--hl-motion-ease) both;
+}
+
+@keyframes hl-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes hl-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes hl-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 4) Feed/media loading skeleton: one cheap background-position animation. */
+.moment-skeleton {
+  overflow: hidden;
+  background-image: linear-gradient(
+    100deg,
+    transparent 20%,
+    color-mix(in srgb, currentColor 10%, transparent) 45%,
+    transparent 70%
+  );
+  background-size: 220% 100%;
+  animation: hl-skeleton-shimmer 1.35s linear infinite;
+}
+
+@keyframes hl-skeleton-shimmer {
+  from { background-position: 180% 0; }
+  to { background-position: -80% 0; }
+}
+
+/* Lite mode: retain immediate state feedback but no decorative animation. */
+html[data-performance-mode="lite"] .moment-enter,
+html[data-performance-mode="lite"] .moment-overlay-enter,
+html[data-performance-mode="lite"] .interaction-modal-backdrop,
+html[data-performance-mode="lite"] .interaction-modal-card,
+html[data-performance-mode="lite"] .interaction-sheet-enter,
+html[data-performance-mode="lite"] .moment-skeleton,
+html[data-performance-mode="lite"] .sendButton--success {
+  animation: none !important;
+}
+
+html[data-performance-mode="lite"] .sendButton,
+html[data-performance-mode="lite"] .sendStatusLayer,
+html[data-performance-mode="lite"] .moment-media-fade {
+  transition-duration: 80ms !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .moment-enter,
+  .moment-overlay-enter,
+  .interaction-modal-backdrop,
+  .interaction-modal-card,
+  .interaction-sheet-enter,
+  .moment-skeleton,
+  .sendButton--success {
+    animation: none !important;
+  }
+
+  .sendButton,
+  .sendStatusLayer,
+  .moment-media-fade {
+    transition: none !important;
+  }
+
+  .sendButton:not(:disabled):active {
+    transform: none;
+  }
+}
