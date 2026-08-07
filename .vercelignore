@@ -4,6 +4,8 @@ api/auth
 api/google
 api/migrations
 api/src
+api/test
+api/tests
 api/app.js
 api/package.json
 api/package-lock.json
