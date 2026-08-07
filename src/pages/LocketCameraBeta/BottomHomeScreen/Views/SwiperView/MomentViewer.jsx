@@ -279,7 +279,7 @@ const MomentViewer = ({ moment, handleClose }) => {
   };
 
   return (
-    <div className="flex w-full flex-col justify-center items-center">
+    <div className="moment-enter flex w-full flex-col justify-center items-center">
       <div
         className="relative flex flex-col items-center w-full gap-3"
         onClick={(e) => e.stopPropagation()}
@@ -295,14 +295,14 @@ const MomentViewer = ({ moment, handleClose }) => {
 
         <div className="h-full w-full border-t border-b border-base-300 sm:max-w-sm max-w-md aspect-square flex items-center justify-center relative bg-base-300 rounded-[64px] overflow-hidden">
           {hasMediaUrl && !isImageReady && !isVideoReady && !mediaUnavailable && (
-            <div className="absolute inset-0 w-full h-full skeleton rounded-[64px] z-0" />
+            <div className="moment-skeleton absolute inset-0 w-full h-full skeleton rounded-[64px] z-0" />
           )}
 
           {thumbnailUrl && !imageFailed && (
             <img
               src={thumbnailUrl}
               alt={resolvedMoment?.caption || "Moment"}
-              className={`absolute inset-0 w-full h-full object-cover rounded-[64px] transition-opacity duration-300 z-10 ${
+              className={`moment-media-fade absolute inset-0 w-full h-full object-cover rounded-[64px] transition-opacity duration-300 z-10 ${
                 isVideoReady ? "opacity-0" : "opacity-100"
               }`}
               onLoad={() => setIsImageReady(true)}
@@ -314,7 +314,7 @@ const MomentViewer = ({ moment, handleClose }) => {
           {videoUrl && !videoFailed && (
             <video
               src={videoUrl}
-              className={`absolute inset-0 w-full h-full object-cover rounded-[64px] transition-opacity duration-300 z-20 ${
+              className={`moment-media-fade absolute inset-0 w-full h-full object-cover rounded-[64px] transition-opacity duration-300 z-20 ${
                 isVideoReady ? "opacity-100" : "opacity-0"
               }`}
               autoPlay
@@ -349,7 +349,7 @@ const MomentViewer = ({ moment, handleClose }) => {
             </div>
           )}
 
-          <div className="absolute inset-0 z-30">
+          <div className="moment-overlay-enter absolute inset-0 z-30">
             <OverlayRenderer
               overlayData={overlayData}
               momentId={moment?.id}
