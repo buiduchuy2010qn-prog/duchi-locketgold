@@ -1,6 +1,7 @@
 import React from "react";
-import { Plus, UserRoundCheck } from "lucide-react";
+import { Plus, UserRoundCheck, Bell, BellOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useSlotMonitor } from "../../SlotMonitor/useSlotMonitor";
 
 export default function CelebItemFriend({
   friend,
@@ -9,10 +10,13 @@ export default function CelebItemFriend({
   disabled = false,
 }) {
   const { t } = useTranslation("features");
+  const { isWatching, watchCeleb, unwatchCeleb } = useSlotMonitor();
+  
   const friendCount = friend?.celebrity_data?.friend_count || 0;
   const maxFriends = friend?.celebrity_data?.max_friends || 0;
 
   const isSlotFull = maxFriends > 0 && friendCount >= maxFriends;
+  const watching = isWatching(friend.uid);
 
   const progressPercent =
     maxFriends > 0 ? Math.min((friendCount / maxFriends) * 100, 100) : 0;
@@ -48,14 +52,34 @@ export default function CelebItemFriend({
             </p>
           </div>
         </div>
-        {/* Button */}
-        <FriendActionButton
-          friend={friend}
-          isFullSlot={isSlotFull}
-          onAdd={handleAddFriend}
-          loading={loading}
-          disabled={disabled}
-        />
+        {/* Actions */}
+        <div className="flex flex-col gap-2 items-end">
+          <FriendActionButton
+            friend={friend}
+            isFullSlot={isSlotFull}
+            onAdd={handleAddFriend}
+            loading={loading}
+            disabled={disabled}
+          />
+          {isSlotFull && (
+            <button
+              onClick={() => watching ? unwatchCeleb(friend.uid) : watchCeleb({
+                uid: friend.uid,
+                username: friend.username,
+                displayName: `${friend.first_name || ''} ${friend.last_name || ''}`.trim(),
+                avatar: friend.profile_picture_url,
+                friendCount,
+                maxFriends
+              })}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                watching ? 'bg-base-200 text-base-content' : 'bg-primary/20 text-primary hover:bg-primary/30'
+              }`}
+            >
+              {watching ? <BellOff className="w-3.5 h-3.5" /> : <Bell className="w-3.5 h-3.5" />}
+              {watching ? '🔕 Hủy Canh' : '🔔 Canh Slot'}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Progress */}

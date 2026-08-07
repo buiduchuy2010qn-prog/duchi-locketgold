@@ -41,23 +41,27 @@ import { useConnectivityStore } from "./stores/useConnectivityStore";
 import { useUserActivityLifecycle } from "./hooks/useUserActivityLifecycle";
 import GlobalBroadcastBanner from "./components/GlobalBroadcastBanner";
 
+import { SlotMonitorProvider } from "./features/SlotMonitor/SlotMonitorProvider";
+
 function App() {
   return (
     <AnimationProvider>
       <ThemeProvider>
         <SocketProvider>
           <AppProvider>
-            <Router>
-              <GlobalThemeEffects />
-              <OfflineBanner />
-              <GlobalBroadcastBanner />
-              <AppContent />
-              {/* RestoreDraftModal disabled — library only via draft badge */}
-              <RestoreDraftModal />
-              <ReplaceDraftPrompt />
-              <DraftLibrary />
-            </Router>
-            <Toaster />
+            <SlotMonitorProvider>
+              <Router>
+                <GlobalThemeEffects />
+                <OfflineBanner />
+                <GlobalBroadcastBanner />
+                <AppContent />
+                {/* RestoreDraftModal disabled — library only via draft badge */}
+                <RestoreDraftModal />
+                <ReplaceDraftPrompt />
+                <DraftLibrary />
+              </Router>
+              <Toaster />
+            </SlotMonitorProvider>
           </AppProvider>
         </SocketProvider>
       </ThemeProvider>

@@ -4,6 +4,9 @@ import NormalItemFriend from "./NormalItemFriend";
 import { FaSearchPlus } from "react-icons/fa";
 import SearchInput from "@/components/uikit/Input/SearchInput";
 import CelebItemFriend from "./CelebItemFriend";
+import { useSlotMonitor } from "../../SlotMonitor/useSlotMonitor";
+import SlotWatchModal from "../../SlotMonitor/SlotWatchModal";
+import { Bell } from "lucide-react";
 import {
   SonnerInfo,
   SonnerPromiseV2,
@@ -31,6 +34,8 @@ import {
 
 const FindFriend = ({ refreshFriendsData }) => {
   const { t } = useTranslation("features");
+  const { watchedCelebs } = useSlotMonitor();
+  const [isWatchModalOpen, setIsWatchModalOpen] = useState(false);
   const navigate = useNavigate();
   const isSendRequest = useFeatureVisible("send_friend_request");
   const { shareHistoryOn, toggleShareHistoryOn } = useShareHistory();
@@ -315,9 +320,21 @@ const FindFriend = ({ refreshFriendsData }) => {
 
   return (
     <div>
-      <h2 className="flex items-center gap-2 text-md font-semibold mb-1">
-        <FaSearchPlus size={22} /> {t("friends.find.search_title")}
-      </h2>
+      <div className="flex items-center justify-between mb-1">
+        <h2 className="flex items-center gap-2 text-md font-semibold">
+          <FaSearchPlus size={22} /> {t("friends.find.search_title")}
+        </h2>
+        
+        {watchedCelebs?.length > 0 && (
+          <button 
+            onClick={() => setIsWatchModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/20 text-primary rounded-full text-xs font-medium hover:bg-primary/30 transition-colors"
+          >
+            <Bell className="w-3.5 h-3.5" />
+            Đang canh: {watchedCelebs.length}
+          </button>
+        )}
+      </div>
       <p className="text-sm">{t("friends.find.anti_spam")}</p>
 
       <div className="flex items-center justify-between py-3">
@@ -413,6 +430,11 @@ const FindFriend = ({ refreshFriendsData }) => {
             />
           ))}
       </div>
+
+      <SlotWatchModal 
+        isOpen={isWatchModalOpen} 
+        onClose={() => setIsWatchModalOpen(false)} 
+      />
     </div>
   );
 };
