@@ -3,6 +3,8 @@ import { SLOT_STATUS, SLOT_WATCH_LIMIT } from "./slotMonitorCore.js";
 export const SLOT_MONITOR_STORAGE_KEY = "huy_locket_slot_watch_v1";
 export const SLOT_MONITOR_LEADER_KEY = "huy_locket_slot_monitor_leader_v1";
 export const SLOT_MONITOR_COMMAND_KEY = "huy_locket_slot_monitor_command_v1";
+export const SLOT_MONITOR_OWNER_KEY = "huy_locket_slot_watch_owner_v1";
+export const SLOT_MONITOR_SERVER_SYNC_PREFIX = "huy_locket_slot_server_sync_v1:";
 
 const getStorage = () => {
   try {
@@ -64,6 +66,32 @@ export function saveWatchedCelebs(celebs) {
     .slice(0, SLOT_WATCH_LIMIT);
   storage.setItem(SLOT_MONITOR_STORAGE_KEY, JSON.stringify(safe));
   return safe;
+}
+
+export function getSlotMonitorOwner() {
+  const storage = getStorage();
+  if (!storage) return "";
+  return String(storage.getItem(SLOT_MONITOR_OWNER_KEY) || "").trim();
+}
+
+export function setSlotMonitorOwner(uid) {
+  const storage = getStorage();
+  if (!storage) return;
+  const value = String(uid || "").trim();
+  if (value) storage.setItem(SLOT_MONITOR_OWNER_KEY, value);
+  else storage.removeItem(SLOT_MONITOR_OWNER_KEY);
+}
+
+export function hasServerSyncForOwner(uid) {
+  const storage = getStorage();
+  if (!storage || !uid) return false;
+  return storage.getItem(`${SLOT_MONITOR_SERVER_SYNC_PREFIX}${uid}`) === "1";
+}
+
+export function markServerSyncForOwner(uid) {
+  const storage = getStorage();
+  if (!storage || !uid) return;
+  storage.setItem(`${SLOT_MONITOR_SERVER_SYNC_PREFIX}${uid}`, "1");
 }
 
 export function addWatch(celeb) {
