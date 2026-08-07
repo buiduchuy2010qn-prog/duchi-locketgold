@@ -148,16 +148,30 @@ export default function SlotNotificationSettings() {
             onChange={(event) => update("telegramChatId", event.target.value)}
           />
           <p className="mt-2 text-[11px] text-base-content/50">
-            {botUsername ? `Nhắn /start cho @${botUsername}, rồi dùng Chat ID của bạn.` : "Cần Bot Token + Chat ID. Bước tiếp theo sẽ làm kết nối Telegram tự động."}
+            {botUsername
+              ? `Mở @${botUsername} và bấm Start. Bot sẽ hiện Chat ID của chính bạn kèm hướng dẫn liên kết.`
+              : "Cần Bot Token + Chat ID. Telegram chưa được cấu hình trên server."}
           </p>
-          <button
-            className="btn btn-ghost btn-xs mt-3"
-            disabled={!telegramConfigured || !settings.telegramChatId || testing === "telegram"}
-            onClick={() => test("telegram")}
-          >
-            {testing === "telegram" ? <span className="loading loading-spinner loading-xs" /> : <MessageCircle size={13} />}
-            Gửi thử
-          </button>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {botUsername && (
+              <a
+                className="btn btn-outline btn-xs"
+                href={`https://t.me/${botUsername}?start=duchi_locket`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Send size={13} /> Mở bot lấy Chat ID
+              </a>
+            )}
+            <button
+              className="btn btn-ghost btn-xs"
+              disabled={!telegramConfigured || !settings.telegramChatId || testing === "telegram"}
+              onClick={() => test("telegram")}
+            >
+              {testing === "telegram" ? <span className="loading loading-spinner loading-xs" /> : <MessageCircle size={13} />}
+              Gửi thử
+            </button>
+          </div>
         </article>
 
         <article className="rounded-xl border border-base-300 bg-base-100 p-3">
