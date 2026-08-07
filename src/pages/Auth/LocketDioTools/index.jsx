@@ -17,8 +17,6 @@ import DeleteFriendsTool from "./tools/DeleteFriendsTool";
 export default function ToolsLocket() {
   const user = useAuthStore((s) => s.user);
 
-  const hasAccess = useFeatureVisible("hidden_streak_tool");
-
   const toolsList = [
     {
       key: "delete-friends",
@@ -46,7 +44,6 @@ export default function ToolsLocket() {
       label: "Khôi phục chuỗi",
       icon: <Flame />,
       content: <RestoreStreak />,
-      visible: !hasAccess,
       feature: "restore_streak_tool",
     },
   ];
