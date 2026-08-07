@@ -50,10 +50,31 @@ async function ensureSchema() {
         last_checked_at TIMESTAMPTZ,
         notified_at TIMESTAMPTZ,
         enabled BOOLEAN NOT NULL DEFAULT TRUE,
+        auto_request_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+        last_auto_request_at TIMESTAMPTZ,
+        last_auto_request_status TEXT,
+        last_auto_request_error TEXT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         PRIMARY KEY (user_uid, celeb_uid)
       )
+    `;
+    // Bảng cũ đã tồn tại trước tính năng auto-request nên cần migration idempotent.
+    await sql`
+      ALTER TABLE slot_monitor_watches
+      ADD COLUMN IF NOT EXISTS auto_request_enabled BOOLEAN NOT NULL DEFAULT FALSE
+    `;
+    await sql`
+      ALTER TABLE slot_monitor_watches
+      ADD COLUMN IF NOT EXISTS last_auto_request_at TIMESTAMPTZ
+    `;
+    await sql`
+      ALTER TABLE slot_monitor_watches
+      ADD COLUMN IF NOT EXISTS last_auto_request_status TEXT
+    `;
+    await sql`
+      ALTER TABLE slot_monitor_watches
+      ADD COLUMN IF NOT EXISTS last_auto_request_error TEXT
     `;
     await sql`
       CREATE INDEX IF NOT EXISTS idx_slot_monitor_watches_user_enabled
@@ -209,12 +230,41 @@ async function setWatchEnabled(userUid, celebUid, enabled) {
   `;
 }
 
+async function setWatchAutoRequestEnabled(userUid, celebUid, enabled) {
+  await ensureSchema();
+  await sql`
+    UPDATE slot_monitor_watches
+    SET auto_request_enabled = ${Boolean(enabled)},
+        last_auto_request_error = CASE WHEN ${Boolean(enabled)} THEN NULL ELSE last_auto_request_error END,
+        updated_at = NOW()
+    WHERE user_uid = ${String(userUid)} AND celeb_uid = ${String(celebUid)}
+  `;
+}
+
+async function markAutoRequestResult(userUid, celebUid, result = {}) {
+  await ensureSchema();
+  const status = String(result.status || "FAILED").slice(0, 40);
+  const errorText = result.error
+    ? String(result.error).slice(0, 500)
+    : null;
+  await sql`
+    UPDATE slot_monitor_watches
+    SET last_auto_request_at = NOW(),
+        last_auto_request_status = ${status},
+        last_auto_request_error = ${errorText},
+        updated_at = NOW()
+    WHERE user_uid = ${String(userUid)} AND celeb_uid = ${String(celebUid)}
+  `;
+}
+
 async function listUserWatches(userUid) {
   await ensureSchema();
   return sql`
     SELECT user_uid, celeb_uid, username, display_name, avatar_url,
            friend_count, max_friends, status, last_was_full,
-           last_checked_at, notified_at, enabled
+           last_checked_at, notified_at, enabled,
+           auto_request_enabled, last_auto_request_at,
+           last_auto_request_status, last_auto_request_error
     FROM slot_monitor_watches
     WHERE user_uid = ${String(userUid)}
     ORDER BY created_at ASC
@@ -237,7 +287,9 @@ async function listActiveWatchesForUser(userUid) {
   return sql`
     SELECT user_uid, celeb_uid, username, display_name, avatar_url,
            friend_count, max_friends, status, last_was_full,
-           last_checked_at, notified_at, enabled
+           last_checked_at, notified_at, enabled,
+           auto_request_enabled, last_auto_request_at,
+           last_auto_request_status, last_auto_request_error
     FROM slot_monitor_watches
     WHERE user_uid = ${String(userUid)} AND enabled = TRUE
     ORDER BY created_at ASC
@@ -371,6 +423,8 @@ module.exports = {
   upsertWatch,
   removeWatch,
   setWatchEnabled,
+  setWatchAutoRequestEnabled,
+  markAutoRequestResult,
   listUserWatches,
   listActiveUsers,
   listActiveWatchesForUser,
