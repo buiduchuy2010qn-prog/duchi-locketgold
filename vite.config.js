@@ -98,12 +98,51 @@ const manifestForPlugIn = {
 const brand = process.env.VITE_BRAND;
 const publicDir = brand ? `public-${brand}` : "public";
 
+// Dev-only proxy — mirrors server.mjs PROXIES so /dio-* works under `vite` dev
+// (production uses server.mjs; this only affects the dev server)
+const DEV_API_UPSTREAM =
+  process.env.LOCKET_API_UPSTREAM ||
+  "https://huy-locket-api-production.up.railway.app";
+
+const devProxyTargets = {
+  "/dio-api": DEV_API_UPSTREAM,
+  "/dio-auth": process.env.LOCKET_AUTH_UPSTREAM || "https://auth.locket-dio.com",
+  "/dio-data": process.env.LOCKET_DATA_UPSTREAM || "https://data.locket-dio.com",
+  "/dio-storage":
+    process.env.LOCKET_STORAGE_UPSTREAM || "https://storage.locket-dio.com",
+  "/dio-media":
+    process.env.LOCKET_MEDIA_UPSTREAM || "https://media.locket-dio.com",
+  "/dio-export":
+    process.env.LOCKET_EXPORT_UPSTREAM || "https://export.locket-dio.com",
+  "/dio-cdn": process.env.LOCKET_CDN_UPSTREAM || "https://cdn.locket-dio.com",
+  "/dio-payment":
+    process.env.LOCKET_PAYMENT_UPSTREAM || "https://payment.locket-dio.com",
+};
+
+const devProxy = Object.fromEntries(
+  Object.entries(devProxyTargets).map(([prefix, target]) => [
+    prefix,
+    {
+      target,
+      changeOrigin: true,
+      secure: true,
+      rewrite: (p) => p.slice(prefix.length) || "/",
+      headers: {
+        // server.mjs spoofs Origin so upstream Dio APIs accept requests
+        origin: "https://locket-dio.com",
+        referer: "https://locket-dio.com/",
+      },
+    },
+  ]),
+);
+
 export default defineConfig({
   publicDir,
   base: "/",
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   server: {
     host: true,
+    proxy: devProxy,
   },
   plugins: [tailwindcss(), react(), VitePWA(manifestForPlugIn), visualizer()],
   resolve: {
