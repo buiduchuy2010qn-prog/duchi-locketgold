@@ -15,11 +15,22 @@ function getBotUsername() {
   return clean(process.env.TELEGRAM_BOT_USERNAME, 64).replace(/^@+/, "");
 }
 
-function getWebUrl() {
-  return clean(
-    process.env.PUBLIC_WEB_URL || process.env.APP_PUBLIC_URL || "https://duchi.vercel.app",
+function getWebUrls() {
+  const vercel = clean(
+    process.env.VERCEL_PUBLIC_WEB_URL ||
+      process.env.PUBLIC_WEB_URL ||
+      process.env.APP_PUBLIC_URL ||
+      "https://duchi.vercel.app",
     500,
   ).replace(/\/+$/, "");
+
+  const railway = clean(
+    process.env.RAILWAY_PUBLIC_WEB_URL ||
+      "https://huy-locket-production.up.railway.app",
+    500,
+  ).replace(/\/+$/, "");
+
+  return { vercel, railway };
 }
 
 function escapeHtml(value) {
@@ -76,11 +87,11 @@ function buildGuideMessage(message) {
     "",
     "<b>Cách liên kết:</b>",
     "1. Sao chép Chat ID ở trên.",
-    "2. Mở Duchi Locket → Canh Slot → Telegram.",
-    "3. Dán Chat ID vào ô Telegram Chat ID.",
+    "2. Chọn đúng bản Duchi Locket bạn đang dùng: Vercel hoặc Railway.",
+    "3. Vào Canh Slot → Telegram và dán Chat ID.",
     "4. Bật Telegram → Lưu → Gửi thử.",
     "",
-    "Sau khi liên kết, khi Celeb mở slot thì bot sẽ gửi đúng vào Telegram của bạn.",
+    "Hai bản dùng chung tài khoản và cùng bot; hãy mở đúng nơi bạn đang dùng để quay lại cho tiện.",
     "",
     "Lệnh nhanh: /id để xem lại Chat ID • /help để xem hướng dẫn.",
   ].join("\n");
@@ -89,6 +100,8 @@ function buildGuideMessage(message) {
 async function sendGuide(message) {
   const chatId = String(message?.chat?.id || "");
   if (!chatId) return;
+
+  const { vercel, railway } = getWebUrls();
 
   await telegramApi("sendMessage", {
     chat_id: chatId,
@@ -99,8 +112,12 @@ async function sendGuide(message) {
       inline_keyboard: [
         [
           {
-            text: "Mở Duchi Locket để liên kết",
-            url: `${getWebUrl()}/friends?slot=1`,
+            text: "Mở bản Vercel",
+            url: `${vercel}/friends?slot=1`,
+          },
+          {
+            text: "Mở bản Railway",
+            url: `${railway}/friends?slot=1`,
           },
         ],
       ],
