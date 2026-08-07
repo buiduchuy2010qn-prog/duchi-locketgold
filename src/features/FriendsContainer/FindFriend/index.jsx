@@ -36,7 +36,7 @@ const FindFriend = ({ refreshFriendsData }) => {
   const { t } = useTranslation("features");
   const navigate = useNavigate();
   const location = useLocation();
-  const { watchedCelebs } = useSlotMonitor();
+  const { watchedCelebs, slotPushState } = useSlotMonitor();
   const isSendRequest = useFeatureVisible("send_friend_request");
   const { shareHistoryOn, toggleShareHistoryOn } = useShareHistory();
 
@@ -186,17 +186,33 @@ const FindFriend = ({ refreshFriendsData }) => {
   };
 
   useEffect(() => {
-    const slotUsername = normalizeFriendUsername(location.state?.slotUsername);
-    if (!slotUsername) return;
-    const eventKey = `${location.key}:${slotUsername}`;
+    const params = new URLSearchParams(location.search || "");
+    const stateUsername = normalizeFriendUsername(location.state?.slotUsername);
+    const queryUsername = normalizeFriendUsername(params.get("username"));
+    const slotRequested = params.get("slot") === "1" || Boolean(stateUsername);
+    const slotUsername = stateUsername || queryUsername;
+
+    if (!slotRequested && !slotUsername) return;
+
+    const eventKey = `${location.key}:${location.search}:${slotUsername}`;
     if (slotJumpHandledRef.current === eventKey) return;
     slotJumpHandledRef.current = eventKey;
-    setSearchTermFind(slotUsername);
-    handleFindFriend(slotUsername);
-    navigate(location.pathname, { replace: true, state: null });
-    // Chỉ xử lý navigation state một lần; handleFindFriend cố ý không đưa vào deps.
+
+    if (slotRequested) setIsWatchModalOpen(true);
+    if (slotUsername) {
+      setSearchTermFind(slotUsername);
+      handleFindFriend(slotUsername);
+    }
+
+    if (location.state?.slotUsername) {
+      navigate(`${location.pathname}${location.search || ""}`, {
+        replace: true,
+        state: null,
+      });
+    }
+    // Chỉ xử lý deep-link Canh Slot một lần; handleFindFriend cố ý không đưa vào deps.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.key, location.pathname, location.state, navigate]);
+  }, [location.key, location.pathname, location.search, location.state, navigate]);
 
   useEffect(
     () => () => {
@@ -352,7 +368,9 @@ const FindFriend = ({ refreshFriendsData }) => {
       <p className="text-sm">{t("friends.find.anti_spam")}</p>
       {watchedCelebs.length > 0 && (
         <p className="mt-1 text-xs text-base-content/50">
-          Canh Slot hoạt động khi Huy Locket đang chạy.
+          {slotPushState?.enabled
+            ? "Canh Slot 24/7 đang bật — có slot sẽ báo ra điện thoại/màn hình khóa."
+            : "Mở Đang canh để bật thông báo 24/7 khi không mở Huy Locket."}
         </p>
       )}
 
