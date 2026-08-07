@@ -3,6 +3,7 @@ const authServices = require("../../services/AuthSecurity/AuthServices");
 const friendServices = require("../../services/LocketFriend/FriendsServices");
 const store = require("./store");
 const { encryptSecret, decryptSecret, getEncryptionKey } = require("./crypto");
+const { sendConfiguredNotifications } = require("./notificationService");
 const {
   computeTransition,
   decodeFirebaseUid,
@@ -186,10 +187,10 @@ async function checkOneWatch(userUid, idToken, watch, { notify = true } = {}) {
 
     if (notify && transition.shouldNotify) {
       const count = transition.availableSlots;
-      await sendPushToUser(userUid, {
+      const payload = {
         type: "slot-open",
         title: "🔥 Slot vừa mở!",
-        body: `@${watch.username} vừa mở ${count} slot. Nhấn để kết bạn ngay!`,
+        body: `@${watch.username} hiện còn ${count.toLocaleString("vi-VN")} slot trống. Nhấn để kết bạn ngay!`,
         icon: watch.avatar_url || "/icons/icon-192.png",
         badge: "/icons/icon-192.png",
         tag: `slot-${watch.celeb_uid}`,
@@ -202,7 +203,17 @@ async function checkOneWatch(userUid, idToken, watch, { notify = true } = {}) {
           friendCount: transition.friendCount,
           maxFriends: transition.maxFriends,
         },
-      });
+      };
+      const eventId = [
+        watch.celeb_uid,
+        transition.friendCount,
+        transition.maxFriends,
+      ].join("-");
+
+      await Promise.allSettled([
+        sendPushToUser(userUid, payload),
+        sendConfiguredNotifications(userUid, payload, { eventId }),
+      ]);
     }
 
     return { ok: true, transition };
