@@ -1,6 +1,8 @@
 const webPush = require("web-push");
 const authServices = require("../../services/AuthSecurity/AuthServices");
 const friendServices = require("../../services/LocketFriend/FriendsServices");
+const requestServices = require("../../services/LocketFriend/RequestServices");
+const { appCheckServices } = require("../appcheck/services");
 const store = require("./store");
 const { encryptSecret, decryptSecret, getEncryptionKey } = require("./crypto");
 const { sendConfiguredNotifications } = require("./notificationService");
@@ -212,6 +214,85 @@ async function sendPushToUser(userUid, payload) {
   return { sent, failed };
 }
 
+async function sendRealCelebrityRequest(userUid, idToken, watch) {
+  if (!watch?.auto_request_enabled) {
+    return {
+      enabled: false,
+      attempted: false,
+      success: null,
+      code: null,
+      message: null,
+    };
+  }
+
+  try {
+    // Dùng chính App Check + API sendFollowRequest của Locket giống nút kết bạn Celeb thật.
+    // Không tạo dữ liệu local giả và không đánh dấu thành công nếu upstream không xác nhận.
+    const appCheckToken = await appCheckServices.getOrCreateAppCheckToken();
+    const result = await requestServices.SendAddCelebrity(
+      idToken,
+      watch.celeb_uid,
+      appCheckToken,
+    );
+
+    if (result?.success) {
+      await store.markAutoRequestResult(userUid, watch.celeb_uid, {
+        status: "SENT",
+      });
+      console.log("[slot-monitor] real celebrity request sent", {
+        userUid,
+        username: watch.username,
+      });
+      return {
+        enabled: true,
+        attempted: true,
+        success: true,
+        code: null,
+        message: "Locket đã xác nhận yêu cầu Celeb.",
+      };
+    }
+
+    const code = result?.code || "UPSTREAM_REJECTED";
+    const message = result?.message || "Locket không chấp nhận yêu cầu Celeb.";
+    await store.markAutoRequestResult(userUid, watch.celeb_uid, {
+      status: "FAILED",
+      error: `${code}: ${message}`,
+    });
+    console.warn("[slot-monitor] real celebrity request rejected", {
+      userUid,
+      username: watch.username,
+      code,
+      status: result?.status || null,
+    });
+    return {
+      enabled: true,
+      attempted: true,
+      success: false,
+      code,
+      message,
+    };
+  } catch (error) {
+    const code = error?.code || "AUTO_CELEB_REQUEST_FAILED";
+    const message = error?.message || "Không thể gửi yêu cầu Celeb thật.";
+    await store.markAutoRequestResult(userUid, watch.celeb_uid, {
+      status: "FAILED",
+      error: `${code}: ${message}`,
+    }).catch(() => {});
+    console.warn("[slot-monitor] real celebrity request failed", {
+      userUid,
+      username: watch?.username,
+      code,
+    });
+    return {
+      enabled: true,
+      attempted: true,
+      success: false,
+      code,
+      message,
+    };
+  }
+}
+
 async function checkOneWatch(userUid, idToken, watch, { notify = true } = {}) {
   try {
     const result = await friendServices.FindFriendByUserName(idToken, watch.username);
@@ -223,10 +304,22 @@ async function checkOneWatch(userUid, idToken, watch, { notify = true } = {}) {
 
     if (notify && transition.shouldNotify) {
       const count = transition.availableSlots;
+      const autoRequest = await sendRealCelebrityRequest(userUid, idToken, watch);
+      let body = `@${watch.username} hiện còn ${count.toLocaleString("vi-VN")} slot trống. Nhấn để kết bạn ngay!`;
+      let title = "🔥 Slot vừa mở!";
+
+      if (autoRequest.success === true) {
+        title = "⚡ Có slot — đã gửi request Celeb!";
+        body = `@${watch.username} còn ${count.toLocaleString("vi-VN")} slot. Railway đã gửi yêu cầu kết bạn Celeb thật và Locket đã xác nhận.`;
+      } else if (autoRequest.enabled && autoRequest.attempted) {
+        title = "⚠️ Có slot nhưng tự kết bạn chưa thành công";
+        body = `@${watch.username} còn ${count.toLocaleString("vi-VN")} slot. Locket chưa xác nhận request tự động; mở Duchi Locket để thử ngay.`;
+      }
+
       const payload = {
         type: "slot-open",
-        title: "🔥 Slot vừa mở!",
-        body: `@${watch.username} hiện còn ${count.toLocaleString("vi-VN")} slot trống. Nhấn để kết bạn ngay!`,
+        title,
+        body,
         icon: watch.avatar_url || "/icons/icon-192.png",
         badge: "/icons/icon-192.png",
         tag: `slot-${watch.celeb_uid}`,
@@ -239,6 +332,7 @@ async function checkOneWatch(userUid, idToken, watch, { notify = true } = {}) {
           friendCount: transition.friendCount,
           maxFriends: transition.maxFriends,
         },
+        autoRequest,
       };
       const eventId = [
         watch.celeb_uid,
@@ -345,6 +439,7 @@ module.exports = {
   enableBackgroundPush,
   validateAndSaveSession,
   sendPushToUser,
+  sendRealCelebrityRequest,
   checkNowForUser,
   runWorkerCycle,
   startSlotMonitorWorker,
