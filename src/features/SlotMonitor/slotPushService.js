@@ -14,8 +14,14 @@ export async function getSlotPushConfig() {
   return response?.data?.data || null;
 }
 
+export async function fetchServerSlotWatches() {
+  const response = await instanceMain.get("api/slot-monitor/watches");
+  const watches = response?.data?.data;
+  return Array.isArray(watches) ? watches : [];
+}
+
 async function getRegistration() {
-  if (!("serviceWorker" in navigator)) return null;
+  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return null;
   return navigator.serviceWorker.ready;
 }
 
@@ -39,35 +45,76 @@ async function ensureMatchingSubscription(registration, vapidPublicKey) {
 }
 
 export async function enableSlotPush({ requestPermission = true } = {}) {
-  if (typeof window === "undefined" || !("Notification" in window)) {
-    return { enabled: false, reason: "NOTIFICATION_UNSUPPORTED" };
+  if (typeof window === "undefined") {
+    return { enabled: false, backgroundEnabled: false, reason: "WINDOW_UNAVAILABLE" };
   }
-  if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-    return { enabled: false, reason: "PUSH_UNSUPPORTED" };
-  }
+
+  const notificationSupported = "Notification" in window;
+  const serviceWorkerSupported =
+    typeof navigator !== "undefined" && "serviceWorker" in navigator;
+  const pushManagerSupported = "PushManager" in window;
+  const pushSupported =
+    notificationSupported && serviceWorkerSupported && pushManagerSupported;
 
   const config = await getSlotPushConfig();
   if (!config?.enabled || !config?.vapidPublicKey) {
-    return { enabled: false, reason: config?.reason || "SERVER_UNAVAILABLE" };
+    return {
+      enabled: false,
+      backgroundEnabled: false,
+      permission: notificationSupported ? window.Notification.permission : "unsupported",
+      reason: config?.reason || "SERVER_UNAVAILABLE",
+    };
   }
 
-  let permission = window.Notification.permission;
-  if (permission === "default" && requestPermission) {
+  let permission = notificationSupported
+    ? window.Notification.permission
+    : "unsupported";
+
+  if (
+    pushSupported &&
+    permission === "default" &&
+    requestPermission
+  ) {
     permission = await window.Notification.requestPermission();
   }
 
   const { refreshToken } = getToken();
   if (!refreshToken) {
-    return { enabled: false, reason: "REFRESH_TOKEN_REQUIRED", permission };
+    return {
+      enabled: false,
+      backgroundEnabled: false,
+      reason: "REFRESH_TOKEN_REQUIRED",
+      permission,
+    };
   }
 
   let subscription = null;
-  if (permission === "granted") {
+  let pushReason = null;
+
+  if (pushSupported && permission === "granted") {
     const registration = await getRegistration();
-    if (!registration) return { enabled: false, reason: "SERVICE_WORKER_UNAVAILABLE" };
-    subscription = await ensureMatchingSubscription(registration, config.vapidPublicKey);
+    if (registration) {
+      try {
+        subscription = await ensureMatchingSubscription(
+          registration,
+          config.vapidPublicKey,
+        );
+      } catch (error) {
+        pushReason = error?.name || "PUSH_SUBSCRIBE_FAILED";
+      }
+    } else {
+      pushReason = "SERVICE_WORKER_UNAVAILABLE";
+    }
+  } else if (!notificationSupported) {
+    pushReason = "NOTIFICATION_UNSUPPORTED";
+  } else if (!serviceWorkerSupported || !pushManagerSupported) {
+    pushReason = "PUSH_UNSUPPORTED";
+  } else if (permission === "denied") {
+    pushReason = "PERMISSION_DENIED";
   }
 
+  // Quan trọng: kể cả thiết bị hiện tại không hỗ trợ Web Push, vẫn lưu phiên nền
+  // để Railway canh 24/7 và đồng bộ danh sách cho các thiết bị khác cùng tài khoản.
   await instanceMain.post("api/slot-monitor/enable", {
     refreshToken,
     subscription: subscription?.toJSON?.() || subscription || null,
@@ -77,7 +124,7 @@ export async function enableSlotPush({ requestPermission = true } = {}) {
     enabled: permission === "granted" && Boolean(subscription),
     backgroundEnabled: true,
     permission,
-    reason: permission === "denied" ? "PERMISSION_DENIED" : null,
+    reason: pushReason,
   };
 }
 
