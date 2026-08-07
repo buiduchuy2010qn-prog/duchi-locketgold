@@ -2,7 +2,10 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const { sanitizeSettings } = require("../src/modules/slotMonitor/notificationService");
-const { buildSlotMessage } = require("../src/modules/slotMonitor/notifiers");
+const {
+  buildSlotMessage,
+  getProviderConfig,
+} = require("../src/modules/slotMonitor/notifiers");
 
 test("notification settings keep only valid destinations and enabled channels", () => {
   const settings = sanitizeSettings({
@@ -40,6 +43,27 @@ test("invalid email is rejected", () => {
     () => sanitizeSettings({ emailAddress: "not-an-email", emailEnabled: true }),
     (error) => error?.code === "INVALID_EMAIL_ADDRESS",
   );
+});
+
+test("Gmail provider is configured only with Apps Script URL and secret", () => {
+  const previousUrl = process.env.GMAIL_APPS_SCRIPT_URL;
+  const previousSecret = process.env.GMAIL_APPS_SCRIPT_SECRET;
+  try {
+    delete process.env.GMAIL_APPS_SCRIPT_URL;
+    delete process.env.GMAIL_APPS_SCRIPT_SECRET;
+    assert.equal(getProviderConfig().email.configured, false);
+
+    process.env.GMAIL_APPS_SCRIPT_URL = "https://script.google.com/macros/s/test/exec";
+    assert.equal(getProviderConfig().email.configured, false);
+
+    process.env.GMAIL_APPS_SCRIPT_SECRET = "test-secret";
+    assert.equal(getProviderConfig().email.configured, true);
+  } finally {
+    if (previousUrl === undefined) delete process.env.GMAIL_APPS_SCRIPT_URL;
+    else process.env.GMAIL_APPS_SCRIPT_URL = previousUrl;
+    if (previousSecret === undefined) delete process.env.GMAIL_APPS_SCRIPT_SECRET;
+    else process.env.GMAIL_APPS_SCRIPT_SECRET = previousSecret;
+  }
 });
 
 test("slot message shows available slots and new capacity", () => {

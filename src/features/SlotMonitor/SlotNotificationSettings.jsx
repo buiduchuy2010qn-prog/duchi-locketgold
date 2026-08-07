@@ -184,7 +184,7 @@ export default function SlotNotificationSettings() {
             onChange={(event) => update("emailAddress", event.target.value)}
           />
           <p className="mt-2 text-[11px] text-base-content/50">
-            Gửi qua Resend đến Gmail/Email đã nhập. API key chỉ nằm trên Railway, không lưu ở trình duyệt.
+            Gửi từ Gmail thật của Duchi Locket qua Google Apps Script. URL và secret chỉ nằm trên Railway, không lưu ở trình duyệt.
           </p>
           <button
             className="btn btn-ghost btn-xs mt-3"
