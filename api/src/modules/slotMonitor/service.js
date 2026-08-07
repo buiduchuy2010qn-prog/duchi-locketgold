@@ -10,16 +10,46 @@ const {
   extractCelebritySnapshot,
 } = require("./core");
 
-const POLL_INTERVAL_MS = 3 * 60 * 1000;
-const POLL_JITTER_MS = 30 * 1000;
+function readIntervalMs(value, fallback) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.round(parsed);
+}
+
+const POLL_INTERVAL_MS = Math.min(
+  3 * 60 * 1000,
+  Math.max(5_000, readIntervalMs(process.env.SLOT_POLL_INTERVAL_MS, 10_000)),
+);
+const POLL_JITTER_MS = Math.min(2_000, Math.max(500, Math.floor(POLL_INTERVAL_MS * 0.15)));
 const BATCH_SIZE = 2;
-const BATCH_DELAY_MS = 500;
+const BATCH_DELAY_MS = 150;
+const ID_TOKEN_CACHE_MS = 45 * 60 * 1000;
 const VAPID_CONFIG_KEY = "slot_monitor_vapid_v1";
 let vapidPromise = null;
 let workerTimer = null;
 let workerRunning = false;
+const userSessionCache = new Map();
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function cacheUserIdToken(userUid, idToken) {
+  if (!userUid || !idToken) return;
+  userSessionCache.set(String(userUid), {
+    idToken,
+    expiresAt: Date.now() + ID_TOKEN_CACHE_MS,
+  });
+}
+
+function getCachedUserIdToken(userUid) {
+  const key = String(userUid || "");
+  const cached = userSessionCache.get(key);
+  if (!cached) return null;
+  if (Date.now() >= Number(cached.expiresAt || 0)) {
+    userSessionCache.delete(key);
+    return null;
+  }
+  return cached.idToken || null;
+}
 
 async function getVapidKeys() {
   if (vapidPromise) return vapidPromise;
@@ -103,6 +133,7 @@ async function validateAndSaveSession(userUid, refreshToken) {
 
   const nextRefreshToken = refreshed?.refresh_token || refreshToken;
   await store.saveSession(userUid, encryptSecret(nextRefreshToken));
+  cacheUserIdToken(userUid, idToken);
   return idToken;
 }
 
@@ -117,6 +148,9 @@ async function enableBackgroundPush({ userUid, refreshToken, subscription, userA
 }
 
 async function refreshUserSession(userUid) {
+  const cachedIdToken = getCachedUserIdToken(userUid);
+  if (cachedIdToken) return cachedIdToken;
+
   const session = await store.getSession(userUid);
   if (!session?.enabled || !session?.refresh_token_enc) {
     const error = new Error("Không có phiên nền cho Canh Slot.");
@@ -134,8 +168,10 @@ async function refreshUserSession(userUid) {
     }
     const nextRefresh = refreshed?.refresh_token || refreshToken;
     await store.markSessionRefreshed(userUid, encryptSecret(nextRefresh));
+    cacheUserIdToken(userUid, idToken);
     return idToken;
   } catch (error) {
+    userSessionCache.delete(String(userUid));
     await store.markSessionError(userUid, error?.message || "Session refresh failed");
     throw error;
   }
@@ -264,7 +300,7 @@ async function runWorkerCycle() {
 
 function scheduleWorker() {
   const jitter = Math.floor((Math.random() * 2 - 1) * POLL_JITTER_MS);
-  const delay = Math.max(60_000, POLL_INTERVAL_MS + jitter);
+  const delay = Math.max(5_000, POLL_INTERVAL_MS + jitter);
   workerTimer = setTimeout(async () => {
     await runWorkerCycle();
     scheduleWorker();
@@ -282,8 +318,10 @@ function startSlotMonitorWorker() {
     return false;
   }
 
-  console.log("[slot-monitor] 24/7 Railway worker enabled (about every 3 minutes)");
-  const startup = setTimeout(runWorkerCycle, 15_000);
+  console.log(
+    `[slot-monitor] 24/7 Railway worker enabled (about every ${(POLL_INTERVAL_MS / 1000).toFixed(1)} seconds)`,
+  );
+  const startup = setTimeout(runWorkerCycle, 2_000);
   startup.unref?.();
   scheduleWorker();
   return true;
