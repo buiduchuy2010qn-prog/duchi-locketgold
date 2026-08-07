@@ -42,6 +42,10 @@ export function sanitizeWatch(raw) {
       typeof raw.lastWasFull === "boolean"
         ? raw.lastWasFull
         : cleanCount(raw.maxFriends) > 0 && cleanCount(raw.friendCount) >= cleanCount(raw.maxFriends),
+    autoRequestEnabled: Boolean(raw.autoRequestEnabled),
+    lastAutoRequestAt: Number(raw.lastAutoRequestAt) || null,
+    lastAutoRequestStatus: cleanText(raw.lastAutoRequestStatus, 40),
+    lastAutoRequestError: cleanText(raw.lastAutoRequestError, 500),
   };
 }
 
@@ -104,6 +108,10 @@ export function addWatch(celeb) {
     notifiedAt: null,
     errorCount: 0,
     lastWasFull: true,
+    autoRequestEnabled: Boolean(celeb?.autoRequestEnabled),
+    lastAutoRequestAt: null,
+    lastAutoRequestStatus: "",
+    lastAutoRequestError: "",
   });
   if (!candidate) throw new Error("Tài khoản Celeb không hợp lệ.");
 

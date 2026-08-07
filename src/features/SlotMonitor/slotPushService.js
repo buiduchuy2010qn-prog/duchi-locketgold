@@ -142,6 +142,14 @@ export async function setServerSlotWatchEnabled(uid, enabled) {
   });
 }
 
+export async function setServerSlotAutoRequestEnabled(uid, autoRequestEnabled) {
+  const response = await instanceMain.patch(
+    `api/slot-monitor/watch/${encodeURIComponent(uid)}`,
+    { autoRequestEnabled: Boolean(autoRequestEnabled) },
+  );
+  return response?.data?.data || null;
+}
+
 export async function checkServerSlotWatchNow(uid) {
   return instanceMain.post(`api/slot-monitor/check/${encodeURIComponent(uid)}`);
 }

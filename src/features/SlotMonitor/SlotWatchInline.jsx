@@ -8,12 +8,14 @@ import {
   Search,
   Send,
   Trash2,
+  Zap,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSlotMonitor } from "./useSlotMonitor";
 import { SLOT_STATUS } from "./slotMonitorCore";
 import {
   fetchServerSlotWatches,
+  setServerSlotAutoRequestEnabled,
   syncExistingWatches,
 } from "./slotPushService";
 import {
@@ -24,6 +26,7 @@ import {
   saveWatchedCelebs,
   setSlotMonitorOwner,
   SLOT_MONITOR_STORAGE_KEY,
+  updateWatch,
 } from "./slotMonitorStorage";
 import { getMyLocalId } from "@/utils/auth/getMyLocalId";
 
@@ -66,6 +69,10 @@ const serverWatchToLocal = (item) => ({
       ? item.lastWasFull
       : Number(item?.maxFriends || 0) > 0 &&
         Number(item?.friendCount || 0) >= Number(item?.maxFriends || 0),
+  autoRequestEnabled: Boolean(item?.autoRequestEnabled),
+  lastAutoRequestAt: item?.lastAutoRequestAt || null,
+  lastAutoRequestStatus: item?.lastAutoRequestStatus || "",
+  lastAutoRequestError: item?.lastAutoRequestError || "",
 });
 
 function notifySameTabStorageRefresh(items) {
@@ -86,6 +93,7 @@ export default function SlotWatchInline() {
   const navigate = useNavigate();
   const [syncingAccount, setSyncingAccount] = useState(false);
   const [syncError, setSyncError] = useState("");
+  const [autoRequestSavingUids, setAutoRequestSavingUids] = useState([]);
   const {
     watchedCelebs,
     checkingUids,
@@ -127,7 +135,11 @@ export default function SlotWatchInline() {
 
         if (!alreadyHydrated && server.length === 0 && local.length > 0) {
           await syncExistingWatches(local);
-          next = local;
+          const hydratedRaw = await fetchServerSlotWatches();
+          next = hydratedRaw
+            .map(serverWatchToLocal)
+            .filter((item) => item.uid && item.username)
+            .slice(0, 20);
         }
 
         if (cancelled) return;
@@ -169,6 +181,36 @@ export default function SlotWatchInline() {
 
   const openFriendsFromSlot = (path = "/friends") => {
     navigate(path, { state: { fromSlotPage: true } });
+  };
+
+  const toggleAutoRequest = async (celeb, enabled) => {
+    if (!celeb?.uid || autoRequestSavingUids.includes(celeb.uid)) return;
+    setAutoRequestSavingUids((current) => [...current, celeb.uid]);
+    setSyncError("");
+    try {
+      const serverWatch = await setServerSlotAutoRequestEnabled(celeb.uid, enabled);
+      const saved = updateWatch(celeb.uid, {
+        autoRequestEnabled: Boolean(
+          serverWatch?.autoRequestEnabled ?? enabled,
+        ),
+        lastAutoRequestAt:
+          serverWatch?.lastAutoRequestAt ?? celeb.lastAutoRequestAt ?? null,
+        lastAutoRequestStatus:
+          serverWatch?.lastAutoRequestStatus ?? celeb.lastAutoRequestStatus ?? "",
+        lastAutoRequestError:
+          serverWatch?.lastAutoRequestError ?? celeb.lastAutoRequestError ?? "",
+      });
+      notifySameTabStorageRefresh(saved);
+    } catch (error) {
+      setSyncError(
+        error?.response?.data?.message ||
+          "Không thể cập nhật tự gửi request Celeb lúc này.",
+      );
+    } finally {
+      setAutoRequestSavingUids((current) =>
+        current.filter((uid) => uid !== celeb.uid),
+      );
+    }
   };
 
   return (
@@ -226,6 +268,11 @@ export default function SlotWatchInline() {
             </button>
           </div>
 
+          <p className="mt-3 text-xs text-base-content/55">
+            <Zap size={13} className="inline -mt-0.5 mr-1" />
+            Tự kết bạn Celeb là thao tác thật: Railway chỉ báo “đã gửi” khi API Locket xác nhận request.
+          </p>
+
           {syncingAccount && (
             <p className="mt-3 text-xs text-info">
               ⟳ Đang đồng bộ danh sách Canh Slot của tài khoản này...
@@ -239,7 +286,7 @@ export default function SlotWatchInline() {
           )}
           {backgroundEnabled && pushUnsupported && (
             <p className="mt-3 text-xs text-info">
-              Railway vẫn canh 24/7 và đồng bộ tài khoản. Muốn nhận ngoài màn hình khóa, hãy bật Web Push trên thiết bị có hỗ trợ.
+              Railway vẫn canh slot 24/7 và đồng bộ tài khoản. Muốn nhận ngoài màn hình khóa, hãy bật Web Push trên thiết bị có hỗ trợ.
             </p>
           )}
         </header>
@@ -267,6 +314,7 @@ export default function SlotWatchInline() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
               {watchedCelebs.map((celeb) => {
                 const checking = checkingUids.includes(celeb.uid);
+                const autoSaving = autoRequestSavingUids.includes(celeb.uid);
                 const slotOpen = celeb.status === SLOT_STATUS.SLOT_OPEN;
                 const availableSlots = Math.max(
                   0,
@@ -314,6 +362,47 @@ export default function SlotWatchInline() {
                           </p>
                         )}
                       </div>
+                    </div>
+
+                    <div className="mt-3 rounded-xl border border-warning/25 bg-warning/5 p-3">
+                      <label className="flex cursor-pointer items-center gap-3">
+                        <input
+                          type="checkbox"
+                          className="toggle toggle-warning toggle-sm"
+                          checked={Boolean(celeb.autoRequestEnabled)}
+                          disabled={autoSaving}
+                          onChange={(event) =>
+                            toggleAutoRequest(celeb, event.target.checked)
+                          }
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-center gap-1.5 text-sm font-semibold">
+                            <Zap size={14} /> Tự gửi request Celeb khi có slot
+                          </span>
+                          <span className="block text-[11px] text-base-content/55">
+                            Gửi thật qua Locket ngay khi Railway phát hiện full → có slot.
+                          </span>
+                        </span>
+                        {autoSaving && (
+                          <span className="loading loading-spinner loading-xs" />
+                        )}
+                      </label>
+
+                      {celeb.lastAutoRequestStatus === "SENT" && (
+                        <p className="mt-2 text-[11px] text-success">
+                          ✓ Lần gần nhất Locket đã xác nhận request • {timeAgo(celeb.lastAutoRequestAt)}
+                        </p>
+                      )}
+                      {celeb.lastAutoRequestStatus === "FAILED" && (
+                        <p className="mt-2 text-[11px] text-warning" title={celeb.lastAutoRequestError || ""}>
+                          ⚠ Lần gần nhất request chưa thành công • {timeAgo(celeb.lastAutoRequestAt)}
+                        </p>
+                      )}
+                      {celeb.autoRequestEnabled && !backgroundEnabled && (
+                        <p className="mt-2 text-[11px] text-warning">
+                          Hãy bật Canh 24/7 để Railway có phiên đăng nhập nền và tự gửi khi bạn đóng web.
+                        </p>
+                      )}
                     </div>
 
                     <div className="mt-4 flex flex-wrap items-center gap-2">
