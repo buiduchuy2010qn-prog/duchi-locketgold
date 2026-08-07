@@ -4,6 +4,9 @@ import NormalItemFriend from "./NormalItemFriend";
 import { FaSearchPlus } from "react-icons/fa";
 import SearchInput from "@/components/uikit/Input/SearchInput";
 import CelebItemFriend from "./CelebItemFriend";
+import { Bell } from "lucide-react";
+import { useSlotMonitor } from "../../SlotMonitor/useSlotMonitor";
+import SlotWatchModal from "../../SlotMonitor/SlotWatchModal";
 import {
   SonnerInfo,
   SonnerPromiseV2,
@@ -18,7 +21,7 @@ import {
 } from "@/services";
 import BouncyLoader from "@/components/uikit/Loading/Bouncy";
 import { useFeatureVisible } from "@/hooks/useFeature";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useShareHistory } from "@/stores";
 import { getMyLocalId } from "@/utils/auth/getMyLocalId";
 import { useTranslation } from "react-i18next";
@@ -32,6 +35,8 @@ import {
 const FindFriend = ({ refreshFriendsData }) => {
   const { t } = useTranslation("features");
   const navigate = useNavigate();
+  const location = useLocation();
+  const { watchedCelebs } = useSlotMonitor();
   const isSendRequest = useFeatureVisible("send_friend_request");
   const { shareHistoryOn, toggleShareHistoryOn } = useShareHistory();
 
@@ -41,6 +46,7 @@ const FindFriend = ({ refreshFriendsData }) => {
   const [foundUser, setFoundUser] = useState(null);
   const [isFocusedFind, setIsFocusedFind] = useState(null);
   const [sending, setSending] = useState(false);
+  const [isWatchModalOpen, setIsWatchModalOpen] = useState(false);
   const [friendshipStatus, setFriendshipStatus] = useState(
     FRIENDSHIP_STATUS.NONE,
   );
@@ -50,6 +56,7 @@ const FindFriend = ({ refreshFriendsData }) => {
   const lastSearchRef = useRef("");
   const sendingRef = useRef(false);
   const mountedRef = useRef(true);
+  const slotJumpHandledRef = useRef("");
 
   const getRequestMessage = (error, action = "search") => {
     switch (classifyFriendRequestError(error)) {
@@ -177,6 +184,19 @@ const FindFriend = ({ refreshFriendsData }) => {
       }
     }
   };
+
+  useEffect(() => {
+    const slotUsername = normalizeFriendUsername(location.state?.slotUsername);
+    if (!slotUsername) return;
+    const eventKey = `${location.key}:${slotUsername}`;
+    if (slotJumpHandledRef.current === eventKey) return;
+    slotJumpHandledRef.current = eventKey;
+    setSearchTermFind(slotUsername);
+    handleFindFriend(slotUsername);
+    navigate(location.pathname, { replace: true, state: null });
+    // Chỉ xử lý navigation state một lần; handleFindFriend cố ý không đưa vào deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key, location.pathname, location.state, navigate]);
 
   useEffect(
     () => () => {
@@ -315,10 +335,26 @@ const FindFriend = ({ refreshFriendsData }) => {
 
   return (
     <div>
-      <h2 className="flex items-center gap-2 text-md font-semibold mb-1">
-        <FaSearchPlus size={22} /> {t("friends.find.search_title")}
-      </h2>
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <h2 className="flex items-center gap-2 text-md font-semibold">
+          <FaSearchPlus size={22} /> {t("friends.find.search_title")}
+        </h2>
+        {watchedCelebs.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setIsWatchModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/15 text-primary text-xs font-semibold hover:bg-primary/25 transition-colors"
+          >
+            <Bell size={14} /> Đang canh: {watchedCelebs.length}
+          </button>
+        )}
+      </div>
       <p className="text-sm">{t("friends.find.anti_spam")}</p>
+      {watchedCelebs.length > 0 && (
+        <p className="mt-1 text-xs text-base-content/50">
+          Canh Slot hoạt động khi Huy Locket đang chạy.
+        </p>
+      )}
 
       <div className="flex items-center justify-between py-3">
         <div className="flex items-center gap-3">
@@ -413,6 +449,11 @@ const FindFriend = ({ refreshFriendsData }) => {
             />
           ))}
       </div>
+
+      <SlotWatchModal
+        isOpen={isWatchModalOpen}
+        onClose={() => setIsWatchModalOpen(false)}
+      />
     </div>
   );
 };
