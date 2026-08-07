@@ -1,5 +1,5 @@
 # Vercel Hobby allows max 12 Serverless Functions.
-# We explicitly ignore the Express app folders inside api/ so Vercel only deploys the admin serverless functions.
+# Ignore the Express backend because it is deployed separately on Railway.
 api/auth
 api/google
 api/migrations
@@ -32,14 +32,14 @@ render.yaml
 fly.toml
 firebase.json
 
-# Not needed for static SPA on Vercel
-apps
-_upgrade_backup_20260710172600
-public_legacy_locket
-data
-node_modules
+# Unneeded root-level project data
+/apps
+/_upgrade_backup_20260710172600
+/public_legacy_locket
+/data
+/node_modules
+/dist
 
-# Source trees (SPA is prebuilt in vercel-static/)
-src
-public
-dist
+# Vercel runs npm run build:deploy, so src/ and public/ must be uploaded.
+# The leading slash on /data keeps nested source folders such as
+# src/features/CustomeStudio/data available to Vite.
