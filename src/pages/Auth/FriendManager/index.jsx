@@ -4,6 +4,7 @@ import { useLocation } from "react-router-dom";
 import { useAppNavigation } from "@/context/AppContext";
 import FriendsContainer from "@/features/FriendsContainer";
 import SlotWatchInline from "@/features/SlotMonitor/SlotWatchInline";
+import SlotNotificationSettings from "@/features/SlotMonitor/SlotNotificationSettings";
 
 const FriendManager = () => {
   const location = useLocation();
@@ -24,6 +25,9 @@ const FriendManager = () => {
     return (
       <div className="min-h-[80vh] bg-base-100">
         <SlotWatchInline />
+        <div className="mx-auto w-full max-w-5xl px-4 pb-8">
+          <SlotNotificationSettings />
+        </div>
       </div>
     );
   }
