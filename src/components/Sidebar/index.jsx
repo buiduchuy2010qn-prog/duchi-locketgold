@@ -25,6 +25,7 @@ import {
   ScrollText,
   BookUser,
   HardDrive,
+  BellRing,
 } from "lucide-react";
 import { useAppNavigation } from "@/context/AppContext";
 import { MenuItem } from "./MenuItem";
@@ -241,6 +242,12 @@ const Sidebar = () => {
           badge: "New",
         },
         { to: "/friends", icon: BookUser, text: t("sidebar.menu.friends") },
+        {
+          to: "/friends?slot=1",
+          icon: BellRing,
+          text: "Canh Slot",
+          badge: "24/7",
+        },
         { to: "/pricing", icon: Rocket, text: t("sidebar.menu.pricing"), badge: "Hot" },
         { to: "/profile", icon: UserRound, text: t("sidebar.menu.profile") },
       ],
