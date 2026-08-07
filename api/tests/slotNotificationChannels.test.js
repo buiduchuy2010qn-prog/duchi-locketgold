@@ -4,6 +4,9 @@ const assert = require("node:assert/strict");
 const { sanitizeSettings } = require("../src/modules/slotMonitor/notificationService");
 const {
   buildSlotMessage,
+  buildEmailSubject,
+  buildEmailText,
+  buildEmailHtml,
   getProviderConfig,
 } = require("../src/modules/slotMonitor/notifiers");
 
@@ -88,4 +91,50 @@ test("slot message shows available slots and new capacity", () => {
     if (previousWeb === undefined) delete process.env.PUBLIC_WEB_URL;
     else process.env.PUBLIC_WEB_URL = previousWeb;
   }
+});
+
+test("Gmail subject and template are clean and branded", () => {
+  const previousWeb = process.env.PUBLIC_WEB_URL;
+  process.env.PUBLIC_WEB_URL = "https://duchi.vercel.app";
+  try {
+    const payload = {
+      type: "slot-open",
+      title: "🔥 Slot vừa mở!",
+      url: "/friends?slot=1&username=celeb",
+      celeb: {
+        username: "celeb",
+        availableSlots: 10000,
+        friendCount: 20000,
+        maxFriends: 30000,
+      },
+    };
+    const message = buildSlotMessage(payload);
+    const subject = buildEmailSubject(payload, message);
+    const text = buildEmailText(payload, message);
+    const html = buildEmailHtml(payload, message);
+
+    assert.equal(subject, "Duchi Locket | @celeb vừa mở slot");
+    assert.doesNotMatch(subject, /🔥|�/u);
+    assert.match(text, /Bạn nhận email này vì đã bật thông báo Gmail/);
+    assert.match(html, /DUCHI LOCKET/);
+    assert.match(html, /<meta charset="UTF-8">/);
+    assert.doesNotMatch(html, /🔥|👥|�/u);
+  } finally {
+    if (previousWeb === undefined) delete process.env.PUBLIC_WEB_URL;
+    else process.env.PUBLIC_WEB_URL = previousWeb;
+  }
+});
+
+test("Gmail test mail has official confirmation subject", () => {
+  const payload = {
+    type: "slot-test",
+    title: "🔔 Huy Locket Canh Slot",
+    body: "Kênh thông báo đã kết nối thành công.",
+    url: "/friends?slot=1",
+  };
+  const message = buildSlotMessage(payload);
+  assert.equal(
+    buildEmailSubject(payload, message),
+    "Duchi Locket | Xác nhận kết nối Canh Slot",
+  );
 });
