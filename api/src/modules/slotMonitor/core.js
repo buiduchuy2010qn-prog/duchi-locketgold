@@ -50,16 +50,20 @@ function extractCelebritySnapshot(result) {
 }
 
 function computeTransition(previous, snapshot) {
+  const previousFriendCount = Number(previous?.friend_count ?? previous?.friendCount ?? 0) || 0;
+  const previousMaxFriends = Number(previous?.max_friends ?? previous?.maxFriends ?? 0) || 0;
+  const previousAvailableSlots = Math.max(0, previousMaxFriends - previousFriendCount);
   const wasFull =
     typeof previous?.last_was_full === "boolean"
       ? previous.last_was_full
       : typeof previous?.lastWasFull === "boolean"
         ? previous.lastWasFull
-        : Number(previous?.max_friends ?? previous?.maxFriends ?? 0) > 0 &&
-          Number(previous?.friend_count ?? previous?.friendCount ?? 0) >=
-            Number(previous?.max_friends ?? previous?.maxFriends ?? 0);
+        : previousMaxFriends > 0 && previousFriendCount >= previousMaxFriends;
 
-  const shouldNotify = wasFull && !snapshot.isFull;
+  const capacityIncreased =
+    snapshot.maxFriends > previousMaxFriends &&
+    snapshot.availableSlots > previousAvailableSlots;
+  const shouldNotify = !snapshot.isFull && (wasFull || capacityIncreased);
 
   return {
     friendCount: snapshot.friendCount,
@@ -68,6 +72,7 @@ function computeTransition(previous, snapshot) {
     lastWasFull: snapshot.isFull,
     status: snapshot.isFull ? SLOT_STATUS.WATCHING : SLOT_STATUS.SLOT_OPEN,
     shouldNotify,
+    capacityIncreased,
   };
 }
 
