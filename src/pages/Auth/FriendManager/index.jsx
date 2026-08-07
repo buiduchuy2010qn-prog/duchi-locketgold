@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { BookUser } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAppNavigation } from "@/context/AppContext";
 import FriendsContainer from "@/features/FriendsContainer";
 import SlotWatchInline from "@/features/SlotMonitor/SlotWatchInline";
@@ -8,8 +8,10 @@ import SlotNotificationSettings from "@/features/SlotMonitor/SlotNotificationSet
 
 const FriendManager = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { isFriendsTabOpen, setFriendsTabOpen } = useAppNavigation();
   const isSlotPage = new URLSearchParams(location.search).get("slot") === "1";
+  const openedFromSlotPage = location.state?.fromSlotPage === true;
 
   useEffect(() => {
     if (isSlotPage) {
@@ -32,6 +34,12 @@ const FriendManager = () => {
     );
   }
 
+  const handleFriendsClose = () => {
+    if (openedFromSlotPage) {
+      navigate("/friends?slot=1", { replace: true, state: null });
+    }
+  };
+
   return (
     <div className="min-h-[80vh] flex flex-col items-center justify-center bg-base-100 text-base-content px-4 text-center gap-3">
       <div className="w-14 h-14 flex items-center justify-center rounded-2xl bg-base-200">
@@ -50,7 +58,7 @@ const FriendManager = () => {
           Mở quản lý bạn bè
         </button>
       )}
-      <FriendsContainer />
+      <FriendsContainer onClose={handleFriendsClose} />
     </div>
   );
 };
