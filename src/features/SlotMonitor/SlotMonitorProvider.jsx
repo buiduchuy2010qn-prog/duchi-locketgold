@@ -33,6 +33,14 @@ import {
   updateWatch,
   writeLeaderLock,
 } from "./slotMonitorStorage";
+import {
+  enableSlotPush,
+  removeSlotWatch,
+  setServerSlotWatchEnabled,
+  syncExistingWatches,
+  syncSlotWatch,
+  testSlotPush,
+} from "./slotPushService";
 
 export const SlotMonitorContext = createContext(null);
 
@@ -62,10 +70,22 @@ export function SlotMonitorProvider({ children }) {
   const lastPollAtRef = useRef(0);
   const authBlockedUntilRef = useRef(0);
   const eventIdsRef = useRef(new Set());
+  const backgroundHydratedRef = useRef(false);
+  const pushEnabledRef = useRef(false);
 
   const [watchedCelebs, setWatchedCelebs] = useState(() => getWatchedCelebs());
   const [isLeader, setIsLeader] = useState(false);
   const [checkingUids, setCheckingUids] = useState([]);
+  const [slotPushState, setSlotPushState] = useState({
+    checking: false,
+    enabled: false,
+    backgroundEnabled: false,
+    permission:
+      typeof window !== "undefined" && "Notification" in window
+        ? window.Notification.permission
+        : "unsupported",
+    reason: null,
+  });
 
   const syncFromStorage = useCallback(() => {
     setWatchedCelebs(getWatchedCelebs());
@@ -101,8 +121,62 @@ export function SlotMonitorProvider({ children }) {
   }, [broadcast, setLeader]);
 
   const goToCeleb = useCallback(
-    (username) => navigate("/friends", { state: { slotUsername: username } }),
+    (username) => navigate(`/friends?slot=1&username=${encodeURIComponent(username || "")}`),
     [navigate],
+  );
+
+  const enableBackgroundPush = useCallback(
+    async ({ requestPermission = true, showFeedback = true } = {}) => {
+      setSlotPushState((current) => ({ ...current, checking: true }));
+      try {
+        const result = await enableSlotPush({ requestPermission });
+        pushEnabledRef.current = Boolean(result?.enabled);
+        setSlotPushState({
+          checking: false,
+          enabled: Boolean(result?.enabled),
+          backgroundEnabled: Boolean(result?.backgroundEnabled),
+          permission: result?.permission || window.Notification?.permission || "unsupported",
+          reason: result?.reason || null,
+        });
+
+        if (result?.backgroundEnabled) {
+          await syncExistingWatches(getWatchedCelebs()).catch(() => {});
+        }
+
+        if (showFeedback) {
+          if (result?.enabled) {
+            toast.success("🔔 Canh Slot 24/7 đã bật", {
+              description: "Có slot sẽ báo ra thông báo điện thoại/màn hình khóa.",
+            });
+          } else if (result?.backgroundEnabled && result?.permission === "denied") {
+            toast.warning("Canh nền đã bật nhưng thông báo đang bị chặn", {
+              description: "Hãy cho phép thông báo của Huy Locket để nhận ngoài màn hình khóa.",
+            });
+          } else {
+            toast.warning("Chưa bật được thông báo Canh Slot 24/7", {
+              description: "Canh Slot trong web vẫn hoạt động bình thường.",
+            });
+          }
+        }
+        return result;
+      } catch (error) {
+        pushEnabledRef.current = false;
+        setSlotPushState((current) => ({
+          ...current,
+          checking: false,
+          enabled: false,
+          reason: error?.response?.data?.code || error?.code || "ENABLE_FAILED",
+        }));
+        if (showFeedback) {
+          toast.error("Không thể bật Canh Slot 24/7", {
+            description:
+              error?.response?.data?.message || error?.message || "Canh Slot trong web vẫn hoạt động.",
+          });
+        }
+        return { enabled: false, backgroundEnabled: false };
+      }
+    },
+    [],
   );
 
   const showSlotAlert = useCallback(
@@ -121,9 +195,12 @@ export function SlotMonitorProvider({ children }) {
         },
       });
 
+      // Khi Web Push 24/7 đã bật, Service Worker phụ trách notification hệ thống.
+      // Notification() chỉ là fallback để không tạo thông báo trùng.
       const supported = typeof window !== "undefined" && "Notification" in window;
       if (
         browser &&
+        !pushEnabledRef.current &&
         supported &&
         canSendBrowserNotification(window.Notification.permission, supported)
       ) {
@@ -358,31 +435,59 @@ export function SlotMonitorProvider({ children }) {
     return () => document.removeEventListener("visibilitychange", onVisibility);
   }, [pollCelebs]);
 
+  // Nếu user đã cấp quyền từ trước, tự nối lại Web Push khi mở Huy Locket.
+  useEffect(() => {
+    if (backgroundHydratedRef.current || watchedCelebs.length === 0) return;
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    if (window.Notification.permission !== "granted") return;
+
+    backgroundHydratedRef.current = true;
+    const timer = setTimeout(() => {
+      enableBackgroundPush({ requestPermission: false, showFeedback: false });
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [watchedCelebs.length, enableBackgroundPush]);
+
   const watchCeleb = useCallback(
     async (celeb) => {
       try {
         addWatch(celeb);
         syncFromStorage();
         broadcast({ type: "SYNC_STATE" });
-        if (typeof window !== "undefined" && "Notification" in window) {
-          if (window.Notification.permission === "default") {
-            try {
-              await window.Notification.requestPermission();
-            } catch {
-              /* toast vẫn hoạt động */
-            }
-          }
+
+        // User click là user gesture hợp lệ để xin quyền notification.
+        const background = await enableBackgroundPush({
+          requestPermission: true,
+          showFeedback: false,
+        });
+        if (background?.backgroundEnabled) {
+          await syncSlotWatch(celeb).catch(() => {});
+        }
+
+        if (background?.enabled) {
+          toast.success("🔔 Đang canh cả khi đóng Huy Locket", {
+            description: "Có slot sẽ báo về thông báo điện thoại/màn hình khóa.",
+          });
+        } else if (background?.permission === "denied") {
+          toast.warning("Đã canh nhưng điện thoại đang chặn thông báo", {
+            description: "Bật quyền thông báo cho Huy Locket để nhận ngoài màn hình khóa.",
+          });
+        } else {
+          toast.success("Đã bật Canh Slot", {
+            description: "Canh trong web đang chạy; có thể bật thông báo 24/7 trong danh sách Canh Slot.",
+          });
         }
       } catch (error) {
         toast.error(error?.message || "Không thể bật Canh Slot.");
       }
     },
-    [broadcast, syncFromStorage],
+    [broadcast, enableBackgroundPush, syncFromStorage],
   );
 
   const unwatchCeleb = useCallback(
     (uid) => {
       removeWatch(uid);
+      removeSlotWatch(uid).catch(() => {});
       syncFromStorage();
       broadcast({ type: "SYNC_STATE" });
     },
@@ -392,6 +497,7 @@ export function SlotMonitorProvider({ children }) {
   const pauseWatch = useCallback(
     (uid) => {
       updateWatch(uid, { status: SLOT_STATUS.PAUSED });
+      setServerSlotWatchEnabled(uid, false).catch(() => {});
       syncFromStorage();
       broadcast({ type: "SYNC_STATE" });
     },
@@ -405,29 +511,50 @@ export function SlotMonitorProvider({ children }) {
         status: item?.lastWasFull === false ? SLOT_STATUS.SLOT_OPEN : SLOT_STATUS.WATCHING,
         errorCount: 0,
       });
+      setServerSlotWatchEnabled(uid, true).catch(() => {});
       syncFromStorage();
       broadcast({ type: "SYNC_STATE" });
     },
     [broadcast, syncFromStorage],
   );
 
-  const clearAll = useCallback(() => {
+  const clearAll = useCallback(async () => {
+    const current = getWatchedCelebs();
     clearAllWatch();
     syncFromStorage();
     broadcast({ type: "SYNC_STATE" });
+    await Promise.allSettled(current.map((item) => removeSlotWatch(item.uid)));
   }, [broadcast, syncFromStorage]);
+
+  const testBackgroundPush = useCallback(async () => {
+    const state = await enableBackgroundPush({ requestPermission: true, showFeedback: false });
+    if (!state?.enabled) {
+      toast.error("Chưa thể gửi thông báo test", {
+        description: "Hãy cho phép thông báo của Huy Locket trước.",
+      });
+      return false;
+    }
+    await testSlotPush();
+    toast.success("Đã gửi thông báo test", {
+      description: "Kiểm tra thanh thông báo hoặc màn hình khóa điện thoại.",
+    });
+    return true;
+  }, [enableBackgroundPush]);
 
   const value = useMemo(
     () => ({
       watchedCelebs,
       isLeader,
       checkingUids,
+      slotPushState,
       watchCeleb,
       unwatchCeleb,
       pauseWatch,
       resumeWatch,
       checkNow: requestCheckNow,
       clearAll,
+      enableBackgroundPush,
+      testBackgroundPush,
       isWatching: (uid) => watchedCelebs.some((item) => item.uid === uid),
       getWatch: (uid) => watchedCelebs.find((item) => item.uid === uid) || null,
     }),
@@ -435,12 +562,15 @@ export function SlotMonitorProvider({ children }) {
       watchedCelebs,
       isLeader,
       checkingUids,
+      slotPushState,
       watchCeleb,
       unwatchCeleb,
       pauseWatch,
       resumeWatch,
       requestCheckNow,
       clearAll,
+      enableBackgroundPush,
+      testBackgroundPush,
     ],
   );
 

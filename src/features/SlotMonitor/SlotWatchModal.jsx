@@ -1,5 +1,14 @@
 import React, { useEffect } from "react";
-import { Bell, Pause, Play, RefreshCw, Trash2, X } from "lucide-react";
+import {
+  Bell,
+  BellRing,
+  Pause,
+  Play,
+  RefreshCw,
+  Send,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSlotMonitor } from "./useSlotMonitor";
 import { SLOT_STATUS } from "./slotMonitorCore";
@@ -31,11 +40,14 @@ export default function SlotWatchModal({ isOpen, onClose }) {
   const {
     watchedCelebs,
     checkingUids,
+    slotPushState,
     unwatchCeleb,
     pauseWatch,
     resumeWatch,
     checkNow,
     clearAll,
+    enableBackgroundPush,
+    testBackgroundPush,
   } = useSlotMonitor();
 
   useEffect(() => {
@@ -46,6 +58,8 @@ export default function SlotWatchModal({ isOpen, onClose }) {
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
+
+  const pushEnabled = slotPushState?.enabled;
 
   return (
     <div
@@ -60,17 +74,54 @@ export default function SlotWatchModal({ isOpen, onClose }) {
         aria-label="Danh sách canh slot"
         onClick={(event) => event.stopPropagation()}
       >
-        <header className="flex items-center justify-between border-b border-base-300 p-4">
-          <div>
-            <h2 className="flex items-center gap-2 font-bold"><Bell size={18} /> Canh Slot</h2>
-            <p className="text-xs text-base-content/60">Giữ Huy Locket hoạt động để nhận slot nhanh nhất.</p>
+        <header className="border-b border-base-300 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="flex items-center gap-2 font-bold"><Bell size={18} /> Canh Slot</h2>
+              <p className="text-xs text-base-content/60">
+                {pushEnabled
+                  ? "Canh 24/7 đang bật — có slot sẽ báo ra điện thoại/màn hình khóa."
+                  : "Bật thông báo 24/7 để vẫn nhận slot khi không mở Huy Locket."}
+              </p>
+            </div>
+            <button className="btn btn-ghost btn-circle btn-sm" onClick={onClose} aria-label="Đóng">
+              <X size={18} />
+            </button>
           </div>
-          <button className="btn btn-ghost btn-circle btn-sm" onClick={onClose} aria-label="Đóng">
-            <X size={18} />
-          </button>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              className={`btn btn-sm ${pushEnabled ? "btn-success" : "btn-primary"}`}
+              disabled={slotPushState?.checking}
+              onClick={() => enableBackgroundPush({ requestPermission: true, showFeedback: true })}
+            >
+              {slotPushState?.checking ? (
+                <span className="loading loading-spinner loading-xs" />
+              ) : pushEnabled ? (
+                <BellRing size={15} />
+              ) : (
+                <Bell size={15} />
+              )}
+              {pushEnabled ? "Đã bật 24/7" : "Bật thông báo 24/7"}
+            </button>
+
+            <button
+              className="btn btn-ghost btn-sm"
+              disabled={!pushEnabled || slotPushState?.checking}
+              onClick={testBackgroundPush}
+            >
+              <Send size={14} /> Gửi thử
+            </button>
+          </div>
+
+          {slotPushState?.permission === "denied" && (
+            <p className="mt-2 text-xs text-warning">
+              Trình duyệt đang chặn thông báo. Hãy bật quyền thông báo cho Huy Locket trong cài đặt trình duyệt/điện thoại.
+            </p>
+          )}
         </header>
 
-        <div className="max-h-[65vh] overflow-y-auto p-3 space-y-2">
+        <div className="max-h-[58vh] overflow-y-auto p-3 space-y-2">
           {watchedCelebs.length === 0 ? (
             <div className="py-10 text-center text-base-content/55">
               <Bell className="mx-auto mb-2 opacity-30" />
@@ -105,7 +156,7 @@ export default function SlotWatchModal({ isOpen, onClose }) {
                       className="btn btn-error btn-sm"
                       onClick={() => {
                         onClose();
-                        navigate("/friends", { state: { slotUsername: celeb.username } });
+                        navigate(`/friends?slot=1&username=${encodeURIComponent(celeb.username)}`);
                       }}
                     >
                       Kết bạn ngay
