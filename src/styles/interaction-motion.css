@@ -1,12 +1,25 @@
 /* Lightweight interaction motion pack.
  * Only opacity + transform are used for motion-sensitive UI paths.
- * Lite mode and prefers-reduced-motion disable decorative motion.
+ * Lite mode keeps shorter/smaller motion instead of removing it completely.
  */
 
 :root {
   --hl-motion-fast: 140ms;
   --hl-motion-normal: 200ms;
   --hl-motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Navigation drawer: make the right-side slide obvious but still cheap. */
+#huy-locket-nav-drawer {
+  transition-property: transform, opacity !important;
+  transition-duration: 280ms, 180ms !important;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1), ease !important;
+  will-change: transform;
+  opacity: 1;
+}
+
+#huy-locket-nav-drawer.translate-x-full {
+  opacity: 0.94;
 }
 
 /* 1) Button feedback: posting button feels tactile without moving layout. */
@@ -143,25 +156,96 @@
   to { background-position: -80% 0; }
 }
 
-/* Lite mode: retain immediate state feedback but no decorative animation. */
-html[data-performance-mode="lite"] .moment-enter,
-html[data-performance-mode="lite"] .moment-overlay-enter,
-html[data-performance-mode="lite"] .interaction-modal-backdrop,
-html[data-performance-mode="lite"] .interaction-modal-card,
+/* Lite mode: keep the eye-candy, but shorten distance/time and stop endless shimmer. */
+@keyframes hl-moment-enter-lite {
+  from {
+    opacity: 0.7;
+    transform: translateY(4px) scale(0.997);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes hl-overlay-enter-lite {
+  from {
+    opacity: 0.75;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hl-modal-in-lite {
+  from {
+    opacity: 0.78;
+    transform: translateY(4px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes hl-sheet-in-lite {
+  from {
+    opacity: 0.8;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+html[data-performance-mode="lite"] #huy-locket-nav-drawer {
+  transition-duration: 170ms, 120ms !important;
+  will-change: auto;
+}
+
+html[data-performance-mode="lite"] .moment-enter {
+  animation: hl-moment-enter-lite 130ms var(--hl-motion-ease) both !important;
+}
+
+html[data-performance-mode="lite"] .moment-overlay-enter {
+  animation: hl-overlay-enter-lite 110ms 20ms var(--hl-motion-ease) both !important;
+}
+
+html[data-performance-mode="lite"] .interaction-modal-backdrop {
+  animation: hl-backdrop-in 100ms ease-out both !important;
+}
+
+html[data-performance-mode="lite"] .interaction-modal-card {
+  animation: hl-modal-in-lite 130ms var(--hl-motion-ease) both !important;
+}
+
 html[data-performance-mode="lite"] .interaction-sheet-enter,
-html[data-performance-mode="lite"] .draft-library-root,
-html[data-performance-mode="lite"] .moment-skeleton,
+html[data-performance-mode="lite"] .draft-library-root {
+  animation: hl-sheet-in-lite 140ms var(--hl-motion-ease) both !important;
+}
+
 html[data-performance-mode="lite"] .sendButton--success {
+  animation: hl-send-success 180ms var(--hl-motion-ease) both !important;
+}
+
+html[data-performance-mode="lite"] .moment-skeleton {
   animation: none !important;
 }
 
 html[data-performance-mode="lite"] .sendButton,
 html[data-performance-mode="lite"] .sendStatusLayer,
 html[data-performance-mode="lite"] .moment-media-fade {
-  transition-duration: 80ms !important;
+  transition-duration: 100ms !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
+  #huy-locket-nav-drawer {
+    transition: none !important;
+  }
+
   .moment-enter,
   .moment-overlay-enter,
   .interaction-modal-backdrop,
