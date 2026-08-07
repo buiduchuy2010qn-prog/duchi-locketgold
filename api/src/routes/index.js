@@ -10,6 +10,7 @@ const { momentRoutes } = require("../modules/moment");
 const { planRoutes } = require("../modules/locketdio");
 const { storageRoutes } = require("../modules/storage/routes");
 const { draftRoutes } = require("../modules/drafts");
+const { slotMonitorRoutes } = require("../modules/slotMonitor");
 const { healthController } = require("../controllers");
 const adminRoutes = require("./adminRoutes");
 const celebrityRoutes = require("./celebrityRoutes");
@@ -54,5 +55,6 @@ module.exports = (app) => {
   apiRouter.use(weatherRoutes);
   apiRouter.use(storageRoutes);
   apiRouter.use(draftRoutes);
+  apiRouter.use("/slot-monitor", slotMonitorRoutes);
   app.use("/api", generalApiLimit, apiRouter);
 };
