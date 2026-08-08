@@ -1,6 +1,7 @@
 const express = require("express");
 const { verifyIdToken } = require("../../middlewares/Auth");
 const store = require("./store");
+const eventStore = require("./eventStore");
 const { sanitizeWatchInput } = require("./core");
 const notificationRoutes = require("./notificationRoutes");
 const {
@@ -8,10 +9,20 @@ const {
   getPublicConfig,
   checkNowForUser,
   sendPushToUser,
+  sendRealCelebrityRequest,
 } = require("./service");
 
 const router = express.Router();
 const MAX_WATCHES = 20;
+
+// Cài bảng + trigger lịch sử ngay khi API Slot Monitor khởi động để các sự kiện
+// từ worker 24/7 được lưu kể cả khi người dùng không mở trang Celeb Center.
+eventStore.ensureSchema().catch((error) => {
+  console.warn("[slot-monitor] event history bootstrap failed", {
+    code: error?.code || null,
+    message: error?.message || "unknown",
+  });
+});
 
 function mapWatch(row) {
   return {
@@ -35,6 +46,20 @@ function mapWatch(row) {
   };
 }
 
+function mapEvent(row) {
+  return {
+    id: String(row.id),
+    uid: row.celeb_uid,
+    username: row.username,
+    type: row.event_type,
+    availableSlots: Number(row.available_slots) || 0,
+    friendCount: Number(row.friend_count) || 0,
+    maxFriends: Number(row.max_friends) || 0,
+    detail: row.detail || "",
+    createdAt: row.created_at ? new Date(row.created_at).getTime() : null,
+  };
+}
+
 router.get("/config", async (_req, res) => {
   try {
     const config = await getPublicConfig();
@@ -54,6 +79,18 @@ router.get("/watches", verifyIdToken, async (req, res, next) => {
   try {
     const rows = await store.listUserWatches(req.user.uid);
     return res.json({ success: true, data: rows.map(mapWatch) });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/history", verifyIdToken, async (req, res, next) => {
+  try {
+    const rows = await eventStore.listEvents(req.user.uid, {
+      celebUid: req.query?.uid || "",
+      limit: req.query?.limit || 120,
+    });
+    return res.json({ success: true, data: rows.map(mapEvent) });
   } catch (error) {
     return next(error);
   }
@@ -173,6 +210,97 @@ router.post("/check/:uid", verifyIdToken, async (req, res, next) => {
         success: false,
         code: error?.code || "SLOT_CHECK_FAILED",
         message: error?.message || "Không thể kiểm tra slot.",
+      });
+    }
+    return next(error);
+  }
+});
+
+router.post("/retry/:uid", verifyIdToken, async (req, res, next) => {
+  try {
+    const beforeRows = await store.listUserWatches(req.user.uid);
+    const before = beforeRows.find(
+      (item) => String(item.celeb_uid) === String(req.params.uid),
+    );
+    if (!before) {
+      return res.status(404).json({
+        success: false,
+        code: "SLOT_WATCH_NOT_FOUND",
+        message: "Không tìm thấy Celeb đang canh.",
+      });
+    }
+
+    const beforeAttemptAt = before.last_auto_request_at
+      ? new Date(before.last_auto_request_at).getTime()
+      : 0;
+
+    // Luôn kiểm tra dữ liệu Locket thật trước khi retry. Nếu lần check này vừa bắt được
+    // full -> có slot thì flow chuẩn có thể đã tự gửi request; khi đó không gửi lần hai.
+    const checked = await checkNowForUser(
+      req.user.uid,
+      req.params.uid,
+      req.user.idToken,
+    );
+
+    let rows = await store.listUserWatches(req.user.uid);
+    let latest = rows.find(
+      (item) => String(item.celeb_uid) === String(req.params.uid),
+    );
+    const afterAttemptAt = latest?.last_auto_request_at
+      ? new Date(latest.last_auto_request_at).getTime()
+      : 0;
+
+    let autoRequest = null;
+    if (afterAttemptAt && afterAttemptAt !== beforeAttemptAt) {
+      autoRequest = {
+        enabled: true,
+        attempted: true,
+        success: latest?.last_auto_request_status === "SENT",
+        code: latest?.last_auto_request_status === "SENT" ? null : "AUTO_REQUEST_FAILED",
+        message:
+          latest?.last_auto_request_status === "SENT"
+            ? "Locket đã xác nhận yêu cầu Celeb."
+            : latest?.last_auto_request_error || "Locket chưa xác nhận request Celeb.",
+      };
+    } else {
+      const availableSlots = Number(checked?.transition?.availableSlots) || 0;
+      if (availableSlots <= 0) {
+        return res.status(409).json({
+          success: false,
+          code: "SLOT_NOT_OPEN",
+          message: "Celeb hiện không còn slot trống nên chưa gửi lại request.",
+          data: checked?.transition || null,
+        });
+      }
+
+      // Đây là thao tác retry thủ công do người dùng bấm, nên được phép gửi một lần
+      // kể cả toggle auto hiện đã tắt. Không thay đổi cấu hình toggle trong DB.
+      autoRequest = await sendRealCelebrityRequest(
+        req.user.uid,
+        req.user.idToken,
+        { ...latest, auto_request_enabled: true },
+      );
+      rows = await store.listUserWatches(req.user.uid);
+      latest = rows.find(
+        (item) => String(item.celeb_uid) === String(req.params.uid),
+      );
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        transition: checked?.transition || null,
+        autoRequest,
+        watch: latest ? mapWatch(latest) : null,
+      },
+    });
+  } catch (error) {
+    const status = Number(error?.status) || 500;
+    if (status !== 500) {
+      return res.status(status).json({
+        success: false,
+        code: error?.code || "SLOT_RETRY_FAILED",
+        message: error?.message || "Không thể gửi lại request Celeb.",
       });
     }
     return next(error);
