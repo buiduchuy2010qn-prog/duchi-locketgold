@@ -7,6 +7,8 @@ import {
   setSnowIntensity as persistSnowIntensity,
   getColorMode,
   getPerfMode,
+  getInterfaceMode,
+  setInterfaceMode as persistInterfaceMode,
   PINK_SNOW_THEME,
 } from "@/utils/theme/themeUtils";
 
@@ -17,6 +19,7 @@ export const ThemeProvider = ({ children }) => {
   const [snowIntensity, setSnowIntensityState] = useState(() => getSnowIntensity());
   const [colorMode, setColorModeState] = useState(() => getColorMode());
   const [perfMode, setPerfModeState] = useState(() => getPerfMode());
+  const [interfaceMode, setInterfaceModeState] = useState(() => getInterfaceMode());
 
   const changeTheme = useCallback((newTheme) => {
     setThemeState(newTheme);
@@ -35,9 +38,14 @@ export const ThemeProvider = ({ children }) => {
     setPerfModeState(newMode);
   }, []);
 
+  const changeInterfaceMode = useCallback((newMode) => {
+    const v = persistInterfaceMode(newMode);
+    setInterfaceModeState(v);
+  }, []);
+
   useEffect(() => {
-    applyTheme(theme, colorMode, perfMode);
-  }, [theme, colorMode, perfMode]);
+    applyTheme(theme, colorMode, perfMode, interfaceMode);
+  }, [theme, colorMode, perfMode, interfaceMode]);
 
   // Lắng nghe thay đổi theme hệ thống nếu đang ở chế độ 'system'
   useEffect(() => {
@@ -45,13 +53,12 @@ export const ThemeProvider = ({ children }) => {
 
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const handleChange = () => {
-      // Re-apply theme to trigger DOM attribute update
-      applyTheme(theme, colorMode, perfMode);
+      applyTheme(theme, colorMode, perfMode, interfaceMode);
     };
 
     mediaQuery.addEventListener("change", handleChange);
     return () => mediaQuery.removeEventListener("change", handleChange);
-  }, [colorMode, theme, perfMode]);
+  }, [colorMode, theme, perfMode, interfaceMode]);
 
   useEffect(() => {
     persistSnowIntensity(snowIntensity);
@@ -68,6 +75,8 @@ export const ThemeProvider = ({ children }) => {
         changeColorMode,
         perfMode,
         changePerfMode,
+        interfaceMode,
+        changeInterfaceMode,
       }}
     >
       {children}

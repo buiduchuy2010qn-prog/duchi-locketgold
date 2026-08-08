@@ -8,14 +8,13 @@ export const PINK_SAKURA_GLASS_THEME = "pink-sakura-glass";
 export const PINK_LITE_THEME = "pink-lite";
 export const PINK_SNOW_AI_THEME = "pink-snow-ai";
 export const OCEAN_BLUE_THEME = "ocean-blue";
-export const IOS_THEME = "ios";
 
 /** User-facing storage key values */
 export const HUY_THEME_KEY = "huy-locket-theme";
 export const HUY_SNOW_KEY = "huy-locket-snow-intensity";
 export const HUY_COLOR_MODE_KEY = "huy-locket-color-mode";
 export const HUY_PERF_MODE_KEY = "huy-locket-perf-mode";
-export const HUY_IOS_ACCENT_KEY = "huy-locket-ios-accent";
+export const HUY_INTERFACE_KEY = "huy-locket-interface";
 
 export const HUY_THEME_DEFAULT = "default";
 export const HUY_THEME_PINK_SNOW = "pink-snow";
@@ -24,11 +23,11 @@ export const HUY_THEME_PINK_SAKURA = "pink-sakura-glass";
 export const HUY_THEME_PINK_LITE = "pink-lite";
 export const HUY_THEME_PINK_SNOW_AI = "pink-snow-ai";
 export const HUY_THEME_OCEAN_BLUE = "ocean-blue";
-export const HUY_THEME_IOS = "ios";
 
-export const IOS_DEFAULT_ACCENT = "#f5b700";
+export const INTERFACE_DEFAULT = "default";
+export const INTERFACE_IOS = "ios";
 
-/** Theme bật hiệu ứng tuyết rơi — Glass/iOS do NOT include snow */
+/** Theme bật hiệu ứng tuyết rơi — Glass does NOT include snow */
 export const SNOW_THEME_IDS = new Set([
   "pinksnow",
   "pink-snow",
@@ -56,52 +55,7 @@ export const isPinkSnowAiTheme = (theme) =>
 export const isOceanBlueTheme = (theme) =>
   theme === OCEAN_BLUE_THEME || theme === HUY_THEME_OCEAN_BLUE;
 
-export const isIosTheme = (theme) =>
-  theme === IOS_THEME || theme === HUY_THEME_IOS;
-
 export const hasSnowEffect = (theme) => SNOW_THEME_IDS.has(theme);
-
-function normalizeHexColor(value, fallback = IOS_DEFAULT_ACCENT) {
-  const raw = String(value || "").trim();
-  if (/^#[0-9a-fA-F]{6}$/.test(raw)) return raw.toLowerCase();
-  if (/^#[0-9a-fA-F]{3}$/.test(raw)) {
-    return `#${raw
-      .slice(1)
-      .split("")
-      .map((c) => `${c}${c}`)
-      .join("")}`.toLowerCase();
-  }
-  return fallback;
-}
-
-export function getIosAccent() {
-  try {
-    return normalizeHexColor(localStorage.getItem(HUY_IOS_ACCENT_KEY));
-  } catch {
-    return IOS_DEFAULT_ACCENT;
-  }
-}
-
-export function setIosAccent(color) {
-  const next = normalizeHexColor(color);
-  try {
-    localStorage.setItem(HUY_IOS_ACCENT_KEY, next);
-  } catch {
-    /* ignore */
-  }
-  try {
-    document.documentElement.style.setProperty("--ios-user-accent", next);
-  } catch {
-    /* ignore */
-  }
-
-  const root = document.documentElement;
-  if (root?.classList?.contains("theme-ios")) {
-    const metaTheme = document.querySelector('meta[name="theme-color"]');
-    metaTheme?.setAttribute("content", next);
-  }
-  return next;
-}
 
 /** Map any theme id → huy-locket-theme storage value */
 export function toHuyThemeKey(themeId) {
@@ -112,7 +66,6 @@ export function toHuyThemeKey(themeId) {
   if (isPinkSakuraGlassTheme(themeId)) return HUY_THEME_PINK_SAKURA;
   if (isPinkSnowAiTheme(themeId)) return HUY_THEME_PINK_SNOW_AI;
   if (isOceanBlueTheme(themeId)) return HUY_THEME_OCEAN_BLUE;
-  if (isIosTheme(themeId)) return HUY_THEME_IOS;
   return HUY_THEME_DEFAULT;
 }
 
@@ -170,10 +123,67 @@ export function getPerfMode() {
   return "normal";
 }
 
+/** default | ios — independent from the selected color theme */
+export function getInterfaceMode() {
+  try {
+    const stored = localStorage.getItem(HUY_INTERFACE_KEY);
+    if (stored === INTERFACE_DEFAULT || stored === INTERFACE_IOS) return stored;
+
+    // Migration from the short-lived build where iOS was stored as a color theme.
+    const oldHuyTheme = localStorage.getItem(HUY_THEME_KEY);
+    const oldTheme = localStorage.getItem("theme");
+    if (oldHuyTheme === "ios" || oldTheme === "ios") {
+      localStorage.setItem(HUY_INTERFACE_KEY, INTERFACE_IOS);
+      return INTERFACE_IOS;
+    }
+  } catch {
+    /* ignore */
+  }
+  return INTERFACE_DEFAULT;
+}
+
+export function setInterfaceMode(mode) {
+  const next = mode === INTERFACE_IOS ? INTERFACE_IOS : INTERFACE_DEFAULT;
+  const root = document.documentElement;
+
+  try {
+    localStorage.setItem(HUY_INTERFACE_KEY, next);
+  } catch {
+    /* ignore */
+  }
+
+  try {
+    root.dataset.interface = next;
+    root.classList.toggle("theme-ios", next === INTERFACE_IOS);
+    document.body?.classList.toggle("theme-ios", next === INTERFACE_IOS);
+  } catch {
+    /* ignore */
+  }
+
+  return next;
+}
+
+function migrateOldIosThemeIfNeeded(huyTheme, legacyTheme) {
+  if (huyTheme !== "ios" && legacyTheme !== "ios") return null;
+  try {
+    localStorage.setItem(HUY_INTERFACE_KEY, INTERFACE_IOS);
+    localStorage.setItem(HUY_THEME_KEY, HUY_THEME_PINK_SNOW);
+    localStorage.setItem("theme", PINK_SNOW_THEME);
+  } catch {
+    /* ignore */
+  }
+  return PINK_SNOW_THEME;
+}
+
 /** Resolve data-theme id from storage */
 export function resolveStoredTheme() {
   try {
     const huy = localStorage.getItem(HUY_THEME_KEY);
+    const legacy = localStorage.getItem("theme");
+
+    const migratedIosTheme = migrateOldIosThemeIfNeeded(huy, legacy);
+    if (migratedIosTheme) return migratedIosTheme;
+
     if (huy === HUY_THEME_PINK_SNOW || huy === "pinksnow") {
       return PINK_SNOW_THEME;
     }
@@ -194,11 +204,7 @@ export function resolveStoredTheme() {
     if (huy === HUY_THEME_OCEAN_BLUE || huy === "ocean-blue") {
       return OCEAN_BLUE_THEME;
     }
-    if (huy === HUY_THEME_IOS || huy === IOS_THEME) {
-      return IOS_THEME;
-    }
     if (huy === HUY_THEME_DEFAULT) {
-      const legacy = localStorage.getItem("theme");
       if (
         legacy &&
         !isPinkSnowTheme(legacy) &&
@@ -209,7 +215,6 @@ export function resolveStoredTheme() {
       }
       return "light";
     }
-    const legacy = localStorage.getItem("theme");
     if (legacy === "pink-snow") return PINK_SNOW_THEME;
     if (legacy) return legacy;
   } catch {
@@ -225,18 +230,22 @@ export function getThemeLabel(themeId) {
     return labels.pinksnow || "Hồng Tuyết";
   }
   if (isGlassTheme(themeId)) return labels.glass || "Glass";
-  if (isIosTheme(themeId)) return labels.ios || "iOS";
   return themeId;
 }
 
 /**
- * Apply theme to document before/after React paint.
- * Snow only when theme is in SNOW_THEME_IDS (not glass/iOS).
+ * Apply color theme and independent interface mode before/after React paint.
  */
-export const applyTheme = (theme, overrideColorMode, overridePerfMode) => {
+export const applyTheme = (
+  theme,
+  overrideColorMode,
+  overridePerfMode,
+  overrideInterfaceMode,
+) => {
   const t = theme || resolveStoredTheme() || PINK_SNOW_THEME;
   const colorMode = overrideColorMode || getColorMode();
   const perfMode = overridePerfMode || getPerfMode();
+  const interfaceMode = overrideInterfaceMode || getInterfaceMode();
   const root = document.documentElement;
 
   // Normalize aliases
@@ -264,7 +273,6 @@ export const applyTheme = (theme, overrideColorMode, overridePerfMode) => {
     "theme-pink-sakura-glass": isPinkSakuraGlassTheme(dataTheme),
     "theme-pink-snow-ai": isPinkSnowAiTheme(dataTheme),
     "theme-ocean-blue": isOceanBlueTheme(dataTheme),
-    "theme-ios": isIosTheme(dataTheme),
   };
 
   for (const [className, enabled] of Object.entries(classMap)) {
@@ -272,8 +280,8 @@ export const applyTheme = (theme, overrideColorMode, overridePerfMode) => {
     document.body?.classList.toggle(className, enabled);
   }
 
-  // This custom variable is harmless for other themes and lets iOS color update live.
-  setIosAccent(getIosAccent());
+  // Layout choice is independent from the theme palette.
+  setInterfaceMode(interfaceMode);
 
   try {
     localStorage.setItem("theme", dataTheme);
@@ -310,8 +318,6 @@ export const applyTheme = (theme, overrideColorMode, overridePerfMode) => {
     baseColor = "#ff3385";
   } else if (isOceanBlueTheme(dataTheme)) {
     baseColor = "#0284c7";
-  } else if (isIosTheme(dataTheme)) {
-    baseColor = getIosAccent();
   }
 
   let metaTheme = document.querySelector('meta[name="theme-color"]');
@@ -325,7 +331,12 @@ export const applyTheme = (theme, overrideColorMode, overridePerfMode) => {
 
 export function bootThemeEarly() {
   try {
-    applyTheme(resolveStoredTheme());
+    applyTheme(
+      resolveStoredTheme(),
+      undefined,
+      undefined,
+      getInterfaceMode(),
+    );
   } catch {
     /* ignore */
   }
