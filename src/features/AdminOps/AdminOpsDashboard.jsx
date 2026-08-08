@@ -35,17 +35,6 @@ function duration(seconds) {
   return `${Math.floor(hours / 24)} ngày`;
 }
 
-function pickNumber(object, paths) {
-  for (const path of paths) {
-    const parts = path.split(".");
-    let value = object;
-    for (const part of parts) value = value?.[part];
-    const n = Number(value);
-    if (Number.isFinite(n)) return n;
-  }
-  return null;
-}
-
 function shortCommit(value) {
   const text = String(value || "").trim();
   return text ? text.slice(0, 10) : "—";
@@ -72,20 +61,19 @@ function MetricCard({ icon: Icon, label, value, note, tone = "base" }) {
 
 export default function AdminOpsDashboard() {
   const [ops, setOps] = useState(null);
-  const [serverHealth, setServerHealth] = useState(null);
   const [users, setUsers] = useState([]);
   const [onlineWindowSeconds, setOnlineWindowSeconds] = useState(150);
   const [frontendVersion, setFrontendVersion] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [errorTab, setErrorTab] = useState("api");
 
   const load = useCallback(async ({ quiet = false } = {}) => {
     if (!quiet) setLoading(true);
     setError("");
     try {
-      const [opsResult, healthResult, usersResult, versionResult] = await Promise.allSettled([
+      const [opsResult, usersResult, versionResult] = await Promise.allSettled([
         adminRequest("/ops-dashboard"),
-        adminRequest("/server-health"),
         adminRequest("/users?live=1&limit=100"),
         fetch(`/version.json?t=${Date.now()}`, { cache: "no-store" }).then((res) =>
           res.ok ? res.json() : null,
@@ -96,9 +84,6 @@ export default function AdminOpsDashboard() {
         setOps(opsResult.value?.data || null);
       } else {
         throw opsResult.reason;
-      }
-      if (healthResult.status === "fulfilled") {
-        setServerHealth(healthResult.value?.data || null);
       }
       if (usersResult.status === "fulfilled") {
         setUsers(Array.isArray(usersResult.value?.users) ? usersResult.value.users : []);
@@ -128,23 +113,12 @@ export default function AdminOpsDashboard() {
     }).length;
   }, [onlineWindowSeconds, users]);
 
-  const requestRate = pickNumber(serverHealth, [
-    "requestsPerMinute",
-    "requests_per_minute",
-    "rpm",
-    "requests.perMinute",
-    "traffic.requestsPerMinute",
-  ]);
-  const apiErrors = pickNumber(serverHealth, [
-    "errorsLastMinute",
-    "errors_last_minute",
-    "errorsPerMinute",
-    "errors.perMinute",
-    "traffic.errorsLastMinute",
-  ]);
-
+  const traffic = ops?.traffic || {};
+  const requestRate = Number(traffic.requestsPerMinute || 0);
+  const apiErrors = Number(traffic.errorsLastMinute || 0);
+  const recentApiErrors = Array.isArray(traffic.recentErrors) ? traffic.recentErrors : [];
   const notifyRate = ops?.notifications?.successRate;
-  const failures = Array.isArray(ops?.notifications?.recentFailures)
+  const notificationFailures = Array.isArray(ops?.notifications?.recentFailures)
     ? ops.notifications.recentFailures
     : [];
   const slot = ops?.slotMonitor || {};
@@ -168,7 +142,7 @@ export default function AdminOpsDashboard() {
                 <Activity className="h-6 w-6" /> Tổng quan vận hành
               </h2>
               <p className="mt-1 text-sm text-base-content/60">
-                Dashboard Admin 2.0: người dùng online, telemetry API nếu backend có cung cấp, Canh Slot worker và tỉ lệ gửi thông báo.
+                Dashboard Admin 2.0: user online, request/phút, lỗi API, Canh Slot worker, delivery thông báo và phiên bản đang chạy.
               </p>
             </div>
             <button className="btn btn-sm btn-outline" disabled={loading} onClick={() => load()}>
@@ -181,8 +155,8 @@ export default function AdminOpsDashboard() {
 
           <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
             <MetricCard icon={Users} label="Online" value={onlineUsers} note={`${users.length} user đã nạp`} tone="info" />
-            <MetricCard icon={Zap} label="Request/phút" value={requestRate == null ? "—" : requestRate.toLocaleString("vi-VN")} note={requestRate == null ? "Health API chưa có metric này" : "Telemetry backend"} />
-            <MetricCard icon={AlertTriangle} label="API lỗi/phút" value={apiErrors == null ? "—" : apiErrors.toLocaleString("vi-VN")} note={apiErrors == null ? "Không suy đoán khi thiếu telemetry" : "Telemetry backend"} tone={apiErrors > 0 ? "warning" : "success"} />
+            <MetricCard icon={Zap} label="Request/phút" value={requestRate.toLocaleString("vi-VN")} note="Rolling 60 giây trong API process" />
+            <MetricCard icon={AlertTriangle} label="API lỗi/phút" value={apiErrors.toLocaleString("vi-VN")} note="Chỉ HTTP 5xx, không log body/token" tone={apiErrors > 0 ? "warning" : "success"} />
             <MetricCard icon={Bot} label="Worker" value={`${Math.round(Number(worker.pollIntervalMs || 45000) / 1000)}s`} note={`${Number(worker.checkedWatchesLastMinute || 0)} watch check gần 1 phút`} tone="success" />
             <MetricCard icon={BellRing} label="Gửi thông báo" value={notifyRate == null ? "—" : `${notifyRate}%`} note={`${Number(ops?.notifications?.failed24h || 0)} lỗi / 24h`} tone={notifyRate != null && notifyRate < 90 ? "warning" : "success"} />
             <MetricCard icon={Clock3} label="API uptime" value={runtime.uptimeSeconds == null ? "—" : duration(runtime.uptimeSeconds)} note={runtime.environment || "production"} />
@@ -227,16 +201,35 @@ export default function AdminOpsDashboard() {
           <aside className="rounded-2xl border border-base-300 bg-base-200/30 p-4">
             <div className="flex items-center justify-between gap-2">
               <div>
-                <h3 className="font-bold">Lỗi thông báo gần đây</h3>
-                <p className="text-[11px] text-base-content/50">Chỉ lỗi delivery, không hiển thị token hay secret.</p>
+                <h3 className="font-bold">Sự cố gần đây</h3>
+                <p className="text-[11px] text-base-content/50">Chỉ metadata an toàn; không hiển thị token, body hay secret.</p>
               </div>
-              <BellRing className="h-5 w-5" />
+              <AlertTriangle className="h-5 w-5" />
             </div>
+            <div className="mt-3 join w-full">
+              <button className={`btn btn-xs join-item flex-1 ${errorTab === "api" ? "btn-primary" : "btn-outline"}`} onClick={() => setErrorTab("api")}>API 5xx ({recentApiErrors.length})</button>
+              <button className={`btn btn-xs join-item flex-1 ${errorTab === "notify" ? "btn-primary" : "btn-outline"}`} onClick={() => setErrorTab("notify")}>Thông báo ({notificationFailures.length})</button>
+            </div>
+
             <div className="mt-3 max-h-[480px] space-y-2 overflow-y-auto">
-              {failures.length === 0 ? (
+              {errorTab === "api" ? (
+                recentApiErrors.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-base-300 p-6 text-center text-sm text-base-content/50">Không có HTTP 5xx trong 60 giây gần nhất.</div>
+                ) : (
+                  recentApiErrors.map((failure, index) => (
+                    <div key={`${failure.at}-${index}`} className="rounded-xl border border-error/20 bg-error/5 p-3 text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-bold">{failure.method} {failure.path}</span>
+                        <span className="badge badge-xs badge-error">{failure.status}</span>
+                      </div>
+                      <div className="mt-1 text-base-content/50">{formatTime(failure.at)} · {Number(failure.durationMs || 0)}ms</div>
+                    </div>
+                  ))
+                )
+              ) : notificationFailures.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-base-300 p-6 text-center text-sm text-base-content/50">Không có lỗi delivery gần đây.</div>
               ) : (
-                failures.map((failure, index) => (
+                notificationFailures.map((failure, index) => (
                   <div key={`${failure.createdAt}-${index}`} className="rounded-xl border border-error/20 bg-error/5 p-3 text-xs">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-bold uppercase">{failure.channel || "channel"}</span>
@@ -253,7 +246,7 @@ export default function AdminOpsDashboard() {
         </div>
 
         <footer className="border-t border-base-300 px-4 py-3 text-[11px] text-base-content/45 sm:px-5">
-          Cập nhật tự động 30 giây · kiểm tra gần nhất {formatTime(ops?.checkedAt)}. Metric không có nguồn thật sẽ hiện “—”, không tự dựng số.
+          Cập nhật tự động 30 giây · kiểm tra gần nhất {formatTime(ops?.checkedAt)}. Request telemetry chỉ tồn tại trong RAM của process và reset khi Railway restart.
         </footer>
       </section>
     </div>
