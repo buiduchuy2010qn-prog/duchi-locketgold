@@ -1,6 +1,6 @@
 import * as services from "@/services";
 import { useAppNavigation, useAppCamera, useAppLoading } from "@/context/AppContext";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import UploadStatusIcon from "./UploadStatusIcon";
 import { getMaxUploads } from "@/hooks/useFeature";
 import {
@@ -58,6 +58,9 @@ const SendButton = () => {
 
   // State để quản lý hiệu ứng loading và success
   const [isSuccess, setIsSuccess] = useState(false);
+  // React state updates are asynchronous; this ref closes the tiny window where
+  // a fast double-tap could start two payload/upload operations before rerender.
+  const submitLockRef = useRef(false);
 
   const sendDisabled =
     uploadLoading || isSuccess || isOffline || !serverReachable;
@@ -79,139 +82,151 @@ const SendButton = () => {
 
   // Hàm submit được cải tiến
   const handleSubmit = async () => {
-    // Chặn double-tap / double-enqueue
-    if (uploadLoading || isSuccess) return;
+    // Chặn double-tap / double-enqueue ngay trong cùng event loop.
+    if (submitLockRef.current || uploadLoading || isSuccess) return;
+    submitLockRef.current = true;
 
-    // Re-check server before post (no Background Sync auto-post)
     try {
-      const conn = await checkConnectivity({ force: true });
-      if (!conn?.browserOnline || !conn?.serverReachable) {
+      // Re-check server before post (no Background Sync auto-post)
+      try {
+        const conn = await checkConnectivity({ force: true });
+        if (!conn?.browserOnline || !conn?.serverReachable) {
+          SonnerWarning(
+            !conn?.browserOnline ? "Mất mạng" : "Máy chủ đang bảo trì",
+            "Bản nháp vẫn được lưu. Hãy đăng sau.",
+          );
+          return;
+        }
+      } catch {
         SonnerWarning(
-          !conn?.browserOnline ? "Mất mạng" : "Máy chủ đang bảo trì",
-          "Bản nháp vẫn được lưu. Hãy đăng sau.",
+          "Không kết nối được máy chủ",
+          "Bản nháp vẫn được lưu. Thử lại khi có mạng.",
         );
         return;
       }
-    } catch {
-      SonnerWarning(
-        "Không kết nối được máy chủ",
-        "Bản nháp vẫn được lưu. Thử lại khi có mạng.",
-      );
-      return;
-    }
 
-    // Chờ blob encode xong nếu vừa chụp (preview dataURL trước, file sau)
-    let file = selectedFile || usePostStore.getState().selectedFile;
-    if (!file && preview?.data?.startsWith("data:")) {
-      try {
-        const res = await fetch(preview.data);
-        const blob = await res.blob();
-        file = new File([blob], "locket_dio.jpg", {
-          type: blob.type || "image/jpeg",
-        });
-        usePostStore.getState().setMediaFromFile(file);
-      } catch {
-        /* fall through */
+      // Chờ blob encode xong nếu vừa chụp (preview dataURL trước, file sau)
+      let file = selectedFile || usePostStore.getState().selectedFile;
+      if (!file && preview?.data?.startsWith("data:")) {
+        try {
+          const res = await fetch(preview.data);
+          const blob = await res.blob();
+          file = new File([blob], "locket_dio.jpg", {
+            type: blob.type || "image/jpeg",
+          });
+          usePostStore.getState().setMediaFromFile(file);
+        } catch {
+          /* fall through */
+        }
       }
-    }
-    if (!file) {
-      SonnerWarning(t("home.no_data_to_upload"));
-      return;
-    }
+      if (!file) {
+        SonnerWarning(t("home.no_data_to_upload"));
+        return;
+      }
 
-    const { type: previewType } = preview || {};
-    const isImage = previewType === "image";
-    const isVideo = previewType === "video";
-    const maxFileSize = isImage ? maxImageSizeMB : maxVideoSizeMB;
+      const { type: previewType } = preview || {};
+      const isImage = previewType === "image";
+      const isVideo = previewType === "video";
+      const maxFileSize = isImage ? maxImageSizeMB : maxVideoSizeMB;
 
-    if (isVideo && isSizeMedia < 0.2) {
-      SonnerWarning(t("home.video_invalid_error"));
-      return;
-    }
-    if (hasNoData) {
-      SonnerInfo(t("home.user_data_not_found"), t("home.click_to_refresh"), {
-        action: {
-          label: t("home.refresh"),
-          onClick: () => {
-            reloadUser();
-          },
-        },
-      });
-      return;
-    }
-    if (isSizeMedia > maxFileSize) {
-      const typeStr = isImage ? (t("left.image_loading").toLowerCase().includes("tải") ? "Ảnh" : "Image") : "Video";
-      SonnerWarning(
-        t("home.upgrade_limit_notice"),
-        t("home.size_exceeded_error", { type: typeStr, limit: maxFileSize }),
-        {
+      if (isVideo && isSizeMedia < 0.2) {
+        SonnerWarning(t("home.video_invalid_error"));
+        return;
+      }
+      if (hasNoData) {
+        SonnerInfo(t("home.user_data_not_found"), t("home.click_to_refresh"), {
           action: {
-            label: t("home.upgrade"),
+            label: t("home.refresh"),
             onClick: () => {
-              navigate("/pricing");
+              reloadUser();
             },
           },
-        },
-      );
-      return;
-    }
+        });
+        return;
+      }
+      if (isSizeMedia > maxFileSize) {
+        const typeStr = isImage
+          ? t("left.image_loading").toLowerCase().includes("tải")
+            ? "Ảnh"
+            : "Image"
+          : "Video";
+        SonnerWarning(
+          t("home.upgrade_limit_notice"),
+          t("home.size_exceeded_error", { type: typeStr, limit: maxFileSize }),
+          {
+            action: {
+              label: t("home.upgrade"),
+              onClick: () => {
+                navigate("/pricing");
+              },
+            },
+          },
+        );
+        return;
+      }
 
-    try {
-      // Bắt đầu loading
-      setUploadLoading(true);
-      setIsSuccess(false);
-
-      // Flush draft meta + mark posting (do NOT delete draft yet)
-      const draftId = useMomentDraftStore.getState().activeDraftId;
       try {
-        await useMomentDraftStore.getState().flushMetaSave();
-        await useMomentDraftStore.getState().markPosting(draftId);
-      } catch {
-        /* draft optional */
-      }
-
-      // Tạo payload
-      const payload = await services.createRequestPayloadV6();
-
-      if (!payload) {
-        throw new Error(t("home.payload_failed_error"));
-      }
-
-      // Tag multi-draft id so success only removes this draft
-      if (draftId) payload.draftId = draftId;
-
-      // Lưu payload vào memory và start
-      enqueueUploadItem(payload);
-
-      // Kết thúc loading và hiển thị success
-      setUploadLoading(false);
-      setIsSuccess(true);
-      // Hiển thị thông báo thành công
-      SonnerSuccess(
-        t("home.added_to_queue"), // Title
-        t("home.processing_post"), // Body
-      );
-      // Reset studio UI — draft stays until API post succeeds
-      setTimeout(() => {
+        // Bắt đầu loading
+        setUploadLoading(true);
         setIsSuccess(false);
-        handleDelete();
-      }, 1000);
-    } catch (error) {
-      setUploadLoading(false);
-      setIsSuccess(false);
-      try {
-        await useMomentDraftStore
-          .getState()
-          .markEditing(useMomentDraftStore.getState().activeDraftId);
-      } catch {
-        /* ignore */
+
+        // Flush draft meta + mark posting (do NOT delete draft yet)
+        const draftId = useMomentDraftStore.getState().activeDraftId;
+        try {
+          await useMomentDraftStore.getState().flushMetaSave();
+          await useMomentDraftStore.getState().markPosting(draftId);
+        } catch {
+          /* draft optional */
+        }
+
+        // Tạo payload
+        const payload = await services.createRequestPayloadV6();
+
+        if (!payload) {
+          throw new Error(t("home.payload_failed_error"));
+        }
+
+        // Tag multi-draft id so success only removes this draft
+        if (draftId) payload.draftId = draftId;
+
+        // Persist payload before telling the user it is queued. This keeps a
+        // recoverable copy even if the tab closes immediately after tapping send.
+        await enqueueUploadItem(payload);
+
+        // Kết thúc loading và hiển thị success
+        setUploadLoading(false);
+        setIsSuccess(true);
+        // Hiển thị thông báo thành công
+        SonnerSuccess(
+          t("home.added_to_queue"), // Title
+          t("home.processing_post"), // Body
+        );
+        // Reset studio UI — draft stays until API post succeeds
+        setTimeout(() => {
+          setIsSuccess(false);
+          handleDelete();
+        }, 1000);
+      } catch (error) {
+        setUploadLoading(false);
+        setIsSuccess(false);
+        try {
+          await useMomentDraftStore
+            .getState()
+            .markEditing(useMomentDraftStore.getState().activeDraftId);
+        } catch {
+          /* ignore */
+        }
+
+        const errorMessage =
+          error?.response?.data?.message ||
+          error.message ||
+          t("home.unknown_error");
+        SonnerError(t("home.payload_creation_failed"), `${errorMessage}`);
+
+        console.error("❌ Tạo payload thất bại:", error);
       }
-
-      const errorMessage =
-        error?.response?.data?.message || error.message || t("home.unknown_error");
-      SonnerError(t("home.payload_creation_failed"), `${errorMessage}`);
-
-      console.error("❌ Tạo payload thất bại:", error);
+    } finally {
+      submitLockRef.current = false;
     }
   };
 
@@ -233,9 +248,9 @@ const SendButton = () => {
       onClick={handleSubmit}
       disabled={sendDisabled}
       aria-label={
-        isOffline 
+        isOffline
           ? "Mất mạng — không thể đăng"
-          : !serverReachable 
+          : !serverReachable
             ? "Máy chủ đang bảo trì — không thể đăng"
             : "Đăng bài"
       }

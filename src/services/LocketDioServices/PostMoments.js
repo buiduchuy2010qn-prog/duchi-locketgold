@@ -1,6 +1,20 @@
 import api from "@/libs/axios";
 import { reconcilePostedMedia } from "@/utils/upload/reconcilePostedMedia";
 
+function resolveClientUploadId(payload) {
+  const explicit = String(payload?.clientUploadId || "").trim();
+  if (explicit) return explicit;
+
+  // Old IndexedDB queue entries created before clientUploadId existed still have
+  // a stable Dexie id (or draft id). Reuse it so retries after this upgrade are
+  // also protected from duplicate posts.
+  if (payload?.id !== undefined && payload?.id !== null) {
+    return `legacy-${payload.id}`;
+  }
+  if (payload?.draftId) return `draft-${payload.draftId}`;
+  return "";
+}
+
 function emitUploadProgress(payload, progressEvent, phase = "uploading") {
   if (typeof window === "undefined") return;
   const loaded = Number(progressEvent?.loaded || 0);
@@ -11,7 +25,11 @@ function emitUploadProgress(payload, progressEvent, phase = "uploading") {
   window.dispatchEvent(
     new CustomEvent("huy-locket-upload-progress", {
       detail: {
-        id: payload?.id || payload?.draftId || "",
+        id:
+          payload?.id ||
+          resolveClientUploadId(payload) ||
+          payload?.draftId ||
+          "",
         draftId: payload?.draftId || "",
         loaded,
         total,
@@ -25,8 +43,24 @@ function emitUploadProgress(payload, progressEvent, phase = "uploading") {
   );
 }
 
+function requestTimeout(payload) {
+  const type = payload?.mediaInfo?.type || payload?.contentType;
+  // Video processing includes transcode + thumbnail on the API, so a normal
+  // 45s request timeout can abort a post that actually succeeds upstream.
+  return type === "video" ? 180000 : 90000;
+}
+
 function uploadConfig(payload) {
+  const clientUploadId = resolveClientUploadId(payload);
   return {
+    timeout: requestTimeout(payload),
+    // Gateway retries are only safe when the backend can deduplicate this key.
+    safeToRetry: Boolean(clientUploadId),
+    _gatewayRetryMax: clientUploadId ? 2 : 0,
+    skipErrorToast: true,
+    headers: clientUploadId
+      ? { "Idempotency-Key": clientUploadId }
+      : undefined,
     onUploadProgress: (event) => emitUploadProgress(payload, event, "uploading"),
   };
 }
@@ -36,7 +70,11 @@ function emitServerProcessing(payload) {
   window.dispatchEvent(
     new CustomEvent("huy-locket-upload-progress", {
       detail: {
-        id: payload?.id || payload?.draftId || "",
+        id:
+          payload?.id ||
+          resolveClientUploadId(payload) ||
+          payload?.draftId ||
+          "",
         draftId: payload?.draftId || "",
         progress: 100,
         phase: "processing",
@@ -57,20 +95,17 @@ export const uploadMediaV2 = async (payload) => {
   }, timeoutDuration);
 
   try {
-    const response = await api.post("/locket/postMomentV2", payload, uploadConfig(payload));
+    const response = await api.post(
+      "/locket/postMomentV2",
+      payload,
+      uploadConfig(payload),
+    );
     emitServerProcessing(payload);
     reconcilePostedMedia(payload, response.data);
     console.log("✅ Upload thành công:", response.data);
     return response.data;
   } catch (error) {
     console.error("❌ Lỗi khi upload:", error.response?.data || error.message);
-
-    if (error.response) {
-      console.error("📡 Server Error:", error.response);
-    } else {
-      console.error("🌐 Network Error:", error.message);
-    }
-
     throw error;
   } finally {
     clearTimeout(timeoutId);
@@ -79,7 +114,11 @@ export const uploadMediaV2 = async (payload) => {
 
 export const PostMoments = async (payload) => {
   try {
-    const response = await api.post("/locket/postMomentV2", payload, uploadConfig(payload));
+    const response = await api.post(
+      "/locket/postMomentV2",
+      payload,
+      uploadConfig(payload),
+    );
     emitServerProcessing(payload);
 
     // The queue examines payload.mediaInfo again after this promise resolves.
@@ -90,13 +129,6 @@ export const PostMoments = async (payload) => {
     return response.data;
   } catch (error) {
     console.error("❌ Lỗi khi upload:", error.response?.data || error.message);
-
-    if (error.response) {
-      console.error("📡 Server Error:", error.response);
-    } else {
-      console.error("🌐 Network Error:", error.message);
-    }
-
     throw error;
   }
 };

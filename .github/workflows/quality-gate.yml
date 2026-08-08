@@ -32,6 +32,10 @@ jobs:
       - name: Install app dependencies
         run: npm ci --no-audit --no-fund
 
+      - name: Install API dependencies
+        working-directory: api
+        run: npm ci --no-audit --no-fund
+
       - name: Install test dependencies
         working-directory: tests
         run: npm install --no-audit --no-fund

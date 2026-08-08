@@ -5,63 +5,104 @@ import { SonnerInfo } from "@/components/uikit/SonnerToast";
 import { instanceAuth } from "./instanceAuth";
 import { createUploadClient } from "./createBase";
 
+const AUTH_REFRESH_TEMPORARY = "AUTH_REFRESH_TEMPORARY";
+const AUTH_REFRESH_TERMINAL = "AUTH_REFRESH_TERMINAL";
+const TOKEN_REFRESH_SKEW_SECONDS = 5 * 60;
+
+let cachedToken = null;
 let cachedExp = null;
-function isTokenExpired(token) {
+
+function tokenExpiresSoon(token) {
   if (!token) return true;
 
-  const now = Math.floor(Date.now() / 1000);
-
-  if (!cachedExp) {
+  if (cachedToken !== token) {
+    cachedToken = token;
     const payload = parseJwt(token);
-    if (!payload) return true;
-    cachedExp = payload.exp;
+    cachedExp = Number(payload?.exp || 0) || null;
   }
 
-  const timeLeft = cachedExp - now;
-  return timeLeft < 300;
+  if (!cachedExp) return true;
+  const now = Math.floor(Date.now() / 1000);
+  return cachedExp - now < TOKEN_REFRESH_SKEW_SECONDS;
 }
 
-let isRefreshing = false;
+function resetTokenCache() {
+  cachedToken = null;
+  cachedExp = null;
+}
+
 let refreshPromise = null;
 
-async function refreshIdToken() {
-  try {
-    const { refreshToken } = getToken();
+function makeRefreshError(cause, terminal = false) {
+  const error = new Error(
+    terminal
+      ? "Phiên đăng nhập không còn hợp lệ"
+      : "Tạm thời chưa thể làm mới phiên đăng nhập",
+  );
+  error.code = terminal ? AUTH_REFRESH_TERMINAL : AUTH_REFRESH_TEMPORARY;
+  error.authRefreshTerminal = terminal;
+  error.cause = cause;
+  if (cause?.response) error.response = cause.response;
+  if (cause?.status) error.status = cause.status;
+  return error;
+}
 
-    const res = await instanceAuth.post("locket/refresh-token", {
-      refreshToken,
-    });
+function isTerminalRefreshFailure(error) {
+  const status = Number(error?.response?.status || error?.status || 0);
+  // Missing/invalid refresh token is terminal. Network, 429 and 5xx are not.
+  return status === 400 || status === 401 || status === 403;
+}
+
+async function performTokenRefresh() {
+  const { refreshToken } = getToken() || {};
+  if (!refreshToken) {
+    throw makeRefreshError(new Error("Missing refresh token"), true);
+  }
+
+  try {
+    const res = await instanceAuth.post(
+      "locket/refresh-token",
+      { refreshToken },
+      {
+        // Refresh-token exchange is safe to retry on a temporary gateway error.
+        safeToRetry: true,
+        _gatewayRetryMax: 2,
+        skipErrorToast: true,
+      },
+    );
     const newToken = res?.data?.data?.id_token;
     const newLocalId = res?.data?.data?.user_id;
 
-    if (newToken) {
-      localStorage.setItem("idToken", newToken);
-      localStorage.setItem("localId", newLocalId);
-      cachedExp = null;
-      return newToken;
+    if (!newToken) {
+      throw makeRefreshError(new Error("Refresh response missing id_token"), true);
     }
 
-    return null;
-  } catch (err) {
-    const status = err?.response?.status;
-
-    if (status === 401) {
-      handleLogout();
-    } else if (status === 429) {
-      SonnerInfo("Bạn đang thao tác quá nhanh. Vui lòng thử lại sau.");
-    } else {
-      SonnerInfo("Lỗi máy chủ. Vui lòng thử lại sau.");
-    }
-
-    console.error("Không thể refresh idToken:", err);
-    return null;
+    localStorage.setItem("idToken", newToken);
+    if (newLocalId) localStorage.setItem("localId", newLocalId);
+    resetTokenCache();
+    return newToken;
+  } catch (error) {
+    if (error?.code === AUTH_REFRESH_TERMINAL) throw error;
+    throw makeRefreshError(error, isTerminalRefreshFailure(error));
   }
 }
 
+async function getFreshToken({ force = false } = {}) {
+  const current = localStorage.getItem("idToken");
+  if (!force && current && !tokenExpiresSoon(current)) return current;
+
+  if (!refreshPromise) {
+    refreshPromise = performTokenRefresh().finally(() => {
+      refreshPromise = null;
+    });
+  }
+
+  return refreshPromise;
+}
+
 function handleLogout() {
-  isRefreshing = false;
   refreshPromise = null;
-  cachedExp = null;
+  resetTokenCache();
 
   clearLocalData();
   removeUser();
@@ -74,35 +115,36 @@ function handleLogout() {
   }
 }
 
+function logoutForExpiredSession() {
+  handleLogout();
+  SonnerInfo("Phiên đăng nhập đã hết. Vui lòng đăng nhập lại.");
+}
+
 const api = createUploadClient(CONFIG.api.baseUrl);
 
 api.interceptors.request.use(async (config) => {
   let token = localStorage.getItem("idToken");
 
   if (!token) {
-    return Promise.reject({
-      status: 401,
-      message: "Not authenticated",
-    });
+    const error = new Error("Not authenticated");
+    error.status = 401;
+    error.code = AUTH_REFRESH_TERMINAL;
+    return Promise.reject(error);
   }
 
-  if (isTokenExpired(token)) {
-    if (!isRefreshing) {
-      isRefreshing = true;
-      refreshPromise = refreshIdToken();
-    }
-
-    token = await refreshPromise;
-
-    isRefreshing = false;
-    refreshPromise = null;
-
-    if (!token) {
-      handleLogout();
-      return Promise.reject(new Error("Token refresh failed"));
+  if (tokenExpiresSoon(token)) {
+    try {
+      token = await getFreshToken();
+    } catch (error) {
+      // A temporary refresh outage must not erase a valid local session/draft.
+      if (error?.authRefreshTerminal) {
+        logoutForExpiredSession();
+      }
+      return Promise.reject(error);
     }
   }
 
+  config.headers = config.headers || {};
   config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -135,41 +177,29 @@ api.interceptors.response.use(
 
     const originalRequest = error.config;
 
-    if (!originalRequest || originalRequest._retry) {
-      return Promise.reject(error);
-    }
-
-    if (status === 401) {
-      originalRequest._retry = true;
-
-      if (
-        !originalRequest.url?.includes("refresh-token") &&
-        !isRefreshing &&
-        !originalRequest.skipAuthRefresh
-      ) {
-        isRefreshing = true;
-        refreshPromise = refreshIdToken();
-
-        try {
-          const newToken = await refreshPromise;
-          if (newToken) {
-            originalRequest.headers.Authorization = `Bearer ${newToken}`;
-            return api(originalRequest);
-          }
-
-          handleLogout();
-          return Promise.reject(error);
-        } catch (refreshError) {
-          handleLogout();
-          return Promise.reject(refreshError);
-        } finally {
-          isRefreshing = false;
-          refreshPromise = null;
-        }
+    if (status === 401 && originalRequest) {
+      if (originalRequest._retry || originalRequest.skipAuthRefresh) {
+        logoutForExpiredSession();
+        return Promise.reject(error);
       }
 
-      handleLogout();
-      SonnerInfo("Phiên đăng nhập đã hết. Vui lòng đăng nhập lại.");
+      originalRequest._retry = true;
+      try {
+        // Always join the same in-flight refresh. This avoids one 401 request
+        // logging the user out while another request is already refreshing.
+        const newToken = await getFreshToken({ force: true });
+        originalRequest.headers = originalRequest.headers || {};
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        if (refreshError?.authRefreshTerminal) {
+          logoutForExpiredSession();
+        }
+        return Promise.reject(refreshError);
+      }
+    }
+
+    if (!originalRequest) {
       return Promise.reject(error);
     }
 
@@ -186,7 +216,9 @@ api.interceptors.response.use(
         handleLogout();
         return Promise.reject(error);
       }
-      SonnerInfo(message || "Bạn không có quyền truy cập!");
+      if (!originalRequest?.skipErrorToast) {
+        SonnerInfo(message || "Bạn không có quyền truy cập!");
+      }
     }
 
     if (status === 404 && !originalRequest?.skipErrorToast) {
@@ -201,16 +233,18 @@ api.interceptors.response.use(
         ? retryAfterSeconds
         : 15 * 60;
 
-      const waitText =
-        error.retryAfterSeconds >= 60
-          ? `${Math.ceil(error.retryAfterSeconds / 60)} phút`
-          : `${error.retryAfterSeconds} giây`;
+      if (!originalRequest?.skipErrorToast) {
+        const waitText =
+          error.retryAfterSeconds >= 60
+            ? `${Math.ceil(error.retryAfterSeconds / 60)} phút`
+            : `${error.retryAfterSeconds} giây`;
 
-      SonnerInfo(
-        message && !/^request failed with status code/i.test(message)
-          ? `${message} Thử lại sau ${waitText}.`
-          : `Bạn đã gửi quá nhiều yêu cầu. Thử lại sau ${waitText}.`,
-      );
+        SonnerInfo(
+          message && !/^request failed with status code/i.test(message)
+            ? `${message} Thử lại sau ${waitText}.`
+            : `Bạn đã gửi quá nhiều yêu cầu. Thử lại sau ${waitText}.`,
+        );
+      }
     }
 
     const isOptionalConfigMsg =
@@ -219,25 +253,36 @@ api.interceptors.response.use(
         /SUPABASE_/i.test(message) ||
         /chưa cấu hình/i.test(message));
 
-    if (status === 500 && !isOptionalConfigMsg) {
+    if (
+      status === 500 &&
+      !isOptionalConfigMsg &&
+      !originalRequest?.skipErrorToast
+    ) {
       SonnerInfo(message || "Lỗi máy chủ. Vui lòng thử lại sau.");
     }
 
-    if (status === 502 || status === 503) {
+    if (
+      (status === 502 || status === 503) &&
+      !originalRequest?.skipErrorToast
+    ) {
       SonnerInfo(
-        "API đang khởi động (Render free). Đang thử lại — chờ thêm 20–40 giây.",
+        "API đang khởi động. Đang thử lại — chờ thêm một chút.",
       );
     }
 
-    if (status === 504) {
+    if (status === 504 && !originalRequest?.skipErrorToast) {
       SonnerInfo(
         message || "Hết thời gian phản hồi từ máy chủ. Vui lòng thử lại sau.",
       );
     }
 
-    if (!error.response && originalRequest?._gatewayRetry >= 6) {
+    if (
+      !error.response &&
+      originalRequest?._gatewayRetry >= 6 &&
+      !originalRequest?.skipErrorToast
+    ) {
       SonnerInfo(
-        "Không kết nối được API (có thể đang khởi động). Thử lại sau 20 giây.",
+        "Không kết nối được API. Thử lại sau một chút.",
       );
     }
 
