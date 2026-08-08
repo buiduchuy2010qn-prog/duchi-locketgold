@@ -11,7 +11,7 @@ function emitUploadProgress(payload, progressEvent, phase = "uploading") {
   window.dispatchEvent(
     new CustomEvent("huy-locket-upload-progress", {
       detail: {
-        id: payload?.id || payload?.draftId || "",
+        id: payload?.id || payload?.clientUploadId || payload?.draftId || "",
         draftId: payload?.draftId || "",
         loaded,
         total,
@@ -25,8 +25,23 @@ function emitUploadProgress(payload, progressEvent, phase = "uploading") {
   );
 }
 
+function requestTimeout(payload) {
+  const type = payload?.mediaInfo?.type || payload?.contentType;
+  // Video processing includes transcode + thumbnail on the API, so a normal
+  // 45s request timeout can abort a post that actually succeeds upstream.
+  return type === "video" ? 180000 : 90000;
+}
+
 function uploadConfig(payload) {
+  const clientUploadId = String(payload?.clientUploadId || "").trim();
   return {
+    timeout: requestTimeout(payload),
+    // Gateway retries are only safe when the backend can deduplicate this key.
+    safeToRetry: Boolean(clientUploadId),
+    _gatewayRetryMax: clientUploadId ? 2 : 0,
+    headers: clientUploadId
+      ? { "Idempotency-Key": clientUploadId }
+      : undefined,
     onUploadProgress: (event) => emitUploadProgress(payload, event, "uploading"),
   };
 }
@@ -36,7 +51,7 @@ function emitServerProcessing(payload) {
   window.dispatchEvent(
     new CustomEvent("huy-locket-upload-progress", {
       detail: {
-        id: payload?.id || payload?.draftId || "",
+        id: payload?.id || payload?.clientUploadId || payload?.draftId || "",
         draftId: payload?.draftId || "",
         progress: 100,
         phase: "processing",
@@ -57,20 +72,17 @@ export const uploadMediaV2 = async (payload) => {
   }, timeoutDuration);
 
   try {
-    const response = await api.post("/locket/postMomentV2", payload, uploadConfig(payload));
+    const response = await api.post(
+      "/locket/postMomentV2",
+      payload,
+      uploadConfig(payload),
+    );
     emitServerProcessing(payload);
     reconcilePostedMedia(payload, response.data);
     console.log("✅ Upload thành công:", response.data);
     return response.data;
   } catch (error) {
     console.error("❌ Lỗi khi upload:", error.response?.data || error.message);
-
-    if (error.response) {
-      console.error("📡 Server Error:", error.response);
-    } else {
-      console.error("🌐 Network Error:", error.message);
-    }
-
     throw error;
   } finally {
     clearTimeout(timeoutId);
@@ -79,7 +91,11 @@ export const uploadMediaV2 = async (payload) => {
 
 export const PostMoments = async (payload) => {
   try {
-    const response = await api.post("/locket/postMomentV2", payload, uploadConfig(payload));
+    const response = await api.post(
+      "/locket/postMomentV2",
+      payload,
+      uploadConfig(payload),
+    );
     emitServerProcessing(payload);
 
     // The queue examines payload.mediaInfo again after this promise resolves.
@@ -90,13 +106,6 @@ export const PostMoments = async (payload) => {
     return response.data;
   } catch (error) {
     console.error("❌ Lỗi khi upload:", error.response?.data || error.message);
-
-    if (error.response) {
-      console.error("📡 Server Error:", error.response);
-    } else {
-      console.error("🌐 Network Error:", error.message);
-    }
-
     throw error;
   }
 };
