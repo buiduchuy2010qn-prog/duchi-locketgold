@@ -72,6 +72,7 @@ export const useGroupChatStore = create((set, get) => ({
       set({ groups: merged });
 
       await saveGroups(merged);
+      await useMembersGroupStore.getState().hydrateMembersFromGroups(merged);
 
       const latestUpdatedAt = Math.max(
         ...groups.map((g) => g.last_updated_at || 0),
@@ -131,9 +132,6 @@ export const useGroupChatStore = create((set, get) => ({
           removedGroupIds: syncData.removed_group_ids || [],
           currentGroups: merged,
         });
-
-        //Save Members Group
-        await useMembersGroupStore.getState().hydrateMembersFromGroups(synced);
 
         set({ groups: synced });
 
@@ -227,6 +225,9 @@ export const useGroupChatStore = create((set, get) => ({
 
         set({ groups: sortGroups([...map.values()]) });
         await upsertGroups(incoming);
+        await useMembersGroupStore
+          .getState()
+          .hydrateMembersFromGroups(incoming);
 
         const latestUpdatedAt = Math.max(
           ...incoming.map((g) => g.last_updated_at || 0),
@@ -325,6 +326,7 @@ const mergeGroups = async ({
   const merged = sortGroups([...map.values()]);
 
   await saveGroups(merged);
+  await useMembersGroupStore.getState().hydrateMembersFromGroups(merged);
 
   return merged;
 };
