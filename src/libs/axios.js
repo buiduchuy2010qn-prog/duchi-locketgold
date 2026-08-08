@@ -31,6 +31,17 @@ function resetTokenCache() {
   cachedExp = null;
 }
 
+function announceTokenRefresh() {
+  if (typeof window === "undefined") return;
+  try {
+    // Do not place the token itself in the event payload. SocketContext reads
+    // the newest value from localStorage and updates Socket.IO auth in place.
+    window.dispatchEvent(new Event("huy-locket-token-refreshed"));
+  } catch {
+    /* optional cross-module signal */
+  }
+}
+
 let refreshPromise = null;
 
 function makeRefreshError(cause, terminal = false) {
@@ -80,6 +91,7 @@ async function performTokenRefresh() {
     localStorage.setItem("idToken", newToken);
     if (newLocalId) localStorage.setItem("localId", newLocalId);
     resetTokenCache();
+    announceTokenRefresh();
     return newToken;
   } catch (error) {
     if (error?.code === AUTH_REFRESH_TERMINAL) throw error;
