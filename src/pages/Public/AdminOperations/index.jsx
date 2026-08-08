@@ -1,12 +1,57 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ShieldCheck } from "lucide-react";
+import { ArrowLeft, LoaderCircle, ShieldAlert, ShieldCheck } from "lucide-react";
 import AccountHealth from "@/features/SlotMonitor/AccountHealth";
 import CelebCenterOverview from "@/features/SlotMonitor/CelebCenterOverview";
 import SystemStatus from "@/features/SlotMonitor/SystemStatus";
+import { getAdminRoleInfo } from "@/services/AdminAuthService";
 import AdminSystemHealth from "../AdminSystemHealth";
 
 export default function AdminOperations() {
+  const [access, setAccess] = useState("checking");
+
+  useEffect(() => {
+    let active = true;
+    getAdminRoleInfo()
+      .then((info) => {
+        if (active) setAccess(info?.isAdmin ? "allowed" : "denied");
+      })
+      .catch(() => {
+        if (active) setAccess("denied");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (access === "checking") {
+    return (
+      <div className="flex min-h-[70vh] items-center justify-center bg-base-100 px-4">
+        <div className="flex items-center gap-3 rounded-2xl border border-base-300 bg-base-200/60 px-5 py-4 text-sm font-semibold">
+          <LoaderCircle className="h-5 w-5 animate-spin text-primary" />
+          Đang xác minh quyền Admin...
+        </div>
+      </div>
+    );
+  }
+
+  if (access !== "allowed") {
+    return (
+      <div className="flex min-h-[70vh] items-center justify-center bg-base-100 px-4">
+        <div className="w-full max-w-md rounded-3xl border border-error/25 bg-error/5 p-6 text-center shadow-sm">
+          <ShieldAlert className="mx-auto h-10 w-10 text-error" />
+          <h1 className="mt-3 text-xl font-bold">Khu vực chỉ dành cho Admin</h1>
+          <p className="mt-2 text-sm text-base-content/65">
+            Tài khoản hiện tại không có quyền mở Celeb Center vận hành, Account Health và System Status.
+          </p>
+          <Link to="/friends?slot=1" className="btn btn-sm btn-outline mt-5">
+            Quay lại Canh Slot
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-base-100 text-base-content">
       <div className="mx-auto w-full max-w-6xl px-4 pt-6 md:px-8 md:pt-8">
