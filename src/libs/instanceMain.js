@@ -15,39 +15,134 @@ const APP_META = {
   "x-app-env": CONFIG.app.env,
 };
 
-// Chỉ cho phép một lần refresh token chạy tại một thời điểm.
-// Nếu nhiều request cùng nhận 401, tất cả sẽ chờ cùng promise rồi retry.
+// Chỉ cho phép một lần refresh token chạy tại một thời điểm trong cùng tab.
+// Bên dưới còn có Web Locks + BroadcastChannel để phối hợp giữa nhiều tab.
 let refreshPromise = null;
+const AUTH_REFRESH_LOCK_NAME = "huy-locket-main-auth-refresh-v1";
+const AUTH_REFRESH_CHANNEL_NAME = "huy-locket-main-auth-v1";
+const SHARED_TOKEN_MAX_AGE_MS = 30_000;
+const tabId =
+  typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `tab-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+let lastSharedToken = null;
 
-async function refreshMainIdToken() {
+const authRefreshChannel =
+  typeof BroadcastChannel !== "undefined"
+    ? new BroadcastChannel(AUTH_REFRESH_CHANNEL_NAME)
+    : null;
+
+function canUseSharedToken(payload, current = getToken()) {
+  if (!payload?.idToken || !current.refreshToken) return false;
+  if (payload.source === tabId) return false;
+  if (Date.now() - Number(payload.at || 0) > SHARED_TOKEN_MAX_AGE_MS) return false;
+  if (payload.localId && current.localId && payload.localId !== current.localId) {
+    return false;
+  }
+  return true;
+}
+
+if (authRefreshChannel) {
+  authRefreshChannel.onmessage = (event) => {
+    const payload = event?.data;
+    const current = getToken();
+    if (payload?.type !== "token-refreshed" || !canUseSharedToken(payload, current)) {
+      return;
+    }
+
+    lastSharedToken = payload;
+    // Cập nhật storage của chính tab này. Quan trọng khi rememberMe=false vì
+    // sessionStorage không tự đồng bộ giữa các tab.
+    saveToken({
+      idToken: payload.idToken,
+      localId: payload.localId || current.localId,
+      refreshToken: payload.refreshToken || current.refreshToken,
+    });
+  };
+}
+
+function publishRefreshedToken({ idToken, localId, refreshToken }) {
+  if (!authRefreshChannel) return;
+  authRefreshChannel.postMessage({
+    type: "token-refreshed",
+    source: tabId,
+    at: Date.now(),
+    idToken,
+    localId,
+    refreshToken,
+  });
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function performMainIdTokenRefresh(staleIdToken = "") {
+  // Sau khi chờ tab khác nhả Web Lock, cho BroadcastChannel một nhịp ngắn
+  // để cập nhật sessionStorage trước khi quyết định có cần gọi refresh API nữa không.
+  await sleep(60);
+
+  let current = getToken();
+
+  // Một request/tab khác vừa refresh xong: tái sử dụng token mới, không gọi API nữa.
+  if (staleIdToken && current.idToken && current.idToken !== staleIdToken) {
+    return current.idToken;
+  }
+
+  if (canUseSharedToken(lastSharedToken, current)) {
+    saveToken({
+      idToken: lastSharedToken.idToken,
+      localId: lastSharedToken.localId || current.localId,
+      refreshToken: lastSharedToken.refreshToken || current.refreshToken,
+    });
+    return lastSharedToken.idToken;
+  }
+
+  current = getToken();
+  if (!current.refreshToken) {
+    const error = new Error("REFRESH_TOKEN_REQUIRED");
+    error.code = "REFRESH_TOKEN_REQUIRED";
+    throw error;
+  }
+
+  const response = await instanceAuth.post("locket/refresh-token", {
+    refreshToken: current.refreshToken,
+  });
+  const data = response?.data?.data || {};
+  const idToken = data.id_token || data.idToken;
+  const localId = data.user_id || data.localId || current.localId;
+  const refreshToken =
+    data.refresh_token || data.refreshToken || current.refreshToken;
+
+  if (!idToken) {
+    const error = new Error("TOKEN_REFRESH_FAILED");
+    error.code = "TOKEN_REFRESH_FAILED";
+    throw error;
+  }
+
+  // saveToken tự giữ đúng localStorage/sessionStorage theo rememberMe hiện tại.
+  saveToken({ idToken, localId, refreshToken });
+  publishRefreshedToken({ idToken, localId, refreshToken });
+  return idToken;
+}
+
+async function refreshMainIdToken(staleIdToken = "") {
   if (refreshPromise) return refreshPromise;
 
   refreshPromise = (async () => {
-    const current = getToken();
-    if (!current.refreshToken) {
-      const error = new Error("REFRESH_TOKEN_REQUIRED");
-      error.code = "REFRESH_TOKEN_REQUIRED";
-      throw error;
+    // Web Locks là lock theo cùng origin nên ngăn nhiều tab cùng refresh một lúc.
+    // Chrome/Edge/Android hiện đại hỗ trợ; browser cũ fallback về single-flight trong tab.
+    if (
+      typeof navigator !== "undefined" &&
+      navigator.locks &&
+      typeof navigator.locks.request === "function"
+    ) {
+      return navigator.locks.request(AUTH_REFRESH_LOCK_NAME, () =>
+        performMainIdTokenRefresh(staleIdToken),
+      );
     }
 
-    const response = await instanceAuth.post("locket/refresh-token", {
-      refreshToken: current.refreshToken,
-    });
-    const data = response?.data?.data || {};
-    const idToken = data.id_token || data.idToken;
-    const localId = data.user_id || data.localId || current.localId;
-    const refreshToken =
-      data.refresh_token || data.refreshToken || current.refreshToken;
-
-    if (!idToken) {
-      const error = new Error("TOKEN_REFRESH_FAILED");
-      error.code = "TOKEN_REFRESH_FAILED";
-      throw error;
-    }
-
-    // saveToken tự giữ đúng localStorage/sessionStorage theo rememberMe hiện tại.
-    saveToken({ idToken, localId, refreshToken });
-    return idToken;
+    return performMainIdTokenRefresh(staleIdToken);
   })().finally(() => {
     refreshPromise = null;
   });
@@ -81,7 +176,7 @@ instanceMain.interceptors.request.use(
 
 // Các API dùng instanceMain (đặc biệt Canh Slot 24/7) trước đây chỉ gắn
 // idToken cũ nên sau khi token Firebase hết hạn sẽ nhận 401 cho tới khi reload/login.
-// Từ giờ gặp 401 sẽ dùng refreshToken, lưu token mới và tự retry request đúng 1 lần.
+// Khi gặp 401: phối hợp tất cả tab, refresh tối đa một lần rồi retry request đúng 1 lần.
 instanceMain.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -95,7 +190,13 @@ instanceMain.interceptors.response.use(
     originalRequest._mainAuthRetry = true;
 
     try {
-      const newToken = await refreshMainIdToken();
+      const authHeader = String(
+        originalRequest.headers?.Authorization ||
+          originalRequest.headers?.authorization ||
+          "",
+      );
+      const staleIdToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+      const newToken = await refreshMainIdToken(staleIdToken);
       originalRequest.headers = originalRequest.headers || {};
       originalRequest.headers.Authorization = `Bearer ${newToken}`;
       return instanceMain(originalRequest);
