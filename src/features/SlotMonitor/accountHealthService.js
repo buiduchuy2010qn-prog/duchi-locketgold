@@ -12,3 +12,10 @@ export async function fetchAccountHealth() {
   );
   return response?.data?.data || null;
 }
+
+export async function fetchSystemStatus() {
+  const response = await instanceMain.get(
+    "api/slot-monitor/notifications/system-status",
+  );
+  return response?.data?.data || null;
+}
