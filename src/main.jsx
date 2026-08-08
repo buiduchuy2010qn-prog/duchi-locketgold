@@ -9,6 +9,7 @@ import App from "./App.jsx";
 import ErrorBoundary from "./components/pages/ErrorBoundary";
 import {
   initPWA,
+  initPWAInstallPrompt,
   initReloadState,
   startUpdateWatcher,
 } from "./utils";
@@ -23,6 +24,13 @@ applyPerfClasses();
 
 // init chunk recovery flags
 initReloadState();
+
+// Capture Chromium's install event as early as possible so Settings can show an Install button later.
+try {
+  initPWAInstallPrompt();
+} catch {
+  /* ignore */
+}
 
 const rootEl = document.getElementById("root");
 if (rootEl) {
