@@ -27,15 +27,13 @@ function detect() {
     (typeof window !== "undefined" && window.matchMedia?.("(max-width: 768px)")?.matches);
 
   const cores = navigator.hardwareConcurrency || 4;
-  // deviceMemory (GB) — Chrome Android
   const memGB = navigator.deviceMemory || 4;
 
-  // Low-end: Android + (≤4 cores hoặc ≤2GB RAM) hoặc save-data
   const saveData = navigator.connection?.saveData === true;
   const reduceMotion =
     typeof window !== "undefined" &&
     Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
-  // reduceMotion only affects FX — not capture quality (isLowEnd)
+  // Low-end affects UI/FX only. It must never lower still-photo quality.
   const isLowEnd =
     saveData ||
     (isAndroid && (cores <= 4 || memGB <= 2)) ||
@@ -69,7 +67,6 @@ export function applyPerfClasses() {
   root.classList.toggle("perf-lite", p.isLowEnd || p.isAndroid);
   root.classList.toggle("perf-reduce-motion", Boolean(p.reduceMotion));
 
-  // Pause decorative FX when tab hidden
   if (!root.dataset.tabVisBound) {
     root.dataset.tabVisBound = "1";
     const sync = () => {
@@ -81,42 +78,30 @@ export function applyPerfClasses() {
 }
 
 /**
- * Constraint camera stream — adaptive high quality.
+ * Camera preview constraints.
  *
- * Ảnh/video chụp từ frame của <video>, nên độ phân giải stream ≈ chất lượng
- * capture. Dùng `ideal` (không `exact` / hard `max` thấp) để:
- *  - Máy mạnh: 1080p+ @ 60 FPS khi hỗ trợ
- *  - Máy yếu: browser tự hạ xuống mức hỗ trợ — getUserMedia không fail
+ * Still capture now prefers ImageCapture.takePhoto(), so preview FPS can stay at
+ * a stable 30 while we ask for a high-resolution 4:3 stream as the universal
+ * Safari/iOS fallback. `ideal` is intentionally used instead of `exact`: older
+ * or weaker devices remain free to negotiate a lower supported mode rather
+ * than failing camera startup.
  *
- * Không set `max` thấp (trước đây 720/960) — đó là nguyên nhân blur chính.
+ * IMPORTANT: performance-lite/save-data never intentionally lowers photo
+ * resolution. Lite mode is UI/FX only.
  */
 export function getCameraPreviewConstraints(base = {}) {
-  const p = getPerfProfile();
-  // Không dùng advanced focusMode — chậm mở cam trên nhiều máy Android
-
-  // Máy yếu / save-data: 720p@30 ideal — vẫn nét hơn 640, không force
-  if (p.isLowEnd) {
-    return {
-      ...base,
-      width: { ideal: 1280 },
-      height: { ideal: 720 },
-      frameRate: { ideal: 30 },
-    };
-  }
-
-  // Android / iOS / desktop: target Full HD @ 60 FPS (ideal only)
-  // Browser chọn highest available ≤ ideal khi sensor/driver không đủ.
   return {
     ...base,
-    width: { ideal: 1920 },
-    height: { ideal: 1080 },
-    frameRate: { ideal: 60 },
+    width: { ideal: 2560 },
+    height: { ideal: 1920 },
+    frameRate: { ideal: 30 },
   };
 }
 
 /**
- * Sau khi getUserMedia OK — nâng resolution/fps nếu track còn dư headroom.
- * An toàn: try/catch, không throw; không đổi deviceId/facing.
+ * After getUserMedia succeeds, opportunistically improve a low-resolution
+ * track without ever forcing an unsupported mode. If the browser already gave
+ * us a higher mode, leave it untouched.
  * @param {MediaStream} stream
  * @returns {Promise<MediaStream>}
  */
@@ -128,15 +113,14 @@ export async function upgradeStreamQuality(stream) {
   try {
     const caps = track.getCapabilities() || {};
     const settings = track.getSettings?.() || {};
-    const p = getPerfProfile();
 
     const maxW = caps.width?.max;
     const maxH = caps.height?.max;
     const maxFps = caps.frameRate?.max;
 
-    const targetW = p.isLowEnd ? 1280 : 1920;
-    const targetH = p.isLowEnd ? 720 : 1080;
-    const targetFps = p.isLowEnd ? 30 : 60;
+    const targetW = 2560;
+    const targetH = 1920;
+    const targetFps = 30;
 
     const wantW =
       typeof maxW === "number" && maxW > 0
@@ -155,11 +139,12 @@ export async function upgradeStreamQuality(stream) {
     const curH = settings.height || 0;
     const curFps = settings.frameRate || 0;
 
-    // Đã đủ gần target → bỏ qua
+    // Never reconfigure/downshift a stream that already meets or exceeds the
+    // desired capture fallback resolution.
     if (
       curW >= wantW * 0.92 &&
       curH >= wantH * 0.92 &&
-      curFps >= Math.min(wantFps, 30) * 0.9
+      curFps >= Math.min(wantFps, 24) * 0.9
     ) {
       return stream;
     }
@@ -181,11 +166,9 @@ export async function upgradeStreamQuality(stream) {
 export function getSnowPerfConfig({ onCameraRoute, isPinkSnow, isPink }) {
   const p = getPerfProfile();
 
-  // Android camera: tắt hẳn hoặc rất ít
   if ((p.isAndroid || p.isLowEnd) && onCameraRoute) {
     return { enabled: true, intervalMs: 320, maxFlakes: 8, lite: true };
   }
-  // Android / low-end: keep theme colors, fewer flakes (no heavy glow)
   if (p.isAndroid || p.isLowEnd) {
     return {
       enabled: true,
@@ -198,7 +181,6 @@ export function getSnowPerfConfig({ onCameraRoute, isPinkSnow, isPink }) {
     return { enabled: true, intervalMs: 200, maxFlakes: 16, lite: true };
   }
 
-  // Desktop / iOS mạnh — pinksnow denser + multi-layer (premium in GlobalThemeEffects)
   if (onCameraRoute) {
     return {
       enabled: true,
