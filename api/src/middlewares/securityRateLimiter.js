@@ -5,7 +5,7 @@
  *
  * Cung cấp rate limit theo từng nhóm endpoint:
  *   - Auth (login/OTP/reset): 5 thất bại / 15 phút (IP + identifier)
- *   - Refresh token: 30 / 15 phút (đủ rộng cho app tự động refresh)
+ *   - Refresh token: 30 / 15 phút theo từng refresh-token/session
  *   - Upload: 30 / 15 phút per user
  *   - Music search: 60 / phút per IP (gõ liên tục)
  *   - General API: 200 / 15 phút per IP
@@ -13,6 +13,7 @@
  *
  * Redis fallback: nếu Redis chết → dùng memory store, không crash server.
  */
+const crypto = require("crypto");
 const rateLimit = require("express-rate-limit");
 const { extractBestPublicIp } = require("../services/userActivityContext");
 
@@ -83,6 +84,25 @@ function ipKeyGenerator(req) {
 }
 
 /**
+ * Refresh từ frontend Vercel có thể đi qua cùng vài IP proxy cho nhiều user.
+ * Nếu giới hạn theo IP, các tài khoản khác nhau sẽ vô tình dùng chung quota.
+ * Dùng fingerprint SHA-256 của refresh token để tạo bucket riêng cho từng session,
+ * tuyệt đối không đưa refresh token thô vào key/log.
+ */
+function refreshSessionKeyGenerator(req) {
+  const refreshToken = String(req.body?.refreshToken || "").trim();
+  if (refreshToken) {
+    const fingerprint = crypto
+      .createHash("sha256")
+      .update(refreshToken)
+      .digest("hex")
+      .slice(0, 32);
+    return `session:${fingerprint}`;
+  }
+  return `ip:${ipKeyGenerator(req)}`;
+}
+
+/**
  * Key generator kết hợp IP + user identifier (cho auth routes)
  */
 function authKeyGenerator(req) {
@@ -146,14 +166,15 @@ const authBruteForceLimit = rateLimit({
 
 /**
  * REFRESH TOKEN — Request tự động của app
- * 30 / 15 phút — đủ rộng để không đăng xuất người dùng
+ * 30 / 15 phút theo từng refresh-token/session.
+ * Không dùng IP vì Vercel/Railway proxy có thể gom nhiều user vào cùng IP nguồn.
  */
 const refreshTokenLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 30,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: ipKeyGenerator,
+  keyGenerator: refreshSessionKeyGenerator,
   handler: (req, res) => {
     res.set("Retry-After", String(15 * 60));
     res.status(429).json({
