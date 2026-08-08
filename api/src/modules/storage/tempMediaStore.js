@@ -8,7 +8,9 @@ const os = require("os");
 const path = require("path");
 
 const TTL_MS = 30 * 60 * 1000; // 30 min
-const MAX_BYTES = 20 * 1024 * 1024; // 20 MB
+// Keep just below the 25 MB express.raw transport ceiling. This allows native
+// high-resolution camera JPEG/PNG files without opening an unbounded RAM path.
+const MAX_BYTES = 24 * 1024 * 1024;
 const store = new Map(); // id -> { buffer, contentType, name, size, exp, path }
 
 const tmpRoot = path.join(os.tmpdir(), "huy-locket-media");

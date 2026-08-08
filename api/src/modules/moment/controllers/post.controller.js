@@ -42,7 +42,7 @@ const { limits } = serverConfig;
 const getClientIp = (req) => {
   const forwarded = req.headers["x-forwarded-for"];
   if (forwarded) {
-    return forwarded.split(",")[0].trim(); // Lấy IP đầu tiên nếu có nhiều
+    return forwarded.split(",")[0].trim();
   }
   return req.connection?.remoteAddress || req.socket?.remoteAddress || req.ip;
 };
@@ -60,7 +60,6 @@ const uploadMediaV3 = async (req, res, next) => {
         errorMessage = null,
         optionsData,
       } = req.body;
-      //Lấy từ midware trước
       const { localId, idToken } = req.user;
       const planData = req.plan;
       const {
@@ -105,15 +104,14 @@ const uploadMediaV3 = async (req, res, next) => {
         "Parsed incoming data",
       );
 
-      const hasInline =
-        Boolean(mediaInfo.mediaBase64 || mediaInfo.base64 || mediaInfo.dataBase64);
+      const hasInline = Boolean(
+        mediaInfo.mediaBase64 || mediaInfo.base64 || mediaInfo.dataBase64,
+      );
 
-      // Inline base64 không cần path/signature temp
       if (!hasInline && !path) {
         return res.status(400).json({ error: "Missing file path" });
       }
 
-      // Inline base64 / inline:// → bỏ qua chữ ký temp (tránh lệch secret giữa instance)
       const isInlinePath =
         typeof path === "string" &&
         (path.startsWith("inline_") || path.startsWith("inline://"));
@@ -131,7 +129,6 @@ const uploadMediaV3 = async (req, res, next) => {
 
         if (!isValid) {
           const cacheKey = `${localId}:${path}`;
-
           const alreadyLogged = hasInvalidSignatureLog(cacheKey);
 
           if (!alreadyLogged) {
@@ -141,24 +138,27 @@ const uploadMediaV3 = async (req, res, next) => {
 
             sendDiscordWebhook({
               threadId: "1503837608177041567",
-
               title: "🚨 Invalid Media Signature",
-
               color: 0xff0000,
-
               fields: {
                 User: localId,
                 IP: getClientIp(req),
                 Path: path,
                 Signature: mediaSignature,
               },
-
               files: [
                 {
                   name: "request-body.json",
-
                   content: JSON.stringify(
-                    { ...req.body, mediaInfo: { ...mediaInfo, mediaBase64: mediaInfo.mediaBase64 ? "[omitted]" : undefined } },
+                    {
+                      ...req.body,
+                      mediaInfo: {
+                        ...mediaInfo,
+                        mediaBase64: mediaInfo.mediaBase64
+                          ? "[omitted]"
+                          : undefined,
+                      },
+                    },
                     null,
                     2,
                   ),
@@ -195,7 +195,6 @@ const uploadMediaV3 = async (req, res, next) => {
       let mediaBuffer = null;
       let mediaPath = null;
 
-      // 0) Ảnh/video gửi kèm base64 trong payload (ổn định nhất — không phụ thuộc temp PUT)
       const inlineB64 =
         mediaInfo.mediaBase64 ||
         mediaInfo.base64 ||
@@ -221,7 +220,6 @@ const uploadMediaV3 = async (req, res, next) => {
         }
       }
 
-      // 1) Temp store in-process
       if (!mediaBuffer?.length) {
         try {
           const tempMedia = require("../../storage/tempMediaStore");
@@ -239,7 +237,6 @@ const uploadMediaV3 = async (req, res, next) => {
         }
       }
 
-      // 2) HTTP download public URL
       if (!mediaBuffer?.length) {
         if (
           sourceUrl &&
@@ -279,17 +276,17 @@ const uploadMediaV3 = async (req, res, next) => {
 
       try {
         if (type === "image") {
-          // Free-for-all high quality — 1920px square max, soft size budget
+          // Full-quality camera path. 8192 is a memory safety ceiling, not a
+          // normal resize target: common 12/24/48 MP square crops stay native.
           const resolution = getResolution({
-            planData: planData,
-            normal: 1920,
-            member: 2048,
+            planData,
+            normal: 8192,
+            member: 8192,
           });
-          // Preserve sharpness: higher maxSizeMB avoids aggressive WebP re-encode
           processedBuffer = await processImageBuffer({
             imageBuffer: mediaBuffer,
-            maxSizeMB: 2.5,
-            resolution: resolution,
+            maxSizeMB: 32,
+            resolution,
           });
         } else if (type === "video") {
           let videoCropData = null;
@@ -309,17 +306,15 @@ const uploadMediaV3 = async (req, res, next) => {
             }
           }
 
-          //Gọi quá trình xử lý video
           processedBuffer = await processVideoBuffer({
             videoBuffer: mediaBuffer,
             filename: name,
             maxSizeMB: limits.maxVideoSizeMB,
-            videoCropData: videoCropData,
+            videoCropData,
           });
           thumbBuffer = await generateThumbnail(processedBuffer, localId);
         }
       } finally {
-        // Xóa file tạm
         deleteTempFile(mediaPath);
       }
 
@@ -331,7 +326,6 @@ const uploadMediaV3 = async (req, res, next) => {
         return res.status(403).json({ message: "Permission denied!" });
       }
 
-      // Không spread mediaBase64 (rất lớn) vào payload Locket
       const {
         mediaBase64: _b64,
         base64: _b64b,
@@ -351,29 +345,25 @@ const uploadMediaV3 = async (req, res, next) => {
 
       if (type === "image") {
         logInfo("uploadMediaV3", "Posting image...");
-
         response = await postImageToLocketV2({
           idToken,
           localId,
           mediaData,
-          optionsData: optionsData,
+          optionsData,
         });
       } else if (type === "video") {
         logInfo("uploadMediaV3", "Posting video...");
-
         response = await postVideoToLocketV2({
           idToken,
           localId,
           mediaData,
-          optionsData: optionsData,
+          optionsData,
         });
       }
 
       logSuccess("uploadMediaV3", "✅ Media posted successfully");
 
-      await storageServices
-        .deleteFileFromStorageR2(mediaData.path)
-        .catch(() => {});
+      await storageServices.deleteFileFromStorageR2(mediaData.path).catch(() => {});
 
       await updateUploadStats({
         uid: localId,
@@ -415,12 +405,12 @@ const parseAndValidateLocketPath = (path) => {
 
   return {
     isValid: true,
-    client, // Beta1.0.0.3
-    folder, // D-05-05-26
-    type, // video | image
-    uid, // user id
-    filename, // abc123.webp
-    ext, // webp / mp4
+    client,
+    folder,
+    type,
+    uid,
+    filename,
+    ext,
     name: filename.replace(`.${ext}`, ""),
   };
 };

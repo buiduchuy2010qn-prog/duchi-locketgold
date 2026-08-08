@@ -1,25 +1,22 @@
 /**
- * Fast + sharp still capture for Huy Locket.
+ * Highest-quality still capture for Huy Locket.
  *
- * Priority (snappy first — avoids multi-second takePhoto@48MP):
- *  1) ImageCapture.grabFrame()  — track resolution, usually <100ms
- *  2) <video> → canvas          — Safari / iOS / always works
- *  3) ImageCapture.takePhoto()  — last resort (can be slow on high-MP sensors)
+ * Priority:
+ *  1) ImageCapture.takePhoto() — keep the browser/camera native still bytes.
+ *  2) ImageCapture.grabFrame() — lossless square canvas fallback.
+ *  3) <video> → canvas — universal fallback (Safari/iOS included).
  *
- * Single JPEG encode, center-crop square. Front cam mirrored.
+ * Important:
+ * - Never reduce capture quality because a device is classified as low-end.
+ * - Rear native stills are not re-encoded in the browser when they already fit
+ *   the upload transport budget. The API performs the center-square crop.
+ * - Canvas fallbacks prefer PNG (lossless). JPEG quality=1 is used only when a
+ *   lossless PNG would exceed the safe client upload budget.
  */
 
-import { getPerfProfile } from "@/utils/device/perfProfile";
-
-const JPEG_Q_FAST = 0.91;
-const JPEG_Q_HQ = 0.94;
-
-function maxSideForDevice() {
-  const p = getPerfProfile();
-  if (p.isLowEnd) return 1440;
-  if (p.isMobile || p.isAndroid || p.isIOS) return 1920;
-  return 2560;
-}
+const JPEG_QUALITY_MAX = 1;
+// API raw endpoint is 25 MB and temp storage has a little safety headroom.
+const SAFE_CLIENT_IMAGE_BYTES = 23 * 1024 * 1024;
 
 function getLiveTrack(video) {
   try {
@@ -29,57 +26,80 @@ function getLiveTrack(video) {
   }
 }
 
-/**
- * Center-crop source to square JPEG.
- */
-function cropSourceToSquareJpeg(source, srcW, srcH, opts = {}) {
-  const mirror = Boolean(opts.mirror);
-  const quality =
-    typeof opts.quality === "number"
-      ? Math.min(1, Math.max(0.85, opts.quality))
-      : JPEG_Q_HQ;
-  const maxSide = opts.maxSide || maxSideForDevice();
+function extensionForMime(type = "") {
+  const t = String(type).toLowerCase();
+  if (t.includes("png")) return "png";
+  if (t.includes("webp")) return "webp";
+  if (t.includes("heic") || t.includes("heif")) return "heic";
+  return "jpg";
+}
 
-  if (!srcW || !srcH) {
-    return Promise.reject(new Error("invalid dimensions"));
-  }
-
-  const nativeSide = Math.min(srcW, srcH);
-  const out = Math.min(nativeSide, maxSide);
-  const sx = Math.floor((srcW - nativeSide) / 2);
-  const sy = Math.floor((srcH - nativeSide) / 2);
-
-  const canvas = document.createElement("canvas");
-  canvas.width = out;
-  canvas.height = out;
-  const ctx = canvas.getContext("2d", {
-    alpha: false,
-    desynchronized: true,
-    willReadFrequently: false,
-  });
-  if (!ctx) return Promise.reject(new Error("no 2d context"));
-
-  const needsScale = out !== nativeSide;
-  ctx.imageSmoothingEnabled = needsScale;
-  if (needsScale) ctx.imageSmoothingQuality = "medium";
-
-  if (mirror) {
-    ctx.translate(out, 0);
-    ctx.scale(-1, 1);
-  }
-
-  ctx.drawImage(source, sx, sy, nativeSide, nativeSide, 0, 0, out, out);
-
+function canvasToBlob(canvas, type, quality) {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
-      (b) => (b ? resolve(b) : reject(new Error("toBlob failed"))),
-      "image/jpeg",
+      (blob) => (blob ? resolve(blob) : reject(new Error("toBlob failed"))),
+      type,
       quality,
     );
   });
 }
 
-async function cropBlobToSquareJpeg(blob, opts = {}) {
+/**
+ * Center-crop a decoded source without downscaling.
+ * PNG is attempted first so pixels are not damaged by another lossy encode.
+ */
+async function cropSourceToSquareBlob(source, srcW, srcH, opts = {}) {
+  const mirror = Boolean(opts.mirror);
+  if (!srcW || !srcH) throw new Error("invalid dimensions");
+
+  const nativeSide = Math.min(srcW, srcH);
+  const sx = Math.floor((srcW - nativeSide) / 2);
+  const sy = Math.floor((srcH - nativeSide) / 2);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = nativeSide;
+  canvas.height = nativeSide;
+
+  const ctx = canvas.getContext("2d", {
+    alpha: false,
+    desynchronized: true,
+    willReadFrequently: false,
+  });
+  if (!ctx) throw new Error("no 2d context");
+
+  // No scaling => no smoothing / resampling.
+  ctx.imageSmoothingEnabled = false;
+
+  if (mirror) {
+    ctx.translate(nativeSide, 0);
+    ctx.scale(-1, 1);
+  }
+
+  ctx.drawImage(
+    source,
+    sx,
+    sy,
+    nativeSide,
+    nativeSide,
+    0,
+    0,
+    nativeSide,
+    nativeSide,
+  );
+
+  // Lossless first. Typical 1080p/1440p square frames remain safely below
+  // the transport limit. Very large/noisy photos fall back to max-quality JPEG.
+  try {
+    const png = await canvasToBlob(canvas, "image/png");
+    if (png.size <= SAFE_CLIENT_IMAGE_BYTES) return png;
+  } catch {
+    /* JPEG fallback below */
+  }
+
+  return canvasToBlob(canvas, "image/jpeg", JPEG_QUALITY_MAX);
+}
+
+async function cropBlobToSquareBlob(blob, opts = {}) {
   let bitmap;
   try {
     bitmap = await createImageBitmap(blob);
@@ -92,7 +112,7 @@ async function cropBlobToSquareJpeg(blob, opts = {}) {
         el.onerror = () => reject(new Error("image decode failed"));
         el.src = url;
       });
-      return cropSourceToSquareJpeg(
+      return cropSourceToSquareBlob(
         img,
         img.naturalWidth,
         img.naturalHeight,
@@ -104,7 +124,7 @@ async function cropBlobToSquareJpeg(blob, opts = {}) {
   }
 
   try {
-    return await cropSourceToSquareJpeg(
+    return await cropSourceToSquareBlob(
       bitmap,
       bitmap.width,
       bitmap.height,
@@ -121,9 +141,22 @@ async function cropBlobToSquareJpeg(blob, opts = {}) {
   }
 }
 
-/** grabFrame — nhanh, đủ nét cho feed */
+async function takeNativePhotoBlob(track) {
+  if (!track || typeof ImageCapture === "undefined") return null;
+  try {
+    const ic = new ImageCapture(track);
+    if (typeof ic.takePhoto !== "function") return null;
+    const blob = await ic.takePhoto();
+    if (blob && blob.size > 1024) return blob;
+  } catch {
+    /* unsupported/busy — fall through to frame capture */
+  }
+  return null;
+}
+
 async function grabFrameBlob(track, opts = {}) {
   if (!track || typeof ImageCapture === "undefined") return null;
+
   let ic;
   try {
     ic = new ImageCapture(track);
@@ -136,10 +169,8 @@ async function grabFrameBlob(track, opts = {}) {
     const frame = await ic.grabFrame();
     if (!frame || !frame.width) return null;
     try {
-      return await cropSourceToSquareJpeg(frame, frame.width, frame.height, {
+      return await cropSourceToSquareBlob(frame, frame.width, frame.height, {
         mirror: opts.mirror,
-        quality: opts.quality ?? JPEG_Q_HQ,
-        maxSide: opts.maxSide,
       });
     } finally {
       if (typeof frame.close === "function") {
@@ -156,22 +187,6 @@ async function grabFrameBlob(track, opts = {}) {
 }
 
 /**
- * takePhoto không gọi getPhotoCapabilities (tránh delay + 48MP).
- * Chỉ dùng khi grabFrame/video fail.
- */
-async function takePhotoBlobFast(track) {
-  if (!track || typeof ImageCapture === "undefined") return null;
-  try {
-    const ic = new ImageCapture(track);
-    const blob = await ic.takePhoto();
-    if (blob && blob.size > 1024) return blob;
-  } catch {
-    /* not supported / busy */
-  }
-  return null;
-}
-
-/**
  * @param {HTMLVideoElement} video
  * @param {{
  *   mirror?: boolean,
@@ -181,10 +196,9 @@ async function takePhotoBlobFast(track) {
  */
 export async function captureSharpSquarePhoto(video, opts = {}) {
   if (!video) throw new Error("no video");
+
   const mirror = Boolean(opts.mirror);
   const track = getLiveTrack(video);
-  const maxSide = maxSideForDevice();
-  const quality = getPerfProfile().isLowEnd ? JPEG_Q_FAST : JPEG_Q_HQ;
 
   const emitPreview = (blob) => {
     if (typeof opts.onPreviewUrl !== "function" || !blob) return;
@@ -195,51 +209,58 @@ export async function captureSharpSquarePhoto(video, opts = {}) {
     }
   };
 
-  const toResult = (blob, method) => ({
-    file: new File([blob], "locket_dio.jpg", {
-      type: "image/jpeg",
-      lastModified: Date.now(),
-    }),
-    blob,
-    method,
-  });
+  const toResult = (blob, method) => {
+    const type = blob.type || "image/jpeg";
+    return {
+      file: new File([blob], `locket_dio.${extensionForMime(type)}`, {
+        type,
+        lastModified: Date.now(),
+      }),
+      blob,
+      method,
+    };
+  };
 
-  // ── 1) grabFrame (nhanh + nét) ──
+  // ── 1) Native still — highest-quality bytes the browser exposes ──
   if (track?.readyState === "live") {
-    const grabbed = await grabFrameBlob(track, { mirror, quality, maxSide });
+    const raw = await takeNativePhotoBlob(track);
+    if (raw) {
+      // Rear camera: keep native bytes when possible. Backend does the square
+      // center crop with a lossless-first WebP pipeline, avoiding browser JPEG
+      // recompression entirely.
+      if (!mirror && raw.size <= SAFE_CLIENT_IMAGE_BYTES) {
+        emitPreview(raw);
+        return toResult(raw, "ImageCapture.takePhoto.native");
+      }
+
+      // Front camera must match the mirrored preview; oversized native stills
+      // also need to fit the 25 MB transport budget.
+      const squared = await cropBlobToSquareBlob(raw, { mirror });
+      emitPreview(squared);
+      return toResult(squared, "ImageCapture.takePhoto.square");
+    }
+  }
+
+  // ── 2) grabFrame — lossless square fallback ──
+  if (track?.readyState === "live") {
+    const grabbed = await grabFrameBlob(track, { mirror });
     if (grabbed) {
       emitPreview(grabbed);
       return toResult(grabbed, "ImageCapture.grabFrame");
     }
   }
 
-  // ── 2) Video frame — luôn sẵn, 1 encode ──
+  // ── 3) Video frame — universal Safari/iOS fallback ──
   if (video.videoWidth && video.readyState >= 2) {
-    // 1 rAF để lấy frame mới nhất (không pause stream — tránh giật preview)
-    await new Promise((r) => requestAnimationFrame(() => r()));
-
-    const jpeg = await cropSourceToSquareJpeg(
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    const blob = await cropSourceToSquareBlob(
       video,
       video.videoWidth,
       video.videoHeight,
-      { mirror, quality, maxSide },
+      { mirror },
     );
-    emitPreview(jpeg);
-    return toResult(jpeg, "video.canvas");
-  }
-
-  // ── 3) takePhoto fallback (chậm hơn — chỉ khi video chưa ready) ──
-  if (track?.readyState === "live") {
-    const raw = await takePhotoBlobFast(track);
-    if (raw) {
-      const jpeg = await cropBlobToSquareJpeg(raw, {
-        mirror,
-        quality,
-        maxSide,
-      });
-      emitPreview(jpeg);
-      return toResult(jpeg, "ImageCapture.takePhoto");
-    }
+    emitPreview(blob);
+    return toResult(blob, "video.canvas.lossless-first");
   }
 
   throw new Error("camera_not_ready");
