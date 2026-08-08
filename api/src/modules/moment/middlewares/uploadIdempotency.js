@@ -1,5 +1,7 @@
 const { runIdempotentUpload } = require("../utils/uploadIdempotency");
 
+const DOWNSTREAM_TIMEOUT_MS = 4 * 60 * 1000;
+
 function getClientUploadId(req) {
   const header = req.get?.("Idempotency-Key") || req.headers?.["idempotency-key"];
   const bodyValue = req.body?.clientUploadId;
@@ -10,17 +12,44 @@ function getClientUploadId(req) {
 function captureSuccessfulResponse(res, next) {
   return new Promise((resolve, reject) => {
     let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      const error = new Error("UPLOAD_DOWNSTREAM_TIMEOUT");
+      error.code = "UPLOAD_DOWNSTREAM_TIMEOUT";
+      error.status = 504;
+      reject(error);
+    }, DOWNSTREAM_TIMEOUT_MS);
+
+    const settleSuccess = (statusCode, body) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve({ statusCode, body });
+    };
+
+    const settleFailure = (statusCode, code = "UPLOAD_DOWNSTREAM_RESPONSE_SENT") => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      const error = new Error(code);
+      error.code = code;
+      error.downstreamResponseSent = true;
+      error.status = statusCode;
+      reject(error);
+    };
 
     const originalJson = res.json.bind(res);
     res.json = (value) => {
       const statusCode = Number(res.statusCode || 200);
 
-      // Resolve as soon as the controller has a successful result, before the
-      // network socket confirms delivery. If the client disconnects right here,
-      // a retry can still replay the success instead of creating another post.
-      if (!settled && statusCode >= 200 && statusCode < 300) {
-        settled = true;
-        resolve({ statusCode, body: value });
+      // Settle from the controller result itself, not socket delivery. A mobile
+      // connection can disappear after Locket accepted the post but before the
+      // HTTP response reaches the browser; that success still must be cached.
+      if (statusCode >= 200 && statusCode < 300) {
+        settleSuccess(statusCode, value);
+      } else {
+        settleFailure(statusCode);
       }
 
       return originalJson(value);
@@ -28,32 +57,24 @@ function captureSuccessfulResponse(res, next) {
 
     const finish = () => {
       if (settled) return;
-      settled = true;
       const statusCode = Number(res.statusCode || 200);
-      const error = new Error("UPLOAD_DOWNSTREAM_RESPONSE_SENT");
-      error.code = "UPLOAD_DOWNSTREAM_RESPONSE_SENT";
-      error.downstreamResponseSent = true;
-      error.status = statusCode;
-      reject(error);
+      // postMomentV2 is JSON. A non-JSON finish is not safe to cache as success.
+      settleFailure(statusCode);
     };
 
-    const close = () => {
-      if (settled || res.writableFinished) return;
-      settled = true;
-      const error = new Error("UPLOAD_CONNECTION_CLOSED");
-      error.code = "UPLOAD_CONNECTION_CLOSED";
-      error.downstreamResponseSent = res.headersSent;
-      reject(error);
-    };
-
+    // Do not release the idempotency lock on `close`: the controller may still
+    // be processing after the client drops its socket. Its later res.json call
+    // can still cache the successful side effect for the retry.
     res.once("finish", finish);
-    res.once("close", close);
 
     try {
       next();
     } catch (error) {
-      settled = true;
-      reject(error);
+      if (!settled) {
+        settled = true;
+        clearTimeout(timer);
+        reject(error);
+      }
     }
   });
 }
