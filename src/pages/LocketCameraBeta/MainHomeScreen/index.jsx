@@ -13,6 +13,7 @@ import { SonnerInfo } from "@/components/uikit/SonnerToast";
 import { useTranslation } from "react-i18next";
 import { useAppCamera } from "@/context/AppContext";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import "./mobileLocket.css";
 
 const BottomHomeScreen = lazy(() => import("../BottomHomeScreen"));
 const SelectFriendsList = lazy(() => import("./Layout/SelectFriends"));
@@ -111,6 +112,7 @@ export default function MainHomeScreen() {
     <>
       <DragDropOverlay isDragging={isDragging} />
       <div
+        data-locket-home="true"
         className={clsx(
           "relative transition-all duration-500 flex flex-col justify-center items-center w-full h-[100vh] text-base-content",
           {
@@ -156,6 +158,7 @@ export default function MainHomeScreen() {
           />
         </div>
         <div
+          data-capture-stack="true"
           className={clsx(
             "w-full h-full flex flex-col transition-all duration-500 justify-evenly items-center",
             {
@@ -164,12 +167,12 @@ export default function MainHomeScreen() {
             },
           )}
         >
-          <div className="h-10" />
-          <div className="w-full max-w-md px-2">
+          <div data-capture-spacer="true" className="h-10" />
+          <div data-media-preview-shell="true" className="w-full max-w-md px-2">
             <MediaPreview />
           </div>
           <ActionControls />
-          <div className="relative w-full">
+          <div data-history-region="true" className="relative w-full">
             <div
               className={clsx("transition-all duration-300", {
                 "opacity-0 invisible hidden": !hasCaptured,
