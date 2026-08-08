@@ -43,9 +43,12 @@ function buildSlotMessage(payload = {}) {
   const friendCount = Math.max(0, Number(celeb.friendCount) || 0);
   const maxFriends = Math.max(0, Number(celeb.maxFriends) || 0);
   const title = clean(payload.title, 140) || "🔥 Slot vừa mở!";
-  const body = username
+  const detailedBody = clean(payload.body, 1000);
+  // Giữ nguyên nội dung kết quả request thật từ worker. Trước đây khi có username,
+  // formatter ghi đè body khiến Telegram/Gmail chỉ còn câu "còn X slot".
+  const body = detailedBody || (username
     ? `@${username} hiện còn ${formatNumber(availableSlots)} slot trống.`
-    : clean(payload.body, 1000) || "Canh Slot vừa phát hiện slot trống.";
+    : "Canh Slot vừa phát hiện slot trống.");
   const countLine = maxFriends > 0
     ? `👥 ${formatNumber(friendCount)} / ${formatNumber(maxFriends)} bạn`
     : "";
@@ -132,6 +135,12 @@ function buildEmailSubject(payload, message) {
     return `${EMAIL_BRAND} | Xác nhận kết nối Canh Slot`;
   }
   if (payload?.type === "slot-open" && message.username) {
+    if (payload?.autoRequest?.attempted && payload?.autoRequest?.success === true) {
+      return `${EMAIL_BRAND} | @${message.username} request Celeb thành công`.slice(0, 200);
+    }
+    if (payload?.autoRequest?.attempted && payload?.autoRequest?.success === false) {
+      return `${EMAIL_BRAND} | @${message.username} request Celeb chưa thành công`.slice(0, 200);
+    }
     return `${EMAIL_BRAND} | @${message.username} vừa mở slot`.slice(0, 200);
   }
   const cleanTitle = stripEmailSymbols(message.title)
@@ -166,11 +175,14 @@ function buildEmailText(payload, message) {
 
 function buildEmailHtml(payload, message) {
   const isTest = payload?.type === "slot-test";
+  const autoAttempted = Boolean(payload?.autoRequest?.attempted);
   const heading = isTest
     ? "Kết nối Gmail thành công"
-    : message.username
-      ? `@${message.username} vừa mở slot`
-      : "Thông báo Canh Slot";
+    : autoAttempted
+      ? stripEmailSymbols(message.title) || "Kết quả tự gửi request Celeb"
+      : message.username
+        ? `@${message.username} vừa mở slot`
+        : "Thông báo Canh Slot";
   const description = isTest
     ? "Kênh Gmail của bạn đã được kết nối với Duchi Locket và sẵn sàng nhận thông báo Canh Slot."
     : stripEmailSymbols(message.body);

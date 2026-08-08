@@ -1,5 +1,6 @@
 const { neon } = require("@neondatabase/serverless");
 const store = require("./store");
+const notificationHistoryStore = require("./notificationHistoryStore");
 const {
   getProviderConfig,
   sendTelegram,
@@ -13,6 +14,12 @@ const BUILTIN_WEB_ORIGINS = new Set([
   DEFAULT_WEB_ORIGIN,
   "https://huy-locket-production.up.railway.app",
 ]);
+
+notificationHistoryStore.ensureSchema().catch((error) => {
+  console.warn("[slot-monitor] notification history bootstrap failed", {
+    code: error?.code || null,
+  });
+});
 
 function normalizeOrigin(raw) {
   const value = String(raw || "").trim().slice(0, 500);
@@ -199,6 +206,63 @@ function publicError(error) {
   };
 }
 
+async function recordDeliverySafe({
+  userUid,
+  eventId,
+  channel,
+  status,
+  payload,
+  error = null,
+}) {
+  try {
+    await notificationHistoryStore.recordDelivery({
+      userUid,
+      eventId,
+      channel,
+      status,
+      payload,
+      errorCode: error?.code || "",
+      errorMessage: error?.message || "",
+    });
+  } catch (historyError) {
+    console.warn("[slot-monitor] notification history write failed", {
+      userUid,
+      channel,
+      code: historyError?.code || null,
+    });
+  }
+}
+
+async function sendTrackedNotification({
+  userUid,
+  eventId,
+  channel,
+  payload,
+  send,
+}) {
+  try {
+    const result = await send();
+    await recordDeliverySafe({
+      userUid,
+      eventId,
+      channel,
+      status: "SUCCESS",
+      payload,
+    });
+    return result;
+  } catch (error) {
+    await recordDeliverySafe({
+      userUid,
+      eventId,
+      channel,
+      status: "FAILED",
+      payload,
+      error,
+    });
+    throw error;
+  }
+}
+
 async function sendConfiguredNotifications(userUid, payload, { eventId = "" } = {}) {
   const [settings, webOrigin] = await Promise.all([
     store.getNotificationSettings(userUid),
@@ -235,7 +299,13 @@ async function sendConfiguredNotifications(userUid, payload, { eventId = "" } = 
   await Promise.all(
     tasks.map(async ([channel, send]) => {
       try {
-        results[channel] = await send();
+        results[channel] = await sendTrackedNotification({
+          userUid,
+          eventId,
+          channel,
+          payload: deliveryPayload,
+          send,
+        });
       } catch (error) {
         results[channel] = publicError(error);
         console.warn("[slot-monitor] external notification failed", {
@@ -273,16 +343,35 @@ async function testNotificationChannel(userUid, channel, { webOrigin = "" } = {}
     body: "Kênh thông báo đã kết nối thành công.",
     url: resolveNotificationUrl(selectedWebOrigin, "/friends?slot=1"),
   };
+  const eventId = `test-${normalized}-${Date.now()}`;
 
   if (normalized === "telegram") {
-    return sendTelegram(settings.telegramChatId, payload);
-  }
-  if (normalized === "email") {
-    return sendEmail(settings.emailAddress, payload, {
-      idempotencyKey: `slot-test-${userUid}-${Date.now()}`,
+    return sendTrackedNotification({
+      userUid,
+      eventId,
+      channel: normalized,
+      payload,
+      send: () => sendTelegram(settings.telegramChatId, payload),
     });
   }
-  return sendZalo(settings.zaloUserId, payload);
+  if (normalized === "email") {
+    return sendTrackedNotification({
+      userUid,
+      eventId,
+      channel: normalized,
+      payload,
+      send: () => sendEmail(settings.emailAddress, payload, {
+        idempotencyKey: `slot-test-${userUid}-${Date.now()}`,
+      }),
+    });
+  }
+  return sendTrackedNotification({
+    userUid,
+    eventId,
+    channel: normalized,
+    payload,
+    send: () => sendZalo(settings.zaloUserId, payload),
+  });
 }
 
 module.exports = {
