@@ -181,7 +181,8 @@ export function SocketProvider({ children }) {
               visibilityState: document.visibilityState,
               hiddenForMs,
               online: browserIsOnline(),
-              connected: client.connected,
+              // Pause both a live connection and an active reconnect loop.
+              connected: client.connected || client.active,
             })
           ) {
             pausedForBackgroundRef.current = true;
