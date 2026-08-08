@@ -5,6 +5,7 @@ import {
   getIosAccent,
   getThemeLabel,
   hasSnowEffect,
+  IOS_THEME,
   isIosTheme,
   setIosAccent,
 } from "@/utils/theme/themeUtils";
@@ -30,6 +31,9 @@ const ThemeSelector = () => {
     changePerfMode,
   } = useTheme();
   const [iosAccent, setIosAccentState] = useState(() => getIosAccent());
+  const themeOptions = CONFIG.ui.themes.includes(IOS_THEME)
+    ? CONFIG.ui.themes
+    : [IOS_THEME, ...CONFIG.ui.themes];
 
   const changeIosAccent = (value) => {
     const next = setIosAccent(value);
@@ -49,7 +53,7 @@ const ThemeSelector = () => {
           </legend>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[400px] overflow-y-auto px-4 py-3">
-            {CONFIG.ui.themes.map((t) => {
+            {themeOptions.map((t) => {
               const label = getThemeLabel(t);
               const snow = hasSnowEffect(t);
               return (
@@ -160,7 +164,6 @@ const ThemeSelector = () => {
           </fieldset>
         )}
 
-        {/* Chế độ màu (Color Mode) */}
         <fieldset className="border rounded-2xl shadow-md w-full py-3 mt-4">
           <legend className="font-semibold text-base-content text-lg text-left ml-5">
             🌗 Chế độ Màu:
@@ -187,7 +190,6 @@ const ThemeSelector = () => {
           </div>
         </fieldset>
 
-        {/* Chế độ Máy yếu (Performance Mode) */}
         <fieldset className="border rounded-2xl shadow-md w-full py-3 mt-4 mb-4 flex justify-between items-center px-5">
           <div>
             <p className="font-semibold text-base-content text-lg">
