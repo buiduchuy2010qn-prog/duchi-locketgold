@@ -9,14 +9,20 @@ function getClientUploadId(req) {
 
 function captureSuccessfulResponse(res, next) {
   return new Promise((resolve, reject) => {
-    let body;
-    let hasJsonBody = false;
     let settled = false;
 
     const originalJson = res.json.bind(res);
     res.json = (value) => {
-      body = value;
-      hasJsonBody = true;
+      const statusCode = Number(res.statusCode || 200);
+
+      // Resolve as soon as the controller has a successful result, before the
+      // network socket confirms delivery. If the client disconnects right here,
+      // a retry can still replay the success instead of creating another post.
+      if (!settled && statusCode >= 200 && statusCode < 300) {
+        settled = true;
+        resolve({ statusCode, body: value });
+      }
+
       return originalJson(value);
     };
 
@@ -24,11 +30,6 @@ function captureSuccessfulResponse(res, next) {
       if (settled) return;
       settled = true;
       const statusCode = Number(res.statusCode || 200);
-      if (statusCode >= 200 && statusCode < 300 && hasJsonBody) {
-        resolve({ statusCode, body });
-        return;
-      }
-
       const error = new Error("UPLOAD_DOWNSTREAM_RESPONSE_SENT");
       error.code = "UPLOAD_DOWNSTREAM_RESPONSE_SENT";
       error.downstreamResponseSent = true;
@@ -82,9 +83,11 @@ async function uploadIdempotency(req, res, next) {
     // replay after the original request has completed.
     if (outcome.replayed && !res.headersSent) {
       const statusCode = Number(outcome.result?.statusCode || 200);
-      return res.status(statusCode).json(outcome.result?.body ?? {
-        success: true,
-      });
+      return res.status(statusCode).json(
+        outcome.result?.body ?? {
+          success: true,
+        },
+      );
     }
   } catch (error) {
     if (error?.downstreamResponseSent || res.headersSent) return;
