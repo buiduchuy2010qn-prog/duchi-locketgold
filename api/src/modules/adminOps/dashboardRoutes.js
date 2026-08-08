@@ -1,3 +1,5 @@
+const fs = require("fs");
+const path = require("path");
 const express = require("express");
 const { neon } = require("@neondatabase/serverless");
 const {
@@ -10,6 +12,7 @@ const {
   hasActivityDatabase,
 } = require("../../services/userActivityStore");
 const { getRequestTelemetry } = require("../../services/requestTelemetry");
+const { META_ROOT } = require("../drafts/draftMetaStore");
 const slotStore = require("../slotMonitor/store");
 const eventStore = require("../slotMonitor/eventStore");
 const notificationHistoryStore = require("../slotMonitor/notificationHistoryStore");
@@ -77,6 +80,51 @@ function safeCommit() {
     .slice(0, 12);
 }
 
+function getDraftUsage() {
+  const result = {
+    available: false,
+    users: 0,
+    total: 0,
+    images: 0,
+    videos: 0,
+    failed: 0,
+    updatedLast24h: 0,
+  };
+
+  try {
+    if (!META_ROOT || !fs.existsSync(META_ROOT)) return result;
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    const files = fs
+      .readdirSync(META_ROOT, { withFileTypes: true })
+      .filter((entry) => entry.isFile() && entry.name.endsWith(".json"));
+
+    result.available = true;
+    for (const entry of files) {
+      try {
+        const rows = JSON.parse(
+          fs.readFileSync(path.join(META_ROOT, entry.name), "utf8"),
+        );
+        if (!Array.isArray(rows)) continue;
+        const visible = rows.filter((row) => row && !row.deletedAt);
+        if (visible.length) result.users += 1;
+        for (const draft of visible) {
+          result.total += 1;
+          if (draft.mediaType === "video") result.videos += 1;
+          else if (draft.mediaType === "image") result.images += 1;
+          if (draft.status === "failed") result.failed += 1;
+          if (Number(draft.updatedAt || 0) >= cutoff) result.updatedLast24h += 1;
+        }
+      } catch {
+        // A broken per-user metadata file must not break the admin dashboard.
+      }
+    }
+  } catch {
+    return result;
+  }
+
+  return result;
+}
+
 router.use(requireAdmin);
 
 router.get("/", async (_req, res) => {
@@ -96,76 +144,124 @@ router.get("/", async (_req, res) => {
       notificationHistoryStore.ensureSchema(),
     ]);
 
-    const [watchRows, sessionRows, eventRows, notificationRows, recentFailures] =
-      await Promise.all([
-        sql`
-          SELECT
-            COUNT(*)::BIGINT AS total,
-            COUNT(DISTINCT user_uid)::BIGINT AS users,
-            COUNT(*) FILTER (WHERE enabled = TRUE)::BIGINT AS enabled,
-            COUNT(*) FILTER (WHERE auto_request_enabled = TRUE)::BIGINT AS auto_enabled,
-            COUNT(*) FILTER (
-              WHERE enabled = TRUE
-                AND COALESCE(max_friends, 0) > COALESCE(friend_count, 0)
-            )::BIGINT AS open_now,
-            COUNT(*) FILTER (
-              WHERE last_checked_at >= NOW() - INTERVAL '1 minute'
-            )::BIGINT AS checked_last_minute
-          FROM slot_monitor_watches
-        `,
-        sql`
-          SELECT
-            COUNT(*)::BIGINT AS total,
-            COUNT(*) FILTER (WHERE enabled = TRUE AND COALESCE(last_error, '') = '')::BIGINT AS healthy,
-            COUNT(*) FILTER (WHERE enabled = FALSE OR COALESCE(last_error, '') <> '')::BIGINT AS attention
-          FROM slot_monitor_sessions
-        `,
-        sql`
-          SELECT
-            COUNT(*) FILTER (
-              WHERE event_type = 'SLOT_OPEN'
-                AND created_at >= NOW() - INTERVAL '24 hours'
-            )::BIGINT AS slot_open_24h,
-            COUNT(*) FILTER (
-              WHERE event_type = 'AUTO_REQUEST_SENT'
-                AND created_at >= NOW() - INTERVAL '24 hours'
-            )::BIGINT AS request_sent_24h,
-            COUNT(*) FILTER (
-              WHERE event_type = 'AUTO_REQUEST_FAILED'
-                AND created_at >= NOW() - INTERVAL '24 hours'
-            )::BIGINT AS request_failed_24h
-          FROM slot_monitor_events
-        `,
-        sql`
-          SELECT
-            COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '24 hours')::BIGINT AS total_24h,
-            COUNT(*) FILTER (
-              WHERE created_at >= NOW() - INTERVAL '24 hours'
-                AND status IN ('SUCCESS', 'PARTIAL')
-            )::BIGINT AS success_24h,
-            COUNT(*) FILTER (
-              WHERE created_at >= NOW() - INTERVAL '24 hours'
-                AND status = 'FAILED'
-            )::BIGINT AS failed_24h,
-            COUNT(*) FILTER (
-              WHERE created_at >= NOW() - INTERVAL '24 hours'
-                AND status = 'SKIPPED'
-            )::BIGINT AS skipped_24h
-          FROM slot_notification_history
-        `,
-        sql`
-          SELECT channel, status, username, error_code, error_message, created_at
-          FROM slot_notification_history
-          WHERE status = 'FAILED'
-          ORDER BY created_at DESC, id DESC
-          LIMIT 12
-        `,
-      ]);
+    const [
+      watchRows,
+      sessionRows,
+      eventRows,
+      notificationRows,
+      recentFailures,
+      usageRows,
+      pushRows,
+      channelRows,
+    ] = await Promise.all([
+      sql`
+        SELECT
+          COUNT(*)::BIGINT AS total,
+          COUNT(DISTINCT user_uid)::BIGINT AS users,
+          COUNT(*) FILTER (WHERE enabled = TRUE)::BIGINT AS enabled,
+          COUNT(*) FILTER (WHERE auto_request_enabled = TRUE)::BIGINT AS auto_enabled,
+          COUNT(*) FILTER (
+            WHERE enabled = TRUE
+              AND COALESCE(max_friends, 0) > COALESCE(friend_count, 0)
+          )::BIGINT AS open_now,
+          COUNT(*) FILTER (
+            WHERE last_checked_at >= NOW() - INTERVAL '1 minute'
+          )::BIGINT AS checked_last_minute
+        FROM slot_monitor_watches
+      `,
+      sql`
+        SELECT
+          COUNT(*)::BIGINT AS total,
+          COUNT(*) FILTER (WHERE enabled = TRUE AND COALESCE(last_error, '') = '')::BIGINT AS healthy,
+          COUNT(*) FILTER (WHERE enabled = FALSE OR COALESCE(last_error, '') <> '')::BIGINT AS attention
+        FROM slot_monitor_sessions
+      `,
+      sql`
+        SELECT
+          COUNT(*) FILTER (
+            WHERE event_type = 'SLOT_OPEN'
+              AND created_at >= NOW() - INTERVAL '24 hours'
+          )::BIGINT AS slot_open_24h,
+          COUNT(*) FILTER (
+            WHERE event_type = 'AUTO_REQUEST_SENT'
+              AND created_at >= NOW() - INTERVAL '24 hours'
+          )::BIGINT AS request_sent_24h,
+          COUNT(*) FILTER (
+            WHERE event_type = 'AUTO_REQUEST_FAILED'
+              AND created_at >= NOW() - INTERVAL '24 hours'
+          )::BIGINT AS request_failed_24h
+        FROM slot_monitor_events
+      `,
+      sql`
+        SELECT
+          COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '24 hours')::BIGINT AS total_24h,
+          COUNT(*) FILTER (
+            WHERE created_at >= NOW() - INTERVAL '24 hours'
+              AND status IN ('SUCCESS', 'PARTIAL')
+          )::BIGINT AS success_24h,
+          COUNT(*) FILTER (
+            WHERE created_at >= NOW() - INTERVAL '24 hours'
+              AND status = 'FAILED'
+          )::BIGINT AS failed_24h,
+          COUNT(*) FILTER (
+            WHERE created_at >= NOW() - INTERVAL '24 hours'
+              AND status = 'SKIPPED'
+          )::BIGINT AS skipped_24h
+        FROM slot_notification_history
+      `,
+      sql`
+        SELECT channel, status, username, error_code, error_message, created_at
+        FROM slot_notification_history
+        WHERE status = 'FAILED'
+        ORDER BY created_at DESC, id DESC
+        LIMIT 12
+      `,
+      sql`
+        SELECT
+          COUNT(*) FILTER (
+            WHERE created_at >= NOW() - INTERVAL '24 hours'
+          )::BIGINT AS actions_24h,
+          COUNT(DISTINCT uid) FILTER (
+            WHERE created_at >= NOW() - INTERVAL '24 hours'
+          )::BIGINT AS active_users_24h,
+          COUNT(*) FILTER (
+            WHERE action_type = 'MOMENT_POST'
+              AND created_at >= NOW() - INTERVAL '24 hours'
+          )::BIGINT AS posts_24h,
+          COUNT(*) FILTER (
+            WHERE action_type = 'MOMENT_POST'
+              AND created_at >= NOW() - INTERVAL '7 days'
+          )::BIGINT AS posts_7d,
+          COUNT(DISTINCT uid) FILTER (
+            WHERE action_type = 'MOMENT_POST'
+              AND created_at >= NOW() - INTERVAL '7 days'
+          )::BIGINT AS posting_users_7d
+        FROM web_user_actions
+      `,
+      sql`
+        SELECT
+          COUNT(*)::BIGINT AS total,
+          COUNT(*) FILTER (WHERE active = TRUE)::BIGINT AS active,
+          COUNT(DISTINCT user_uid) FILTER (WHERE active = TRUE)::BIGINT AS active_users
+        FROM slot_push_subscriptions
+      `,
+      sql`
+        SELECT
+          COUNT(*) FILTER (WHERE telegram_enabled = TRUE)::BIGINT AS telegram_users,
+          COUNT(*) FILTER (WHERE email_enabled = TRUE)::BIGINT AS email_users,
+          COUNT(*) FILTER (WHERE zalo_enabled = TRUE)::BIGINT AS zalo_users
+        FROM slot_notification_channels
+      `,
+    ]);
 
     const watches = watchRows[0] || {};
     const sessions = sessionRows[0] || {};
     const events = eventRows[0] || {};
     const notifications = notificationRows[0] || {};
+    const usage = usageRows[0] || {};
+    const push = pushRows[0] || {};
+    const channels = channelRows[0] || {};
+    const drafts = getDraftUsage();
     const traffic = getRequestTelemetry();
     const attempted = Math.max(
       0,
@@ -226,6 +322,30 @@ router.get("/", async (_req, res) => {
             errorMessage: row.error_message || "",
             createdAt: row.created_at ? new Date(row.created_at).getTime() : null,
           })),
+        },
+        featureUsage: {
+          activity: {
+            actions24h: number(usage.actions_24h),
+            activeUsers24h: number(usage.active_users_24h),
+          },
+          uploads: {
+            confirmedPosts24h: number(usage.posts_24h),
+            confirmedPosts7d: number(usage.posts_7d),
+            postingUsers7d: number(usage.posting_users_7d),
+            source: "web_user_actions:MOMENT_POST",
+          },
+          drafts,
+          pwa: {
+            activePushDevices: number(push.active),
+            totalPushDevices: number(push.total),
+            usersWithActivePush: number(push.active_users),
+            source: "slot_push_subscriptions",
+          },
+          channels: {
+            telegramUsers: number(channels.telegram_users),
+            emailUsers: number(channels.email_users),
+            zaloUsers: number(channels.zalo_users),
+          },
         },
       },
     });
