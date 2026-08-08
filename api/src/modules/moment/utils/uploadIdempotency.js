@@ -134,55 +134,63 @@ async function runIdempotentUpload({ userId, idempotencyKey, work }) {
     return { result: await work(), replayed: false, protected: false };
   }
 
-  const cached = await readResult(keys);
-  if (cached !== null) {
-    return { result: cached, replayed: true, protected: true };
-  }
-
-  const running = inFlight.get(keys.result);
-  if (running) {
+  // Reserve the local key before the first await. Without this placeholder two
+  // requests arriving in the same tick could both pass readResult()/lock setup
+  // and execute the upload side effect twice when Redis is unavailable.
+  const existing = inFlight.get(keys.result);
+  if (existing) {
+    const shared = await existing;
     return {
-      result: await running,
+      result: shared.result,
       replayed: true,
       protected: true,
     };
   }
 
-  const token =
-    typeof crypto.randomUUID === "function"
-      ? crypto.randomUUID()
-      : crypto.randomBytes(18).toString("hex");
-  const remoteLock = await acquireRemoteLock(keys, token);
-
-  if (!remoteLock.acquired) {
-    const remoteResult = await waitForRemoteResult(keys);
-    if (remoteResult !== null) {
-      return { result: remoteResult, replayed: true, protected: true };
+  const execution = (async () => {
+    const cached = await readResult(keys);
+    if (cached !== null) {
+      return { result: cached, replayed: true };
     }
 
-    const error = new Error("UPLOAD_IN_PROGRESS");
-    error.status = 425;
-    error.statusCode = 425;
-    error.code = "UPLOAD_IN_PROGRESS";
-    throw error;
-  }
+    const token =
+      typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : crypto.randomBytes(18).toString("hex");
+    const remoteLock = await acquireRemoteLock(keys, token);
 
-  const promise = (async () => {
+    if (!remoteLock.acquired) {
+      const remoteResult = await waitForRemoteResult(keys);
+      if (remoteResult !== null) {
+        return { result: remoteResult, replayed: true };
+      }
+
+      const error = new Error("UPLOAD_IN_PROGRESS");
+      error.status = 425;
+      error.statusCode = 425;
+      error.code = "UPLOAD_IN_PROGRESS";
+      throw error;
+    }
+
     try {
       const value = await work();
       await writeResult(keys, value);
-      return value;
+      return { result: value, replayed: false };
     } finally {
       await releaseRemoteLock(keys, token, remoteLock.distributed);
     }
   })();
 
-  inFlight.set(keys.result, promise);
+  inFlight.set(keys.result, execution);
   try {
-    const result = await promise;
-    return { result, replayed: false, protected: true };
+    const outcome = await execution;
+    return {
+      result: outcome.result,
+      replayed: outcome.replayed,
+      protected: true,
+    };
   } finally {
-    if (inFlight.get(keys.result) === promise) {
+    if (inFlight.get(keys.result) === execution) {
       inFlight.delete(keys.result);
     }
   }
