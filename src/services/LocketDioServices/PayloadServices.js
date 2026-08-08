@@ -11,6 +11,13 @@ const determineRecipients = (audience, selectedRecipients, localId) => {
   return [];
 };
 
+const createClientUploadId = () => {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `upload-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+};
+
 export const createRequestPayloadV6 = async () => {
   try {
     const { localId } = getToken() || {};
@@ -89,8 +96,10 @@ export const createRequestPayloadV6 = async () => {
       optionsDataObj.streakData = streakData;
     }
 
-    // Tạo payload cuối cùng
+    // Tạo payload cuối cùng. clientUploadId phải giữ nguyên trong IndexedDB
+    // qua mọi lần retry để backend có thể trả lại đúng kết quả thay vì đăng trùng.
     const payload = {
+      clientUploadId: createClientUploadId(),
       model: "Version-UploadmediaV3.1",
       mediaInfo,
       contentType: previewType,
