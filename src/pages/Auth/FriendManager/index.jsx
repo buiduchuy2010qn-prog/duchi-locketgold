@@ -3,12 +3,9 @@ import { BookUser } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAppNavigation } from "@/context/AppContext";
 import FriendsContainer from "@/features/FriendsContainer";
-import AccountHealth from "@/features/SlotMonitor/AccountHealth";
-import CelebCenterOverview from "@/features/SlotMonitor/CelebCenterOverview";
 import NotificationCenter from "@/features/SlotMonitor/NotificationCenter";
 import SlotWatchInline from "@/features/SlotMonitor/SlotWatchInline";
 import SlotNotificationSettings from "@/features/SlotMonitor/SlotNotificationSettings";
-import SystemStatus from "@/features/SlotMonitor/SystemStatus";
 
 const FriendManager = () => {
   const location = useLocation();
@@ -30,10 +27,7 @@ const FriendManager = () => {
   if (isSlotPage) {
     return (
       <div className="min-h-[80vh] bg-base-100">
-        <CelebCenterOverview />
         <SlotWatchInline />
-        <SystemStatus />
-        <AccountHealth />
         <div
           id="slot-notification-settings"
           className="mx-auto w-full max-w-5xl scroll-mt-4 px-4 pb-6"
