@@ -22,12 +22,12 @@ test("interaction motion pack is loaded and respects accessibility/performance",
   assert.doesNotMatch(pageTransition, /filter:\s*["']blur/);
 });
 
-test("menu slide and lightweight lite mode remain visible", () => {
+test("menu slide animates Tailwind v4 translate and lite mode stays visible", () => {
   const css = read("src/styles/interaction-motion.css");
 
   assert.match(
     css,
-    /#huy-locket-nav-drawer\s*\{[\s\S]*transition-property:\s*transform, opacity/i,
+    /#huy-locket-nav-drawer\s*\{[\s\S]*transition-property:\s*translate,\s*transform,\s*opacity/i,
   );
   assert.match(
     css,

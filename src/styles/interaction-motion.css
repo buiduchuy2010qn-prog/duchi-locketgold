@@ -1,5 +1,5 @@
 /* Lightweight interaction motion pack.
- * Only opacity + transform are used for motion-sensitive UI paths.
+ * Only opacity + transform/translate are used for motion-sensitive UI paths.
  * Lite mode keeps shorter/smaller motion instead of removing it completely.
  */
 
@@ -9,12 +9,14 @@
   --hl-motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Navigation drawer: make the right-side slide obvious but still cheap. */
+/* Navigation drawer: Tailwind v4 translate-x-* uses the individual `translate`
+ * property, not only `transform`. Animate both so the drawer visibly slides.
+ */
 #huy-locket-nav-drawer {
-  transition-property: transform, opacity !important;
-  transition-duration: 280ms, 180ms !important;
-  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1), ease !important;
-  will-change: transform;
+  transition-property: translate, transform, opacity !important;
+  transition-duration: 280ms, 280ms, 180ms !important;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1), cubic-bezier(0.22, 1, 0.36, 1), ease !important;
+  will-change: translate;
   opacity: 1;
 }
 
@@ -202,7 +204,7 @@
 }
 
 html[data-performance-mode="lite"] #huy-locket-nav-drawer {
-  transition-duration: 170ms, 120ms !important;
+  transition-duration: 170ms, 170ms, 120ms !important;
   will-change: auto;
 }
 
