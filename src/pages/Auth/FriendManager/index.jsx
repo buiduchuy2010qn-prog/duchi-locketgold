@@ -8,6 +8,7 @@ import CelebCenterOverview from "@/features/SlotMonitor/CelebCenterOverview";
 import NotificationCenter from "@/features/SlotMonitor/NotificationCenter";
 import SlotWatchInline from "@/features/SlotMonitor/SlotWatchInline";
 import SlotNotificationSettings from "@/features/SlotMonitor/SlotNotificationSettings";
+import SystemStatus from "@/features/SlotMonitor/SystemStatus";
 
 const FriendManager = () => {
   const location = useLocation();
@@ -31,6 +32,7 @@ const FriendManager = () => {
       <div className="min-h-[80vh] bg-base-100">
         <CelebCenterOverview />
         <SlotWatchInline />
+        <SystemStatus />
         <AccountHealth />
         <div
           id="slot-notification-settings"
