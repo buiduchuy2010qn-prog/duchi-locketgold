@@ -3,7 +3,9 @@ import { useAppNavigation } from "@/context/AppContext";
 import { useTheme } from "@/hooks/useTheme";
 import MainHomeScreen from "./MainHomeScreen";
 import { MusicPlayer } from "./Widgets/MusicPlayer";
-import { useOverlayEditorStore, useUIStore } from "@/stores";
+import { useOverlayEditorStore } from "@/stores/PostStores/useOverlayEditorStore";
+import { usePostStore } from "@/stores/PostStores/usePostStore";
+import { useUIStore } from "@/stores/SettingStores/useUIStore";
 import GlobalReactionEffect from "./Widgets/GlobalReactionEffect";
 import { getPerfProfile } from "@/utils/device/perfProfile";
 
@@ -13,7 +15,6 @@ const LeftHomeScreen = lazy(() => import("./LeftHomeScreen"));
 const RightHomeScreen = lazy(() => import("./RightHomeScreen"));
 
 const FriendsContainer = lazy(() => import("../../features/FriendsContainer"));
-const EmojiPicker = lazy(() => import("@/features/EmojiStudio"));
 const ScreenCustomeStudio = lazy(() => import("@/features/CustomeStudio"));
 const CropImageStudio = lazy(() => import("@/features/EditorStudio/CropImageStudio"));
 const CropVideoStudio = lazy(() => import("@/features/EditorStudio/CropVideoStudio"));
@@ -38,6 +39,8 @@ export default function LocketCameraBeta() {
     setIsProfileOpen,
     isOptionModalOpen,
     setOptionModalOpen,
+    isFriendsTabOpen,
+    isFilterOpen,
   } = useAppNavigation();
   const { perfMode } = useTheme();
 
@@ -46,10 +49,16 @@ export default function LocketCameraBeta() {
 
   const overlayData = useOverlayEditorStore((s) => s.overlayData);
   const background = useUIStore((s) => s.background);
+  const imageToCrop = usePostStore((s) => s.imageToCrop);
+  const videoToCrop = usePostStore((s) => s.videoToCrop);
 
   // Mount side panels only after first open (keep mounted afterward for swipe state)
   const [leftReady, setLeftReady] = useState(false);
   const [rightReady, setRightReady] = useState(false);
+  const [friendsReady, setFriendsReady] = useState(false);
+  const [customReady, setCustomReady] = useState(false);
+  const [optionReady, setOptionReady] = useState(false);
+  const [welcomeReady, setWelcomeReady] = useState(false);
 
   useEffect(() => {
     if (isProfileOpen) setLeftReady(true);
@@ -58,6 +67,27 @@ export default function LocketCameraBeta() {
   useEffect(() => {
     if (isHomeOpen) setRightReady(true);
   }, [isHomeOpen]);
+
+  useEffect(() => {
+    if (isFriendsTabOpen) setFriendsReady(true);
+  }, [isFriendsTabOpen]);
+
+  useEffect(() => {
+    if (isFilterOpen) setCustomReady(true);
+  }, [isFilterOpen]);
+
+  useEffect(() => {
+    if (isOptionModalOpen) setOptionReady(true);
+  }, [isOptionModalOpen]);
+
+  useEffect(
+    () =>
+      idleSchedule(() => setWelcomeReady(true), {
+        timeout: 2200,
+        delay: 900,
+      }),
+    [],
+  );
 
   // Preload heavy side chunks when idle — skip on low-end / save-data / manual lite.
   useEffect(() => {
@@ -94,16 +124,17 @@ export default function LocketCameraBeta() {
 
       {/* Modal Views — lazy chunks; preload on idle above */}
       <Suspense fallback={null}>
-        <FriendsContainer />
-        <CropImageStudio />
-        <CropVideoStudio />
-        <ScreenCustomeStudio />
-        <EmojiPicker />
-        <OptionMoment
-          setOptionModalOpen={setOptionModalOpen}
-          isOptionModalOpen={isOptionModalOpen}
-        />
-        <WelcomeModal />
+        {friendsReady ? <FriendsContainer /> : null}
+        {imageToCrop ? <CropImageStudio /> : null}
+        {videoToCrop ? <CropVideoStudio /> : null}
+        {customReady ? <ScreenCustomeStudio /> : null}
+        {optionReady ? (
+          <OptionMoment
+            setOptionModalOpen={setOptionModalOpen}
+            isOptionModalOpen={isOptionModalOpen}
+          />
+        ) : null}
+        {welcomeReady ? <WelcomeModal /> : null}
       </Suspense>
 
       <canvas ref={canvasRef} className="hidden" />

@@ -55,7 +55,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=flowers-pink" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=flowers-pink" />
     <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=flowers-pink" />
-    
+
     <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=flowers-pink" />
     <link
       rel="preload"
@@ -75,7 +75,7 @@
       gtag('js', new Date());
       gtag('config', 'G-7596Z1M8BB');
     </script>
-    
+
     <!-- Google Search Structured Data (Schema.org / Sitelinks) -->
     <script type="application/ld+json">
       [
@@ -131,7 +131,7 @@
         }
       ]
     </script>
-    
+
   </head>
   <body>
     <!-- Apply theme before React to avoid FOUC / color flash -->
@@ -143,7 +143,7 @@
           var huy = localStorage.getItem(KEY);
           var legacy = localStorage.getItem("theme");
           var theme = "pinksnow";
-          
+
           if (huy === "default") {
             theme = legacy && legacy !== "pinksnow" && legacy !== "pink-snow" && legacy !== "glass" ? legacy : "light";
           } else if (huy === "pink-snow" || huy === "pinksnow") {
@@ -159,10 +159,10 @@
           } else if (legacy) {
             theme = legacy === "pink-snow" ? "pinksnow" : legacy;
           }
-          
+
           document.documentElement.setAttribute("data-theme", theme);
           document.documentElement.classList.remove("theme-pink-snow", "theme-glass", "theme-pink-sakura-glass", "theme-pink-lite", "theme-pink-snow-ai");
-          
+
           if (theme === "pinksnow") {
             document.documentElement.dataset.huyTheme = "pink-snow";
             document.documentElement.classList.add("theme-pink-snow");
@@ -181,11 +181,11 @@
           } else {
             document.documentElement.dataset.huyTheme = "default";
           }
-          
+
           var snow = localStorage.getItem(SNOW) || "light";
           if (snow !== "off" && snow !== "light" && snow !== "normal") snow = "light";
           document.documentElement.dataset.snowIntensity = snow;
-          
+
           var meta = document.querySelector('meta[name="theme-color"]');
           if (meta) {
             if (theme === "pinksnow") meta.setAttribute("content", "#ff5fa8");

@@ -1,5 +1,5 @@
 import momentDraftDB from "@/cache/momentDraftDB";
-import { updateDraftMeta } from "@/utils/momentDraft";
+import { SYNC_STATUS, updateDraftMeta } from "@/utils/momentDraft";
 
 const MAX_VERSION_SNAPSHOTS = 12;
 
@@ -145,9 +145,13 @@ export async function listAllDraftRows(ownerUid) {
       .where("ownerUid")
       .equals(String(ownerUid))
       .toArray();
-    return rows.sort(
-      (a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0),
-    );
+    return rows
+      .filter((row) => row?.syncStatus !== SYNC_STATUS.PENDING_DELETE)
+      .sort(
+        (a, b) =>
+          (b.updatedAt || b.createdAt || 0) -
+          (a.updatedAt || a.createdAt || 0),
+      );
   } catch {
     return [];
   }

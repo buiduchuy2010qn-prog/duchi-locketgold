@@ -41,12 +41,11 @@ self.addEventListener("message", (event) => {
 });
 
 self.addEventListener("install", (event) => {
-  // Always skipWaiting so updates apply immediately without client prompt
-  self.skipWaiting();
-  
-  // Do NOT warm shell here — precache may still be empty (parallel install handlers).
-  // warmShellCache runs on activate after precache is ready.
-  event.waitUntil(Promise.resolve());
+  // First install can activate immediately. Updates stay waiting until the UI
+  // sends SKIP_WAITING, so an edit/upload is never interrupted mid-session.
+  event.waitUntil(
+    self.registration.active ? Promise.resolve() : self.skipWaiting(),
+  );
 });
 
 async function resolveShellResponse() {
@@ -374,7 +373,8 @@ registerRoute(
 // ======================
 const navigationNetworkFirst = new NetworkFirst({
   cacheName: PAGES_CACHE,
-  networkTimeoutSeconds: 2,
+  // Slow mobile connections still get a fair chance to receive the newest HTML.
+  networkTimeoutSeconds: 4,
   plugins: [new CacheableResponsePlugin({ statuses: [200] })],
 });
 

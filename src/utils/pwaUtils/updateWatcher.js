@@ -20,6 +20,7 @@ const POLL_MS = 5 * 60 * 1000;
 const AWAY_AUTO_UPDATE_MS = 30 * 60 * 1000;
 const RELOAD_GUARD_MS = 60 * 1000;
 const CONTROLLER_TIMEOUT_MS = 8 * 1000;
+const VERSION_FETCH_TIMEOUT_MS = 8 * 1000;
 const EVENT_NAME = "app:update_state";
 const UPDATE_LOCK_NAME = "huy-locket-app-update";
 const TAB_ID =
@@ -186,24 +187,35 @@ export function getCurrentBuildMeta() {
 
 export async function fetchLatestVersion() {
   const url = `/version.json?t=${Date.now()}`;
-  const res = await fetch(url, {
-    method: "GET",
-    cache: "no-store",
-    headers: {
-      "Cache-Control": "no-cache, no-store, must-revalidate",
-      Pragma: "no-cache",
-    },
-    credentials: "same-origin",
-  });
-  if (!res.ok) throw new Error(`version.json ${res.status}`);
-  const data = await res.json();
-  if (!data?.buildId) throw new Error("version.json missing buildId");
-  return {
-    version: String(data.version || ""),
-    buildId: String(data.buildId),
-    commitHash: String(data.commitHash || ""),
-    deployedAt: String(data.deployedAt || ""),
-  };
+  const controller = new AbortController();
+  const timeout = setTimeout(
+    () => controller.abort("version-check-timeout"),
+    VERSION_FETCH_TIMEOUT_MS,
+  );
+
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      cache: "no-store",
+      headers: {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        Pragma: "no-cache",
+      },
+      credentials: "same-origin",
+      signal: controller.signal,
+    });
+    if (!res.ok) throw new Error(`version.json ${res.status}`);
+    const data = await res.json();
+    if (!data?.buildId) throw new Error("version.json missing buildId");
+    return {
+      version: String(data.version || ""),
+      buildId: String(data.buildId),
+      commitHash: String(data.commitHash || ""),
+      deployedAt: String(data.deployedAt || ""),
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export function getAppUpdateState() {

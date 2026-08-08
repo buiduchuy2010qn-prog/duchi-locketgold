@@ -1,10 +1,21 @@
-import React, { useState } from "react";
-import AdminOpsDashboard from "@/features/AdminOps/AdminOpsDashboard";
-import AdminFeatureUsage from "@/features/AdminOps/AdminFeatureUsage";
-import AccountHealth from "@/features/SlotMonitor/AccountHealth";
-import AdminCelebCenter from "@/features/SlotMonitor/AdminCelebCenter";
-import SystemStatus from "@/features/SlotMonitor/SystemStatus";
-import LegacyAdminSystemHealth from "./Legacy";
+import React, { lazy, Suspense, useState } from "react";
+
+const AdminOpsDashboard = lazy(
+  () => import("@/features/AdminOps/AdminOpsDashboard"),
+);
+const AdminFeatureUsage = lazy(
+  () => import("@/features/AdminOps/AdminFeatureUsage"),
+);
+const AccountHealth = lazy(
+  () => import("@/features/SlotMonitor/AccountHealth"),
+);
+const AdminCelebCenter = lazy(
+  () => import("@/features/SlotMonitor/AdminCelebCenter"),
+);
+const SystemStatus = lazy(
+  () => import("@/features/SlotMonitor/SystemStatus"),
+);
+const LegacyAdminSystemHealth = lazy(() => import("./Legacy"));
 
 export default function AdminSystemHealth({
   showCelebCenter = true,
@@ -81,12 +92,20 @@ export default function AdminSystemHealth({
       </div>
 
       <div className="w-full">
-        {activeTab === "overview" && <AdminOpsDashboard />}
-        {activeTab === "celeb" && showCelebCenter && <AdminCelebCenter />}
-        {activeTab === "usage" && <AdminFeatureUsage />}
-        {activeTab === "account" && showAccountHealth && <AccountHealth />}
-        {activeTab === "system" && showSystemStatus && <SystemStatus />}
-        {activeTab === "legacy" && <LegacyAdminSystemHealth />}
+        <Suspense
+          fallback={
+            <div className="flex min-h-48 items-center justify-center">
+              <span className="loading loading-spinner loading-md" aria-label="Đang tải" />
+            </div>
+          }
+        >
+          {activeTab === "overview" && <AdminOpsDashboard />}
+          {activeTab === "celeb" && showCelebCenter && <AdminCelebCenter />}
+          {activeTab === "usage" && <AdminFeatureUsage />}
+          {activeTab === "account" && showAccountHealth && <AccountHealth />}
+          {activeTab === "system" && showSystemStatus && <SystemStatus />}
+          {activeTab === "legacy" && <LegacyAdminSystemHealth />}
+        </Suspense>
       </div>
     </div>
   );

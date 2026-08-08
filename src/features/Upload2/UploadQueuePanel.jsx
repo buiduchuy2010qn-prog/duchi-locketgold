@@ -13,9 +13,9 @@ import {
 import { toast } from "sonner";
 import {
   STATUS_UPLOAD_MOMENT,
-  useMomentDraftStore,
   useUploadQueueStore,
-} from "@/stores";
+} from "@/stores/PostStores/useUploadPostStore";
+import { useMomentDraftStore } from "@/stores/PostStores/useMomentDraftStore";
 import { createDraft, resolveDraftUid } from "@/utils/momentDraft";
 
 function humanBytes(value) {
@@ -185,15 +185,15 @@ export default function UploadQueuePanel({ onOpenDrafts }) {
             <div>
               <h2 className="flex items-center gap-2 text-2xl font-bold"><UploadCloud className="h-6 w-6" /> Upload 2.0</h2>
               <p className="mt-1 text-sm text-base-content/60">
-                Hàng đợi nhiều file, tự resume/retry, tối ưu ảnh lớn và hiển thị tiến độ truyền thật từ trình duyệt tới API.
+                Hàng đợi nhiều file, tiếp tục an toàn khi có mạng, giữ bài lỗi để thử lại và hiển thị tiến độ truyền thật tới API.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <input ref={inputRef} type="file" multiple accept="image/*,video/*" className="hidden" onChange={handleMultiFiles} />
-              <button className="btn btn-sm btn-primary" disabled={preparing} onClick={() => inputRef.current?.click()}>
+              <button type="button" className="btn btn-sm btn-primary" disabled={preparing} onClick={() => inputRef.current?.click()}>
                 <Files className="h-4 w-4" /> Thêm nhiều file
               </button>
-              <button className="btn btn-sm btn-outline" disabled={isQueueRunning} onClick={() => resumeQueue()}>
+              <button type="button" className="btn btn-sm btn-outline" disabled={isQueueRunning || !online} onClick={() => resumeQueue()}>
                 <Play className="h-4 w-4" /> Chạy/Resume
               </button>
             </div>
@@ -201,7 +201,7 @@ export default function UploadQueuePanel({ onOpenDrafts }) {
 
           {!online && (
             <div className="alert alert-warning mt-4 py-2 text-sm">
-              <WifiOff className="h-4 w-4" /> Mất mạng — hàng đợi được giữ lại và sẽ resume khi online.
+              <WifiOff className="h-4 w-4" /> Mất mạng — hàng đợi được giữ lại và sẽ tiếp tục an toàn khi online.
             </div>
           )}
           {preparing && (
@@ -223,7 +223,7 @@ export default function UploadQueuePanel({ onOpenDrafts }) {
             <div className="rounded-2xl border border-dashed border-base-300 py-14 text-center">
               <ImageDown className="mx-auto h-8 w-8 text-base-content/35" />
               <p className="mt-2 text-sm text-base-content/55">Hàng đợi đang trống.</p>
-              <button className="btn btn-sm btn-ghost mt-2" onClick={onOpenDrafts}>Mở Bản nháp 2.0</button>
+              <button type="button" className="btn btn-sm btn-ghost mt-2" onClick={onOpenDrafts}>Mở Bản nháp 2.0</button>
             </div>
           ) : (
             <div className="space-y-3">
@@ -244,10 +244,10 @@ export default function UploadQueuePanel({ onOpenDrafts }) {
                       </div>
                       <div className="flex gap-1">
                         {item.status === STATUS_UPLOAD_MOMENT.FAILED && (
-                          <button className="btn btn-xs btn-outline" onClick={() => retryUploadItem(item.id)}><RotateCcw size={12} /> Thử lại</button>
+                          <button type="button" className="btn btn-xs btn-outline" disabled={!online} onClick={() => retryUploadItem(item.id)}><RotateCcw size={12} /> Thử lại</button>
                         )}
                         {item.status !== STATUS_UPLOAD_MOMENT.UPLOADING && (
-                          <button className="btn btn-xs btn-ghost text-error" onClick={() => removeUploadItemById(item.id)}><Trash2 size={12} /></button>
+                          <button type="button" aria-label="Xóa khỏi hàng đợi" className="btn btn-xs btn-ghost text-error" onClick={() => removeUploadItemById(item.id)}><Trash2 size={12} /></button>
                         )}
                       </div>
                     </div>
