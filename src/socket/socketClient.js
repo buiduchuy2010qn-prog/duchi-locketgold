@@ -22,7 +22,13 @@ export const updateSocketAuthToken = (socket, token = getLatestStoredToken()) =>
 
 export const createSocket = (
   idToken,
-  { onConnect, onDisconnect, onError, onReconnectAttempt } = {},
+  {
+    onConnect,
+    onDisconnect,
+    onError,
+    onReconnectAttempt,
+    autoStart = true,
+  } = {},
 ) => {
   if (!idToken) return null;
 
@@ -71,6 +77,6 @@ export const createSocket = (
     onError?.(err, socketClient);
   });
 
-  socketClient.connect();
+  if (autoStart) socketClient.connect();
   return socketClient;
 };
