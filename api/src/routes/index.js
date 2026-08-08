@@ -13,6 +13,7 @@ const { draftRoutes } = require("../modules/drafts");
 const { slotMonitorRoutes } = require("../modules/slotMonitor");
 const slotMonitorAdminRoutes = require("../modules/slotMonitor/adminRoutes");
 const adminOpsDashboardRoutes = require("../modules/adminOps/dashboardRoutes");
+const { requestTelemetryMiddleware } = require("../services/requestTelemetry");
 const { healthController } = require("../controllers");
 const adminRoutes = require("./adminRoutes");
 const celebrityRoutes = require("./celebrityRoutes");
@@ -24,6 +25,9 @@ const {
 } = require("../middlewares/securityRateLimiter");
 
 module.exports = (app) => {
+  // In-memory counters only: method/path/status/duration. Never records body, token or secret.
+  app.use(requestTelemetryMiddleware);
+
   app.get("/", (_req, res) => {
     res.json({
       status: "success",
