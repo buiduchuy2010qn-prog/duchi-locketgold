@@ -7,35 +7,20 @@
 html.theme-ios {
   --ios-accent: var(--color-primary);
   --ios-text: var(--color-base-content);
-  --ios-surface: color-mix(in srgb, var(--color-base-100) 72%, transparent);
+  --ios-surface: color-mix(in srgb, var(--color-base-100) 74%, transparent);
   --ios-surface-strong: color-mix(in srgb, var(--color-base-100) 88%, transparent);
   --ios-border: color-mix(in srgb, var(--color-base-content) 12%, transparent);
-  --ios-highlight: color-mix(in srgb, #fff 38%, transparent);
   --ios-shadow-color: color-mix(in srgb, var(--color-base-content) 14%, transparent);
-  --ios-shadow: 0 18px 48px var(--ios-shadow-color);
-  --ios-shadow-soft: 0 8px 28px color-mix(in srgb, var(--color-base-content) 10%, transparent);
-  --ios-radius-lg: 30px;
-  --ios-radius-xl: 42px;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, system-ui, sans-serif;
+  --ios-shadow: 0 16px 42px var(--ios-shadow-color);
 }
 
 html.theme-ios[data-color-mode="dark"] {
-  --ios-surface: color-mix(in srgb, var(--color-base-100) 60%, transparent);
-  --ios-surface-strong: color-mix(in srgb, var(--color-base-100) 76%, transparent);
-  --ios-border: color-mix(in srgb, var(--color-base-content) 17%, transparent);
-  --ios-highlight: color-mix(in srgb, #fff 12%, transparent);
-  --ios-shadow-color: color-mix(in srgb, #000 36%, transparent);
+  --ios-surface: color-mix(in srgb, var(--color-base-100) 62%, transparent);
+  --ios-surface-strong: color-mix(in srgb, var(--color-base-100) 78%, transparent);
+  --ios-border: color-mix(in srgb, var(--color-base-content) 16%, transparent);
+  --ios-shadow-color: color-mix(in srgb, #000 34%, transparent);
 }
 
-html.theme-ios body,
-html.theme-ios button,
-html.theme-ios input,
-html.theme-ios textarea,
-html.theme-ios select {
-  font-family: inherit;
-}
-
-/* Apple-like glass chrome while preserving the selected color theme. */
 html.theme-ios :where(
   .cameraControlPill,
   .cameraBottomNav,
@@ -47,48 +32,21 @@ html.theme-ios :where(
   #hamburger-menu-trigger
 ) {
   background: var(--ios-surface) !important;
-  border: 1px solid var(--ios-border) !important;
-  box-shadow: var(--ios-shadow-soft);
-  backdrop-filter: blur(28px) saturate(175%);
-  -webkit-backdrop-filter: blur(28px) saturate(175%);
-}
-
-html.theme-ios [data-friends-pill="true"],
-html.theme-ios [data-header-profile="true"],
-html.theme-ios [data-header-chat="true"],
-html.theme-ios #hamburger-menu-trigger,
-html.theme-ios .cameraControlPill,
-html.theme-ios [data-mobile-activity-pill="true"] {
-  isolation: isolate;
-  overflow: hidden;
-}
-
-html.theme-ios [data-friends-pill="true"]::after,
-html.theme-ios [data-header-chat="true"]::after,
-html.theme-ios #hamburger-menu-trigger::after,
-html.theme-ios .cameraControlPill::after,
-html.theme-ios [data-mobile-activity-pill="true"]::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  border-radius: inherit;
-  background: linear-gradient(180deg, var(--ios-highlight), transparent 42%);
-  opacity: 0.55;
-  z-index: -1;
+  border-color: var(--ios-border) !important;
+  box-shadow: var(--ios-shadow);
+  backdrop-filter: blur(24px) saturate(165%);
+  -webkit-backdrop-filter: blur(24px) saturate(165%);
 }
 
 html.theme-ios .cameraControlPill {
-  border-radius: 999px !important;
   border: 1px solid var(--ios-border) !important;
-  box-shadow: var(--ios-shadow) !important;
 }
 
 html.theme-ios .cameraControlPill::before {
   background: linear-gradient(
     110deg,
-    color-mix(in srgb, var(--color-base-content) 11%, transparent),
-    transparent 36%,
+    color-mix(in srgb, var(--color-base-content) 12%, transparent),
+    transparent 38%,
     transparent 68%,
     color-mix(in srgb, var(--ios-accent) 14%, transparent)
   ) !important;
@@ -96,11 +54,6 @@ html.theme-ios .cameraControlPill::before {
 
 html.theme-ios :where(.pillSideBtn, .cameraSideBtn) {
   color: var(--ios-text) !important;
-  border-radius: 999px !important;
-}
-
-html.theme-ios :where(.pillSideBtn, .cameraSideBtn):hover:not(:disabled) {
-  background: color-mix(in srgb, var(--color-base-content) 7%, transparent) !important;
 }
 
 html.theme-ios :where(.pillSideBtn, .cameraSideBtn):active:not(:disabled) {
@@ -109,314 +62,38 @@ html.theme-ios :where(.pillSideBtn, .cameraSideBtn):active:not(:disabled) {
 
 html.theme-ios #camera-shutter-button > div:first-child {
   border-color: var(--ios-accent) !important;
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--ios-accent) 42%, transparent),
-    0 8px 22px color-mix(in srgb, var(--ios-accent) 18%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ios-accent) 45%, transparent);
 }
 
-/* System-like controls and surfaces across the rest of the app. */
 html.theme-ios :where(
   button,
   [role="button"],
   .btn,
   .card,
   .modal-box,
-  .dropdown-content,
-  .input,
-  .select,
-  .textarea
+  .dropdown-content
 ) {
   -webkit-tap-highlight-color: transparent;
 }
 
 html.theme-ios :where(.card, .modal-box, .dropdown-content) {
-  border-radius: var(--ios-radius-lg) !important;
-}
-
-html.theme-ios :where(.modal-box, .dropdown-content, .card.bg-base-100, .card.bg-base-200) {
-  border: 1px solid var(--ios-border);
-  box-shadow: var(--ios-shadow-soft);
-}
-
-html.theme-ios :where(.modal-box, .dropdown-content) {
-  background: var(--ios-surface-strong) !important;
-  backdrop-filter: blur(32px) saturate(170%);
-  -webkit-backdrop-filter: blur(32px) saturate(170%);
-}
-
-html.theme-ios :where(.btn:not(.btn-circle), .input, .select, .textarea) {
-  border-radius: 16px !important;
-}
-
-html.theme-ios :where(.btn-circle, .avatar > div, .badge) {
-  border-radius: 999px !important;
-}
-
-html.theme-ios :where(.drawer-side, aside, nav) :where(.menu, .bg-base-100, .bg-base-200) {
-  border-radius: 24px;
+  border-radius: clamp(18px, 2vw, 28px);
 }
 
 html.theme-ios ::selection {
   background: color-mix(in srgb, var(--ios-accent) 38%, transparent);
 }
 
-html.theme-ios * {
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--color-base-content) 24%, transparent) transparent;
-}
-
-html.theme-ios *::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-html.theme-ios *::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--color-base-content) 22%, transparent);
-  border-radius: 999px;
-}
-
-html.theme-ios *::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-/*
- * Tablet + desktop iOS composition.
- * Keep the page genuinely wide; only the controls/camera are composed like the iPhone app.
- */
-@media (min-width: 768px) {
-  html.theme-ios [data-locket-home="true"] {
-    overflow: hidden;
-  }
-
-  html.theme-ios [data-locket-header="true"] {
-    top: 0 !important;
-    height: 88px;
-    padding: 16px 28px 0 !important;
-    pointer-events: none;
-  }
-
-  html.theme-ios [data-locket-header="true"] button,
-  html.theme-ios [data-locket-header="true"] [role="button"] {
-    pointer-events: auto;
-  }
-
-  /* iPhone-like composition: navigation cluster left, audience center, avatar right. */
-  html.theme-ios [data-header-left="true"] {
-    position: absolute;
-    right: 28px;
-    top: 16px;
-  }
-
-  html.theme-ios [data-header-update="true"] {
-    display: none !important;
-  }
-
-  html.theme-ios [data-header-right="true"] {
-    position: absolute;
-    left: 28px;
-    top: 16px;
-    gap: 10px !important;
-  }
-
-  html.theme-ios [data-header-profile="true"],
-  html.theme-ios [data-header-chat="true"],
-  html.theme-ios #hamburger-menu-trigger {
-    width: 58px !important;
-    height: 58px !important;
-    min-width: 58px;
-    min-height: 58px;
-    border-radius: 999px !important;
-  }
-
-  html.theme-ios [data-header-profile="true"] > div:first-child {
-    width: 58px !important;
-    height: 58px !important;
-    border-radius: 999px !important;
-  }
-
-  html.theme-ios [data-header-profile="true"] img {
-    width: 49px !important;
-    height: 49px !important;
-  }
-
-  html.theme-ios [data-friends-pill="true"] {
-    top: 16px !important;
-    min-height: 58px;
-    min-width: 154px;
-    padding: 0 24px !important;
-    border-radius: 999px !important;
-    font-size: 1.18rem !important;
-    font-weight: 760 !important;
-    letter-spacing: -0.025em;
-  }
-
-  html.theme-ios [data-capture-stack="true"] {
-    justify-content: center !important;
-    gap: 14px;
-    padding-top: 96px;
-    padding-bottom: 22px;
-  }
-
-  html.theme-ios [data-capture-spacer="true"] {
-    display: none !important;
-  }
-
-  html.theme-ios [data-media-preview-shell="true"] {
-    order: 1;
-    width: min(56vw, 680px, calc(100dvh - 310px)) !important;
-    max-width: none !important;
-    padding-inline: 0 !important;
-    flex: 0 0 auto;
-  }
-
-  html.theme-ios [data-media-preview-shell="true"] > div {
-    width: 100% !important;
-    max-width: none !important;
-    border-radius: clamp(38px, 4vw, 54px) !important;
-    box-shadow:
-      0 28px 70px color-mix(in srgb, var(--color-base-content) 18%, transparent),
-      0 1px 0 color-mix(in srgb, #fff 20%, transparent) inset;
-    overflow: hidden;
-  }
-
-  html.theme-ios [data-history-region="true"] {
-    order: 2;
-    width: auto;
-    min-height: 58px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 auto;
-  }
-
-  html.theme-ios [data-mobile-activity-pill="true"] {
-    display: flex !important;
-    position: relative;
-    align-items: center;
-    justify-content: center;
-    min-height: 54px;
-    padding: 0 24px !important;
-    border-radius: 999px !important;
-    background: var(--ios-surface) !important;
-    border: 1px solid var(--ios-border) !important;
-    box-shadow: var(--ios-shadow-soft);
-    backdrop-filter: blur(28px) saturate(175%);
-    -webkit-backdrop-filter: blur(28px) saturate(175%);
-    font-size: 1.05rem !important;
-    font-weight: 730 !important;
-    letter-spacing: -0.02em;
-  }
-
-  html.theme-ios [data-desktop-history-button="true"] {
-    display: none !important;
-  }
-
-  html.theme-ios [data-action-controls="true"] {
-    order: 3;
-    flex: 0 0 auto;
-    margin-top: 0 !important;
-    padding-bottom: 0 !important;
-  }
-
-  html.theme-ios .cameraControlPill {
-    width: min(52vw, 560px) !important;
-    height: 92px !important;
-    padding-inline: 12px !important;
-    margin-bottom: 0 !important;
-  }
-
-  html.theme-ios .actionBarColCenter {
-    width: 84px !important;
-    min-width: 84px !important;
-  }
-
-  html.theme-ios #camera-shutter-button {
-    width: 82px !important;
-    height: 82px !important;
-  }
-
-  html.theme-ios #camera-shutter-button > div:first-child {
-    width: 74px !important;
-    height: 74px !important;
-    border-width: 5px !important;
-  }
-
-  html.theme-ios #camera-shutter-button > div:last-child {
-    width: 59px !important;
-    height: 59px !important;
-  }
-
-  html.theme-ios .pillSideBtn {
-    width: 56px !important;
-    height: 56px !important;
-    min-width: 56px !important;
-    min-height: 56px !important;
-  }
-}
-
-@media (min-width: 1200px) {
-  html.theme-ios [data-locket-header="true"] {
-    padding-inline: 42px !important;
-  }
-
-  html.theme-ios [data-header-left="true"] {
-    right: 42px;
-  }
-
-  html.theme-ios [data-header-right="true"] {
-    left: 42px;
-  }
-
-  html.theme-ios [data-media-preview-shell="true"] {
-    width: min(48vw, 720px, calc(100dvh - 310px)) !important;
-  }
-}
-
-@media (min-width: 768px) and (max-height: 760px) {
-  html.theme-ios [data-locket-header="true"] {
-    height: 76px;
-    padding-top: 10px !important;
-  }
-
-  html.theme-ios [data-header-left="true"],
-  html.theme-ios [data-header-right="true"],
-  html.theme-ios [data-friends-pill="true"] {
-    top: 10px !important;
-  }
-
-  html.theme-ios [data-capture-stack="true"] {
-    padding-top: 78px;
-    gap: 9px;
-  }
-
-  html.theme-ios [data-media-preview-shell="true"] {
-    width: min(50vw, 560px, calc(100dvh - 278px)) !important;
-  }
-
-  html.theme-ios [data-mobile-activity-pill="true"] {
-    min-height: 46px;
-  }
-
-  html.theme-ios .cameraControlPill {
-    height: 80px !important;
-  }
-}
-
 @media (prefers-reduced-motion: no-preference) {
   html.theme-ios :where(button, [role="button"], .btn) {
     transition:
-      transform 160ms cubic-bezier(0.22, 1, 0.36, 1),
+      transform 140ms cubic-bezier(0.22, 1, 0.36, 1),
       background-color 180ms ease,
       border-color 180ms ease,
-      box-shadow 180ms ease,
       opacity 180ms ease;
   }
 
-  html.theme-ios :where(button, [role="button"], .btn):hover {
-    transform: translateY(-1px);
-  }
-
   html.theme-ios :where(button, [role="button"], .btn):active {
-    transform: scale(0.965);
+    transform: scale(0.96);
   }
 }
