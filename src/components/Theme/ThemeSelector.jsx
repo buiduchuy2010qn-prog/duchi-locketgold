@@ -1,13 +1,44 @@
+import { useState } from "react";
 import { CONFIG } from "@/config";
 import { useTheme } from "@/hooks/useTheme";
-import { getThemeLabel, hasSnowEffect } from "@/utils/theme/themeUtils";
+import {
+  getIosAccent,
+  getThemeLabel,
+  hasSnowEffect,
+  IOS_THEME,
+  isIosTheme,
+  setIosAccent,
+} from "@/utils/theme/themeUtils";
+
+const IOS_PRESETS = [
+  "#f5b700",
+  "#0a84ff",
+  "#ff2d55",
+  "#af52de",
+  "#34c759",
+  "#ff9500",
+  "#64d2ff",
+  "#ffffff",
+];
 
 const ThemeSelector = () => {
-  const { 
-    theme, changeTheme,
-    colorMode, changeColorMode,
-    perfMode, changePerfMode
+  const {
+    theme,
+    changeTheme,
+    colorMode,
+    changeColorMode,
+    perfMode,
+    changePerfMode,
   } = useTheme();
+  const [iosAccent, setIosAccentState] = useState(() => getIosAccent());
+  const themeOptions = CONFIG.ui.themes.includes(IOS_THEME)
+    ? CONFIG.ui.themes
+    : [IOS_THEME, ...CONFIG.ui.themes];
+
+  const changeIosAccent = (value) => {
+    const next = setIosAccent(value);
+    setIosAccentState(next);
+  };
 
   return (
     <div className="w-full flex justify-center">
@@ -22,14 +53,14 @@ const ThemeSelector = () => {
           </legend>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[400px] overflow-y-auto px-4 py-3">
-            {CONFIG.ui.themes.map((t) => {
+            {themeOptions.map((t) => {
               const label = getThemeLabel(t);
               const snow = hasSnowEffect(t);
               return (
                 <label
                   key={t}
                   className={`flex flex-col items-center gap-2 p-2 rounded-lg shadow-sm transition-all duration-300
-                  bg-base-100 hover:bg-base-300 
+                  bg-base-100 hover:bg-base-300
                   ${
                     theme === t
                       ? "outline-3 scale-80 outline-dotted outline-primary opacity-70"
@@ -46,25 +77,24 @@ const ThemeSelector = () => {
                       </div>
                       <div className="flex flex-wrap gap-1">
                         <div className="bg-primary flex aspect-square w-3 items-center justify-center rounded">
-                          <div className="text-primary-content text-xs font-bold">
-                            A
-                          </div>
+                          <div className="text-primary-content text-xs font-bold">A</div>
                         </div>
                         <div className="bg-secondary flex aspect-square w-3 items-center justify-center rounded">
-                          <div className="text-secondary-content text-xs font-bold">
-                            A
-                          </div>
+                          <div className="text-secondary-content text-xs font-bold">A</div>
                         </div>
                         <div className="bg-accent flex aspect-square w-3 items-center justify-center rounded">
-                          <div className="text-accent-content text-xs font-bold">
-                            A
-                          </div>
+                          <div className="text-accent-content text-xs font-bold">A</div>
                         </div>
                       </div>
                     </div>
                     {snow && (
                       <span className="absolute top-0.5 right-0.5 text-[10px] leading-none">
                         ❄
+                      </span>
+                    )}
+                    {isIosTheme(t) && (
+                      <span className="absolute top-0.5 right-0.5 text-[9px] font-black leading-none">
+                        iOS
                       </span>
                     )}
                   </div>
@@ -85,7 +115,55 @@ const ThemeSelector = () => {
           </div>
         </fieldset>
 
-        {/* Chế độ màu (Color Mode) */}
+        {isIosTheme(theme) && (
+          <fieldset className="border rounded-2xl shadow-md w-full py-3 mt-4">
+            <legend className="font-semibold text-base-content text-lg text-left ml-5">
+              Màu theme iOS
+            </legend>
+            <div className="px-4 py-2 space-y-3">
+              <p className="text-xs text-base-content/60">
+                Đổi màu viền, nút, pill và ánh sáng của giao diện iOS. Thay đổi áp dụng ngay.
+              </p>
+              <div className="flex items-center gap-3 flex-wrap">
+                <label className="flex items-center gap-2 rounded-full bg-base-200 px-3 py-2 border border-base-300">
+                  <input
+                    type="color"
+                    value={iosAccent}
+                    onChange={(e) => changeIosAccent(e.target.value)}
+                    className="w-8 h-8 rounded-full overflow-hidden cursor-pointer border-0 bg-transparent p-0"
+                    aria-label="Chọn màu theme iOS"
+                  />
+                  <span className="font-mono text-sm uppercase">{iosAccent}</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => changeIosAccent("#f5b700")}
+                  className="btn btn-sm rounded-full"
+                >
+                  Màu Locket
+                </button>
+              </div>
+              <div className="flex gap-2 flex-wrap" aria-label="Màu iOS gợi ý">
+                {IOS_PRESETS.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    aria-label={`Chọn màu ${color}`}
+                    title={color}
+                    onClick={() => changeIosAccent(color)}
+                    className={`w-9 h-9 rounded-full border-2 transition-transform active:scale-90 ${
+                      iosAccent === color.toLowerCase()
+                        ? "border-base-content scale-110"
+                        : "border-base-300"
+                    }`}
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
+              </div>
+            </div>
+          </fieldset>
+        )}
+
         <fieldset className="border rounded-2xl shadow-md w-full py-3 mt-4">
           <legend className="font-semibold text-base-content text-lg text-left ml-5">
             🌗 Chế độ Màu:
@@ -112,7 +190,6 @@ const ThemeSelector = () => {
           </div>
         </fieldset>
 
-        {/* Chế độ Máy yếu (Performance Mode) */}
         <fieldset className="border rounded-2xl shadow-md w-full py-3 mt-4 mb-4 flex justify-between items-center px-5">
           <div>
             <p className="font-semibold text-base-content text-lg">
@@ -122,9 +199,9 @@ const ThemeSelector = () => {
               Tắt hiệu ứng nặng, giảm giật lag, tăng FPS
             </p>
           </div>
-          <input 
-            type="checkbox" 
-            className="toggle toggle-primary toggle-lg" 
+          <input
+            type="checkbox"
+            className="toggle toggle-primary toggle-lg"
             checked={perfMode === "lite"}
             onChange={(e) => changePerfMode(e.target.checked ? "lite" : "normal")}
           />

@@ -8,12 +8,14 @@ export const PINK_SAKURA_GLASS_THEME = "pink-sakura-glass";
 export const PINK_LITE_THEME = "pink-lite";
 export const PINK_SNOW_AI_THEME = "pink-snow-ai";
 export const OCEAN_BLUE_THEME = "ocean-blue";
+export const IOS_THEME = "ios";
 
 /** User-facing storage key values */
 export const HUY_THEME_KEY = "huy-locket-theme";
 export const HUY_SNOW_KEY = "huy-locket-snow-intensity";
 export const HUY_COLOR_MODE_KEY = "huy-locket-color-mode";
 export const HUY_PERF_MODE_KEY = "huy-locket-perf-mode";
+export const HUY_IOS_ACCENT_KEY = "huy-locket-ios-accent";
 
 export const HUY_THEME_DEFAULT = "default";
 export const HUY_THEME_PINK_SNOW = "pink-snow";
@@ -22,14 +24,17 @@ export const HUY_THEME_PINK_SAKURA = "pink-sakura-glass";
 export const HUY_THEME_PINK_LITE = "pink-lite";
 export const HUY_THEME_PINK_SNOW_AI = "pink-snow-ai";
 export const HUY_THEME_OCEAN_BLUE = "ocean-blue";
+export const HUY_THEME_IOS = "ios";
 
-/** Theme bật hiệu ứng tuyết rơi — Glass does NOT include snow */
+export const IOS_DEFAULT_ACCENT = "#f5b700";
+
+/** Theme bật hiệu ứng tuyết rơi — Glass/iOS do NOT include snow */
 export const SNOW_THEME_IDS = new Set([
   "pinksnow",
   "pink-snow",
   "valentine",
   "winter",
-  "pink-snow-ai"
+  "pink-snow-ai",
 ]);
 
 export const isPinkSnowTheme = (theme) =>
@@ -43,7 +48,7 @@ export const isGlassTheme = (theme) =>
 export const isPinkSakuraGlassTheme = (theme) =>
   theme === PINK_SAKURA_GLASS_THEME || theme === HUY_THEME_PINK_SAKURA;
 
-export const isPinkLiteTheme = (theme) => false; // Deprecated, mapped to pink-snow + lite
+export const isPinkLiteTheme = () => false; // Deprecated, mapped to pink-snow + lite
 
 export const isPinkSnowAiTheme = (theme) =>
   theme === PINK_SNOW_AI_THEME || theme === HUY_THEME_PINK_SNOW_AI;
@@ -51,7 +56,52 @@ export const isPinkSnowAiTheme = (theme) =>
 export const isOceanBlueTheme = (theme) =>
   theme === OCEAN_BLUE_THEME || theme === HUY_THEME_OCEAN_BLUE;
 
+export const isIosTheme = (theme) =>
+  theme === IOS_THEME || theme === HUY_THEME_IOS;
+
 export const hasSnowEffect = (theme) => SNOW_THEME_IDS.has(theme);
+
+function normalizeHexColor(value, fallback = IOS_DEFAULT_ACCENT) {
+  const raw = String(value || "").trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(raw)) return raw.toLowerCase();
+  if (/^#[0-9a-fA-F]{3}$/.test(raw)) {
+    return `#${raw
+      .slice(1)
+      .split("")
+      .map((c) => `${c}${c}`)
+      .join("")}`.toLowerCase();
+  }
+  return fallback;
+}
+
+export function getIosAccent() {
+  try {
+    return normalizeHexColor(localStorage.getItem(HUY_IOS_ACCENT_KEY));
+  } catch {
+    return IOS_DEFAULT_ACCENT;
+  }
+}
+
+export function setIosAccent(color) {
+  const next = normalizeHexColor(color);
+  try {
+    localStorage.setItem(HUY_IOS_ACCENT_KEY, next);
+  } catch {
+    /* ignore */
+  }
+  try {
+    document.documentElement.style.setProperty("--ios-user-accent", next);
+  } catch {
+    /* ignore */
+  }
+
+  const root = document.documentElement;
+  if (root?.classList?.contains("theme-ios")) {
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    metaTheme?.setAttribute("content", next);
+  }
+  return next;
+}
 
 /** Map any theme id → huy-locket-theme storage value */
 export function toHuyThemeKey(themeId) {
@@ -62,6 +112,7 @@ export function toHuyThemeKey(themeId) {
   if (isPinkSakuraGlassTheme(themeId)) return HUY_THEME_PINK_SAKURA;
   if (isPinkSnowAiTheme(themeId)) return HUY_THEME_PINK_SNOW_AI;
   if (isOceanBlueTheme(themeId)) return HUY_THEME_OCEAN_BLUE;
+  if (isIosTheme(themeId)) return HUY_THEME_IOS;
   return HUY_THEME_DEFAULT;
 }
 
@@ -106,7 +157,7 @@ export function getPerfMode() {
   try {
     const v = localStorage.getItem(HUY_PERF_MODE_KEY);
     if (v === "normal" || v === "lite") return v;
-    
+
     // Auto-migrate old pink-lite
     const oldTheme = localStorage.getItem(HUY_THEME_KEY);
     if (oldTheme === "pink-lite") {
@@ -143,6 +194,9 @@ export function resolveStoredTheme() {
     if (huy === HUY_THEME_OCEAN_BLUE || huy === "ocean-blue") {
       return OCEAN_BLUE_THEME;
     }
+    if (huy === HUY_THEME_IOS || huy === IOS_THEME) {
+      return IOS_THEME;
+    }
     if (huy === HUY_THEME_DEFAULT) {
       const legacy = localStorage.getItem("theme");
       if (
@@ -171,12 +225,13 @@ export function getThemeLabel(themeId) {
     return labels.pinksnow || "Hồng Tuyết";
   }
   if (isGlassTheme(themeId)) return labels.glass || "Glass";
+  if (isIosTheme(themeId)) return labels.ios || "iOS";
   return themeId;
 }
 
 /**
  * Apply theme to document before/after React paint.
- * Snow only when theme is in SNOW_THEME_IDS (not glass).
+ * Snow only when theme is in SNOW_THEME_IDS (not glass/iOS).
  */
 export const applyTheme = (theme, overrideColorMode, overridePerfMode) => {
   const t = theme || resolveStoredTheme() || PINK_SNOW_THEME;
@@ -190,27 +245,35 @@ export const applyTheme = (theme, overrideColorMode, overridePerfMode) => {
 
   root.setAttribute("data-theme", dataTheme);
   root.dataset.huyTheme = toHuyThemeKey(dataTheme);
-  
+
   // Resolve system color scheme if needed
   let activeColorMode = colorMode;
   if (colorMode === "system") {
-    activeColorMode = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    activeColorMode =
+      window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light";
   }
-  
+
   root.setAttribute("data-color-mode", activeColorMode);
   root.setAttribute("data-performance-mode", perfMode);
 
-  root.classList.toggle("theme-pink-snow", isPinkSnowTheme(dataTheme));
-  root.classList.toggle("theme-glass", isGlassTheme(dataTheme));
-  root.classList.toggle("theme-pink-sakura-glass", isPinkSakuraGlassTheme(dataTheme));
-  root.classList.toggle("theme-pink-snow-ai", isPinkSnowAiTheme(dataTheme));
-  root.classList.toggle("theme-ocean-blue", isOceanBlueTheme(dataTheme));
-  
-  document.body?.classList.toggle("theme-pink-snow", isPinkSnowTheme(dataTheme));
-  document.body?.classList.toggle("theme-glass", isGlassTheme(dataTheme));
-  document.body?.classList.toggle("theme-pink-sakura-glass", isPinkSakuraGlassTheme(dataTheme));
-  document.body?.classList.toggle("theme-pink-snow-ai", isPinkSnowAiTheme(dataTheme));
-  document.body?.classList.toggle("theme-ocean-blue", isOceanBlueTheme(dataTheme));
+  const classMap = {
+    "theme-pink-snow": isPinkSnowTheme(dataTheme),
+    "theme-glass": isGlassTheme(dataTheme),
+    "theme-pink-sakura-glass": isPinkSakuraGlassTheme(dataTheme),
+    "theme-pink-snow-ai": isPinkSnowAiTheme(dataTheme),
+    "theme-ocean-blue": isOceanBlueTheme(dataTheme),
+    "theme-ios": isIosTheme(dataTheme),
+  };
+
+  for (const [className, enabled] of Object.entries(classMap)) {
+    root.classList.toggle(className, enabled);
+    document.body?.classList.toggle(className, enabled);
+  }
+
+  // This custom variable is harmless for other themes and lets iOS color update live.
+  setIosAccent(getIosAccent());
 
   try {
     localStorage.setItem("theme", dataTheme);
@@ -234,7 +297,6 @@ export const applyTheme = (theme, overrideColorMode, overridePerfMode) => {
   }
 
   if (dataTheme === PINK_SNOW_THEME) {
-    // Pink Glassmorphism status bar
     baseColor = "#c2185b";
   } else if (dataTheme === "valentine") {
     baseColor = "#ff6b9d";
@@ -248,6 +310,8 @@ export const applyTheme = (theme, overrideColorMode, overridePerfMode) => {
     baseColor = "#ff3385";
   } else if (isOceanBlueTheme(dataTheme)) {
     baseColor = "#0284c7";
+  } else if (isIosTheme(dataTheme)) {
+    baseColor = getIosAccent();
   }
 
   let metaTheme = document.querySelector('meta[name="theme-color"]');

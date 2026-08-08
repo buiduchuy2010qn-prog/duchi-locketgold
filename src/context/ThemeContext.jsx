@@ -1,4 +1,5 @@
 import React, { createContext, useEffect, useState, useCallback } from "react";
+import "@/styles/iosTheme.css";
 import {
   applyTheme,
   resolveStoredTheme,
@@ -40,16 +41,16 @@ export const ThemeProvider = ({ children }) => {
 
   // Lắng nghe thay đổi theme hệ thống nếu đang ở chế độ 'system'
   useEffect(() => {
-    if (colorMode !== 'system') return;
-    
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    if (colorMode !== "system") return;
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const handleChange = () => {
       // Re-apply theme to trigger DOM attribute update
       applyTheme(theme, colorMode, perfMode);
     };
-    
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
+
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
   }, [colorMode, theme, perfMode]);
 
   useEffect(() => {
