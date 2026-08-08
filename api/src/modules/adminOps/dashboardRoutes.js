@@ -9,6 +9,7 @@ const {
   getUserRole,
   hasActivityDatabase,
 } = require("../../services/userActivityStore");
+const { getRequestTelemetry } = require("../../services/requestTelemetry");
 const slotStore = require("../slotMonitor/store");
 const eventStore = require("../slotMonitor/eventStore");
 const notificationHistoryStore = require("../slotMonitor/notificationHistoryStore");
@@ -165,6 +166,7 @@ router.get("/", async (_req, res) => {
     const sessions = sessionRows[0] || {};
     const events = eventRows[0] || {};
     const notifications = notificationRows[0] || {};
+    const traffic = getRequestTelemetry();
     const attempted = Math.max(
       0,
       number(notifications.success_24h) + number(notifications.failed_24h),
@@ -187,6 +189,11 @@ router.get("/", async (_req, res) => {
           node: process.version,
           environment: String(process.env.RAILWAY_ENVIRONMENT_NAME || process.env.NODE_ENV || ""),
           backendCommit: safeCommit(),
+        },
+        traffic: {
+          requestsPerMinute: number(traffic.requestsPerMinute),
+          errorsLastMinute: number(traffic.errorsLastMinute),
+          recentErrors: Array.isArray(traffic.recentErrors) ? traffic.recentErrors : [],
         },
         worker: {
           pollIntervalMs,
