@@ -3,5 +3,6 @@ export * from "./setPWAIcon";
 export * from "./updateFavicons";
 export * from "./registerSW";
 export * from "./updateWatcher";
+export * from "./installPrompt";
 
 export * from "./chunkRecovery";
