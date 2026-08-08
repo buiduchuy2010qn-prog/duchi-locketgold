@@ -3,6 +3,7 @@ import { BookUser } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAppNavigation } from "@/context/AppContext";
 import FriendsContainer from "@/features/FriendsContainer";
+import CelebCenterOverview from "@/features/SlotMonitor/CelebCenterOverview";
 import SlotWatchInline from "@/features/SlotMonitor/SlotWatchInline";
 import SlotNotificationSettings from "@/features/SlotMonitor/SlotNotificationSettings";
 
@@ -26,6 +27,7 @@ const FriendManager = () => {
   if (isSlotPage) {
     return (
       <div className="min-h-[80vh] bg-base-100">
+        <CelebCenterOverview />
         <SlotWatchInline />
         <div className="mx-auto w-full max-w-5xl px-4 pb-8">
           <SlotNotificationSettings />
