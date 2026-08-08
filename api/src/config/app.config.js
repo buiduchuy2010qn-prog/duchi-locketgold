@@ -62,14 +62,14 @@ const serverConfig = {
   limits: {
     maxUploadSize: Number(process.env.MAX_UPLOAD_SIZE) || 150, // MB
     maxVideoSizeMB: Number(process.env.MAX_VIDEO_SIZE_MB) || 5,
-    // Fix NaN khi MAX_VIDEO_SIZE_MB chưa set
     maxVideoSizeBytes:
       (Number(process.env.MAX_VIDEO_SIZE_MB) || 5) * 1024 * 1024,
-    maxSizeAllowedFree: Number(process.env.MAX_SIZE_ALLOWED_FREE) || 15,
-    maxImageSize: Number(process.env.MAX_IMAGE_SIZE) || 5, // MB
+    // Full-resolution camera JPEG/PNG source files can legitimately exceed
+    // the old 15 MB cap. Keep this under the 25 MB raw transport ceiling.
+    maxSizeAllowedFree: Number(process.env.MAX_SIZE_ALLOWED_FREE) || 24,
+    maxImageSize: Number(process.env.MAX_IMAGE_SIZE) || 24, // MB
   },
 
-  // ✅ Thêm cái này
   cache: {
     user: Number(process.env.CACHE_USER_TTL) || 300,
   },
