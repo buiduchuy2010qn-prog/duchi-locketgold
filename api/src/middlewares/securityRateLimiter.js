@@ -8,7 +8,7 @@
  *   - Refresh token: 30 / 15 phút theo từng refresh-token/session
  *   - Upload: 30 / 15 phút per user
  *   - Music search: 60 / phút per IP (gõ liên tục)
- *   - General API: 200 / 15 phút per IP
+ *   - General API: 200 / 15 phút theo phiên đăng nhập (fallback theo IP)
  *   - Admin: 60 / phút per IP
  *
  * Redis fallback: nếu Redis chết → dùng memory store, không crash server.
@@ -81,6 +81,31 @@ function createStoreConfig(prefix) {
  */
 function ipKeyGenerator(req) {
   return extractBestPublicIp(req) || req.ip || "unknown";
+}
+
+/**
+ * Các request từ bản Vercel `/dio-api` đi qua một cụm proxy chung. Nếu chỉ dùng
+ * IP thì request của nhiều người (và cả ảnh draft lỗi 401) sẽ cộng vào cùng một
+ * quota, làm API hợp lệ như Account Health/System Status bị trả 429.
+ *
+ * Khi có Bearer token, dùng fingerprint một chiều để tách quota theo phiên mà
+ * không lưu token thô. Request chưa đăng nhập vẫn được giới hạn theo IP.
+ */
+function generalApiKeyGenerator(req) {
+  const authorization = String(req.headers?.authorization || "").trim();
+  const match = authorization.match(/^Bearer\s+(.+)$/i);
+  const token = String(match?.[1] || "").trim();
+
+  if (token) {
+    const fingerprint = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex")
+      .slice(0, 32);
+    return `session:${fingerprint}`;
+  }
+
+  return `ip:${ipKeyGenerator(req)}`;
 }
 
 /**
@@ -230,14 +255,17 @@ const musicSearchLimit = rateLimit({
 
 /**
  * GENERAL API — Đọc/ghi thông thường
- * 200 / 15 phút per IP
+ * 200 / 15 phút theo phiên đăng nhập; request công khai fallback theo IP.
  */
 const generalApiLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 200,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: ipKeyGenerator,
+  keyGenerator: generalApiKeyGenerator,
+  // 401/404 từ tài nguyên nền không được phép làm cạn quota của request hợp lệ.
+  // Global DDoS shield phía ngoài vẫn đếm mọi request để giữ lớp chống flood.
+  skipFailedRequests: true,
   handler: (req, res) => {
     res.set("Retry-After", String(15 * 60));
     res.status(429).json(GENERIC_API_MESSAGE);
@@ -273,4 +301,5 @@ module.exports = {
   generalApiLimit,
   adminLimit,
   redisInitPromise,
+  generalApiKeyGenerator,
 };
