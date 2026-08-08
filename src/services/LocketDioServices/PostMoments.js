@@ -1,6 +1,20 @@
 import api from "@/libs/axios";
 import { reconcilePostedMedia } from "@/utils/upload/reconcilePostedMedia";
 
+function resolveClientUploadId(payload) {
+  const explicit = String(payload?.clientUploadId || "").trim();
+  if (explicit) return explicit;
+
+  // Old IndexedDB queue entries created before clientUploadId existed still have
+  // a stable Dexie id (or draft id). Reuse it so retries after this upgrade are
+  // also protected from duplicate posts.
+  if (payload?.id !== undefined && payload?.id !== null) {
+    return `legacy-${payload.id}`;
+  }
+  if (payload?.draftId) return `draft-${payload.draftId}`;
+  return "";
+}
+
 function emitUploadProgress(payload, progressEvent, phase = "uploading") {
   if (typeof window === "undefined") return;
   const loaded = Number(progressEvent?.loaded || 0);
@@ -11,7 +25,11 @@ function emitUploadProgress(payload, progressEvent, phase = "uploading") {
   window.dispatchEvent(
     new CustomEvent("huy-locket-upload-progress", {
       detail: {
-        id: payload?.id || payload?.clientUploadId || payload?.draftId || "",
+        id:
+          payload?.id ||
+          resolveClientUploadId(payload) ||
+          payload?.draftId ||
+          "",
         draftId: payload?.draftId || "",
         loaded,
         total,
@@ -33,7 +51,7 @@ function requestTimeout(payload) {
 }
 
 function uploadConfig(payload) {
-  const clientUploadId = String(payload?.clientUploadId || "").trim();
+  const clientUploadId = resolveClientUploadId(payload);
   return {
     timeout: requestTimeout(payload),
     // Gateway retries are only safe when the backend can deduplicate this key.
@@ -52,7 +70,11 @@ function emitServerProcessing(payload) {
   window.dispatchEvent(
     new CustomEvent("huy-locket-upload-progress", {
       detail: {
-        id: payload?.id || payload?.clientUploadId || payload?.draftId || "",
+        id:
+          payload?.id ||
+          resolveClientUploadId(payload) ||
+          payload?.draftId ||
+          "",
         draftId: payload?.draftId || "",
         progress: 100,
         phase: "processing",
