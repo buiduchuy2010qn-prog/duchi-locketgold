@@ -4,6 +4,9 @@ import { getFriendDetail } from "@/cache/friendsDB";
 import { normalizeFriendDataV2 } from "@/utils";
 import { getMemberInfo, putMemberInfo } from "@/cache/groupMembersDB";
 
+const getGroupUserId = (user) =>
+  typeof user === "string" ? user : user?.user_id || user?.uid || user?.id;
+
 export const useMembersGroupStore = create((set, get) => ({
   // userId -> userInfo
   membersMap: {},
@@ -51,8 +54,13 @@ export const useMembersGroupStore = create((set, get) => ({
 
       if (!groupId) return;
 
-      nextGroupMembers[groupId] =
-        group?.users?.map((u) => u?.user_id).filter(Boolean) || [];
+      // Payload đồng bộ một phần có thể không kèm `users`; không được xoá
+      // danh sách thành viên đã có trong store trong trường hợp đó.
+      if (!Array.isArray(group?.users)) return;
+
+      nextGroupMembers[groupId] = group.users
+        .map(getGroupUserId)
+        .filter(Boolean);
     });
 
     set({
@@ -66,7 +74,7 @@ export const useMembersGroupStore = create((set, get) => ({
       ...new Set(
         groups.flatMap((group) =>
           (group?.users || [])
-            .map((u) => u?.user_id)
+            .map(getGroupUserId)
             .filter((id) => id && id !== myId),
         ),
       ),
@@ -103,6 +111,9 @@ export const useMembersGroupStore = create((set, get) => ({
             if (apiUser) {
               const userData = normalizeFriendDataV2(apiUser);
               await putMemberInfo(userData);
+              // Trả profile vừa tải để upsertMembers cập nhật giao diện ngay.
+              // Trước đây luôn return null nên thành viên chỉ hiện sau lần tải lại.
+              return userData;
             }
 
             return null;
