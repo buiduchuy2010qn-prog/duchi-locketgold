@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import AdminOpsDashboard from "@/features/AdminOps/AdminOpsDashboard";
+import AdminFeatureUsage from "@/features/AdminOps/AdminFeatureUsage";
 import AccountHealth from "@/features/SlotMonitor/AccountHealth";
 import AdminCelebCenter from "@/features/SlotMonitor/AdminCelebCenter";
 import SystemStatus from "@/features/SlotMonitor/SystemStatus";
@@ -14,15 +15,19 @@ export default function AdminSystemHealth({
 
   return (
     <div className="w-full">
-      <div role="tablist" className="tabs tabs-boxed flex-wrap gap-1 bg-base-200/50 p-1 mb-4">
+      <div
+        role="tablist"
+        className="tabs tabs-boxed flex-wrap gap-1 bg-base-200/50 p-1 mb-4"
+      >
         <button
           type="button"
           role="tab"
           className={`tab font-medium ${activeTab === "overview" ? "tab-active !bg-primary !text-white" : ""}`}
           onClick={() => setActiveTab("overview")}
         >
-          Tổng quan vận hành
+          Tổng quan
         </button>
+
         {showCelebCenter && (
           <button
             type="button"
@@ -30,9 +35,19 @@ export default function AdminSystemHealth({
             className={`tab font-medium ${activeTab === "celeb" ? "tab-active !bg-primary !text-white" : ""}`}
             onClick={() => setActiveTab("celeb")}
           >
-            Celeb Center
+            Celeb & Canh Slot
           </button>
         )}
+
+        <button
+          type="button"
+          role="tab"
+          className={`tab font-medium ${activeTab === "usage" ? "tab-active !bg-primary !text-white" : ""}`}
+          onClick={() => setActiveTab("usage")}
+        >
+          Sử dụng tính năng
+        </button>
+
         {showAccountHealth && (
           <button
             type="button"
@@ -40,9 +55,10 @@ export default function AdminSystemHealth({
             className={`tab font-medium ${activeTab === "account" ? "tab-active !bg-primary !text-white" : ""}`}
             onClick={() => setActiveTab("account")}
           >
-            Account Health
+            Tài khoản & Kênh
           </button>
         )}
+
         {showSystemStatus && (
           <button
             type="button"
@@ -50,22 +66,24 @@ export default function AdminSystemHealth({
             className={`tab font-medium ${activeTab === "system" ? "tab-active !bg-primary !text-white" : ""}`}
             onClick={() => setActiveTab("system")}
           >
-            System Status
+            Hạ tầng hệ thống
           </button>
         )}
+
         <button
           type="button"
           role="tab"
           className={`tab font-medium ${activeTab === "legacy" ? "tab-active !bg-primary !text-white" : ""}`}
           onClick={() => setActiveTab("legacy")}
         >
-          Chẩn đoán thiết bị
+          API & Thiết bị
         </button>
       </div>
 
       <div className="w-full">
         {activeTab === "overview" && <AdminOpsDashboard />}
         {activeTab === "celeb" && showCelebCenter && <AdminCelebCenter />}
+        {activeTab === "usage" && <AdminFeatureUsage />}
         {activeTab === "account" && showAccountHealth && <AccountHealth />}
         {activeTab === "system" && showSystemStatus && <SystemStatus />}
         {activeTab === "legacy" && <LegacyAdminSystemHealth />}

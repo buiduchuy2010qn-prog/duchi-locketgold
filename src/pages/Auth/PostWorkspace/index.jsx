@@ -5,9 +5,9 @@ import Drafts2Panel from "@/features/Drafts2/Drafts2Panel";
 import UploadQueuePanel from "@/features/Upload2/UploadQueuePanel";
 
 const TABS = [
-  { id: "compose", label: "Đăng mới", icon: Send },
+  { id: "compose", label: "Đăng Moment", icon: Send },
   { id: "drafts", label: "Bản nháp", icon: FileClock },
-  { id: "queue", label: "Hàng đợi upload", icon: UploadCloud },
+  { id: "queue", label: "Upload & hàng đợi", icon: UploadCloud },
 ];
 
 export default function PostWorkspace() {
