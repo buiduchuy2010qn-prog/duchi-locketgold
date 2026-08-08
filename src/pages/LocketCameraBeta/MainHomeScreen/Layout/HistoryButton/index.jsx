@@ -9,16 +9,21 @@ const HistoryArrow = ({ setIsBottomOpen }) => {
   };
 
   return (
-    <>
-      <div className={`flex flex-col items-center select-none`}>
-        <button
-          className="flex flex-col items-center cursor-pointer transition-transform hover:scale-105 active:scale-95"
-          onClick={handleClick}
+    <div className="flex flex-col items-center select-none" data-history-button="true">
+      <button
+        className="flex flex-col items-center cursor-pointer transition-transform hover:scale-105 active:scale-95"
+        onClick={handleClick}
+      >
+        <span
+          data-mobile-activity-pill="true"
+          className="hidden items-center gap-2 rounded-full bg-base-300/70 px-5 py-3 text-lg font-semibold backdrop-blur-xl"
         >
+          <span aria-hidden="true">✦</span>
+          {t("home.activity", { defaultValue: "Hoạt động" })}
+        </span>
+
+        <span data-desktop-history-button="true" className="flex flex-col items-center">
           <div className="flex items-center justify-center space-x-2 mb-1">
-            {/* <div className="bg-accent text-base-content font-semibold px-[9px] py-0.5 rounded-lg shadow-md">
-          {recentPosts.length}
-        </div> */}
             <span className="text-xl font-semibold text-base-content">
               {t("home.history")}
             </span>
@@ -29,7 +34,6 @@ const HistoryArrow = ({ setIsBottomOpen }) => {
             viewBox="0 0 40 40"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            className=""
           >
             <path
               d="M4 8l17 7l17-7"
@@ -39,9 +43,9 @@ const HistoryArrow = ({ setIsBottomOpen }) => {
               strokeLinejoin="round"
             />
           </svg>
-        </button>
-      </div>
-    </>
+        </span>
+      </button>
+    </div>
   );
 };
 

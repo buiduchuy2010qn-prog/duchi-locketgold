@@ -92,7 +92,8 @@ const HeaderHome = ({
     <>
       {selectedFile && (
         <div
-          className={`fixed top-0 left-0 w-full px-2 pt-1 flex items-center justify-between z-50`}
+          data-locket-header="true"
+          className="fixed top-0 left-0 w-full px-2 pt-1 flex items-center justify-between z-50"
         >
           <div></div>
           <div className="absolute flex justify-center items-center flex-row gap-1 left-1/2 transform -translate-x-1/2 text-xl font-semibold text-base-content">
@@ -111,10 +112,11 @@ const HeaderHome = ({
       )}
       {!selectedFile && (
         <div
-          className={`fixed top-0 left-0 w-full px-2 pt-1 flex items-center justify-between z-50`}
+          data-locket-header="true"
+          className="fixed top-0 left-0 w-full px-2 pt-1 flex items-center justify-between z-50"
         >
           {/* Avatar hồ sơ + nút cập nhật tròn (luôn hiện — bấm hoặc vào lại web tự update) */}
-          <div className="flex items-center gap-2">
+          <div data-header-left="true" className="flex items-center gap-2">
             <button
               data-header-profile="true"
               onClick={() => setIsProfileOpen(true)}
@@ -138,7 +140,9 @@ const HeaderHome = ({
                 }`}
               />
             </button>
-            <AppUpdateButton />
+            <div data-header-update="true">
+              <AppUpdateButton />
+            </div>
           </div>
 
           <button
@@ -161,31 +165,38 @@ const HeaderHome = ({
               </>
             ) : (
               <>
-                <svg
-                  className="w-6 h-6"
-                  aria-hidden="true"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M12 6a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm-1.5 8a4 4 0 0 0-4 4 2 2 0 0 0 2 2h7a2 2 0 0 0 2-2 4 4 0 0 0-4-4h-3Zm6.82-3.096a5.51 5.51 0 0 0-2.797-6.293 3.5 3.5 0 1 1 2.796 6.292ZM19.5 18h.5a2 2 0 0 0 2-2 4 4 0 0 0-4-4h-1.1a5.503 5.503 0 0 1-.471.762A5.998 5.998 0 0 1 19.5 18ZM4 7.5a3.5 3.5 0 0 1 5.477-2.889 5.5 5.5 0 0 0-2.796 6.293A3.501 3.501 0 0 1 4 7.5ZM7.1 12H6a4 4 0 0 0-4 4 2 2 0 0 0 2 2h.5a5.998 5.998 0 0 1 3.071-5.238A5.505 5.505 0 0 1 7.1 12Z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                {t("home.friends_count", {
-                  count: friendList.length || 0,
-                })}
+                <span data-friends-desktop-content="true" className="flex items-center gap-1">
+                  <svg
+                    className="w-6 h-6"
+                    aria-hidden="true"
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M12 6a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm-1.5 8a4 4 0 0 0-4 4 2 2 0 0 0 2 2h7a2 2 0 0 0 2-2 4 4 0 0 0-4-4h-3Zm6.82-3.096a5.51 5.51 0 0 0-2.797-6.293 3.5 3.5 0 1 1 2.796 6.292ZM19.5 18h.5a2 2 0 0 0 2-2 4 4 0 0 0-4-4h-1.1a5.503 5.503 0 0 1-.471.762A5.998 5.998 0 0 1 19.5 18ZM4 7.5a3.5 3.5 0 0 1 5.477-2.889 5.5 5.5 0 0 0-2.796 6.293A3.501 3.501 0 0 1 4 7.5ZM7.1 12H6a4 4 0 0 0-4 4 2 2 0 0 0 2 2h.5a5.998 5.998 0 0 1 3.071-5.238A5.505 5.505 0 0 1 7.1 12Z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  {t("home.friends_count", {
+                    count: friendList.length || 0,
+                  })}
+                </span>
+                <span data-friends-mobile-content="true" className="hidden items-center gap-1">
+                  {t("home.friends", { defaultValue: "Bạn" })}
+                  <ChevronDown className="w-5 h-5" strokeWidth={3} />
+                </span>
               </>
             )}
           </button>
 
           {/* Nút bên phải — Drive admin chỉ trong Sidebar menu, không hiện nút vàng ở đây */}
-          <div className="flex items-center gap-3">
+          <div data-header-right="true" className="flex items-center gap-3">
             <button
+              data-header-chat="true"
               onClick={() => setIsHomeOpen(true)}
               className="w-11 h-11 flex items-center justify-center bg-base-300/70 backdrop-blur-[4px] rounded-full hover:bg-base-300 transition active:scale-105"
             >
