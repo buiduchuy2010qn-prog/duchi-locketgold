@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect } from "react";
+import React, { Suspense, useEffect, useRef } from "react";
 import { AnimatePresence } from "framer-motion";
 import PageTransition from "./components/Effects/PageTransition";
 import {
@@ -17,7 +17,7 @@ import { AnimationProvider } from "./context/AnimationContext";
 import getLayout from "./layouts";
 import NotFoundPage from "./components/pages/NotFoundPage";
 import { Toaster } from "sonner";
-import { SocketProvider } from "./context/SocketContext";
+import { SocketProvider, useSocket } from "./context/SocketContext";
 import {
   useAuthStore,
   useStreakStore,
@@ -25,6 +25,9 @@ import {
   useFriendStoreV3,
   useConversationsStore,
   useGroupChatStore,
+  useMomentsStoreV2,
+  useUserMessagesStore,
+  useGroupMessagesStore,
 } from "./stores";
 import { showDevWarning } from "./utils/logging/devConsole";
 import LoadingPageMain from "./components/pages/LoadPageMain";
@@ -41,6 +44,12 @@ import { useConnectivityStore } from "./stores/useConnectivityStore";
 import { useUserActivityLifecycle } from "./hooks/useUserActivityLifecycle";
 import GlobalBroadcastBanner from "./components/GlobalBroadcastBanner";
 import { SlotMonitorProvider } from "./features/SlotMonitor/SlotMonitorProvider";
+import {
+  MAX_RECOVERY_GROUP_THREADS,
+  MAX_RECOVERY_USER_THREADS,
+  pickRecentLoadedThreadIds,
+  shouldRunRecoverySync,
+} from "./socket/realtimeRecoveryPolicy";
 
 function App() {
   return (
@@ -71,6 +80,8 @@ function App() {
 function AppContent() {
   const navigate = useNavigate();
   const { loading, isAuth, user, hydrateAuth, initAuth } = useAuthStore();
+  const { isConnected, recoveryEpoch, lastRecoveryReason } = useSocket() || {};
+  const recoverySyncAtRef = useRef(0);
   const syncStreak = useStreakStore((s) => s.syncStreak);
   const fetchCaptionOverlays = useOverlayDataStore((s) => s.fetchCaptionOverlays);
   const startRealtimeRefresh = useOverlayDataStore(
@@ -94,6 +105,91 @@ function AppContent() {
   useEffect(() => {
     return useConnectivityStore.getState().startConnectivityWatch();
   }, []);
+
+  // Socket reconnects can miss moments/messages/group updates while the browser
+  // is offline, the server restarts, or a mobile tab is suspended. Once the
+  // socket is healthy again, catch up from HTTP without reloading the page.
+  useEffect(() => {
+    if (!user?.uid) return undefined;
+
+    const now = Date.now();
+    const online =
+      typeof navigator === "undefined" || navigator.onLine !== false;
+    const visibilityState =
+      typeof document === "undefined" ? "visible" : document.visibilityState;
+
+    if (
+      !shouldRunRecoverySync({
+        recoveryEpoch,
+        isConnected,
+        online,
+        visibilityState,
+        lastSyncAt: recoverySyncAtRef.current,
+        now,
+      })
+    ) {
+      return undefined;
+    }
+
+    recoverySyncAtRef.current = now;
+    let cancelled = false;
+
+    const runRecoverySync = async () => {
+      const userMessageState = useUserMessagesStore.getState().messages;
+      const groupMessageState = useGroupMessagesStore.getState().messages;
+      const userThreadIds = pickRecentLoadedThreadIds(
+        userMessageState,
+        MAX_RECOVERY_USER_THREADS,
+      );
+      const groupThreadIds = pickRecentLoadedThreadIds(
+        groupMessageState,
+        MAX_RECOVERY_GROUP_THREADS,
+      );
+
+      const tasks = [
+        useMomentsStoreV2.getState().pullLatestMoments(),
+        useConversationsStore.getState().fetchConversations(),
+        useGroupChatStore.getState().syncGroupsDelta(),
+        // Silent but forced: friend adds/removals can also happen while the tab
+        // is asleep and should not require a manual refresh.
+        useFriendStoreV3.getState().fetchAndSyncFriends(true, true),
+        // If connectivity returned during an upload, resume only items allowed
+        // by the existing upload recovery policy.
+        useUploadQueueStore.getState().resumeQueue(),
+        ...userThreadIds.map((conversationId) =>
+          useUserMessagesStore.getState().getMessagesByUser(conversationId),
+        ),
+        ...groupThreadIds.map((groupId) =>
+          useGroupMessagesStore.getState().fetchGroupMessages(groupId),
+        ),
+      ];
+
+      const results = await Promise.allSettled(tasks);
+      if (cancelled) return;
+
+      const failed = results.filter((result) => result.status === "rejected").length;
+      try {
+        window.dispatchEvent(
+          new CustomEvent("huy-locket-realtime-recovered", {
+            detail: {
+              recoveryEpoch,
+              reason: lastRecoveryReason || "socket-reconnect",
+              failed,
+              completed: results.length - failed,
+              at: Date.now(),
+            },
+          }),
+        );
+      } catch {
+        /* optional recovery signal */
+      }
+    };
+
+    void runRecoverySync();
+    return () => {
+      cancelled = true;
+    };
+  }, [isConnected, recoveryEpoch, lastRecoveryReason, user?.uid]);
 
   const allRoutes = [...publicRoutes, ...authRoutes, ...locketRoutes];
   const privateRoutes = [...authRoutes, ...locketRoutes];
