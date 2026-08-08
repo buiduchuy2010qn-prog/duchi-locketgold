@@ -1,5 +1,6 @@
 const express = require("express");
 const { verifyIdToken } = require("../../middlewares/Auth");
+const notificationHistoryStore = require("./notificationHistoryStore");
 const {
   getNotificationSettings,
   saveNotificationSettings,
@@ -18,11 +19,41 @@ function requestWebOrigin(req) {
   ).trim();
 }
 
+function mapHistory(row) {
+  return {
+    id: String(row.id),
+    eventId: row.event_id || "",
+    channel: row.channel || "",
+    status: row.status || "",
+    type: row.notification_type || "",
+    title: row.title || "",
+    body: row.body || "",
+    url: row.url || "",
+    username: row.username || "",
+    availableSlots: Number(row.available_slots) || 0,
+    errorCode: row.error_code || "",
+    errorMessage: row.error_message || "",
+    createdAt: row.created_at ? new Date(row.created_at).getTime() : null,
+  };
+}
+
 router.get("/", verifyIdToken, async (req, res, next) => {
   try {
     await rememberNotificationWebOrigin(req.user.uid, requestWebOrigin(req));
     const settings = await getNotificationSettings(req.user.uid);
     return res.json({ success: true, data: settings });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/history", verifyIdToken, async (req, res, next) => {
+  try {
+    const rows = await notificationHistoryStore.listDeliveries(req.user.uid, {
+      channel: req.query?.channel || "",
+      limit: req.query?.limit || 180,
+    });
+    return res.json({ success: true, data: rows.map(mapHistory) });
   } catch (error) {
     return next(error);
   }
