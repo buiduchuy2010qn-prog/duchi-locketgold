@@ -9,6 +9,13 @@ export async function fetchCelebCenterHistory({ uid = "", limit = 160 } = {}) {
   return Array.isArray(rows) ? rows : [];
 }
 
+export async function checkCelebCenterNow(uid) {
+  const response = await instanceMain.post(
+    `api/slot-monitor/check/${encodeURIComponent(uid)}`,
+  );
+  return response?.data?.data || null;
+}
+
 export async function retryCelebRequest(uid) {
   const response = await instanceMain.post(
     `api/slot-monitor/retry/${encodeURIComponent(uid)}`,
