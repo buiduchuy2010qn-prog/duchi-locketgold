@@ -4,6 +4,7 @@ const friendServices = require("../../services/LocketFriend/FriendsServices");
 const requestServices = require("../../services/LocketFriend/RequestServices");
 const { appCheckServices } = require("../appcheck/services");
 const store = require("./store");
+const notificationHistoryStore = require("./notificationHistoryStore");
 const { encryptSecret, decryptSecret, getEncryptionKey } = require("./crypto");
 const { sendConfiguredNotifications } = require("./notificationService");
 const {
@@ -179,10 +180,35 @@ async function refreshUserSession(userUid) {
   }
 }
 
-async function sendPushToUser(userUid, payload) {
+async function recordWebPushDelivery(userUid, payload, eventId, status, error = null) {
+  try {
+    await notificationHistoryStore.recordDelivery({
+      userUid,
+      eventId,
+      channel: "web-push",
+      status,
+      payload,
+      errorCode: error?.code || "",
+      errorMessage: error?.message || "",
+    });
+  } catch (historyError) {
+    console.warn("[slot-monitor] web push history write failed", {
+      userUid,
+      code: historyError?.code || null,
+    });
+  }
+}
+
+async function sendPushToUser(userUid, payload, { eventId = "" } = {}) {
   await getVapidKeys();
   const subscriptions = await store.listSubscriptionsForUser(userUid);
-  if (!subscriptions.length) return { sent: 0, failed: 0 };
+  if (!subscriptions.length) {
+    await recordWebPushDelivery(userUid, payload, eventId, "SKIPPED", {
+      code: "NO_ACTIVE_SUBSCRIPTION",
+      message: "Không có thiết bị Web Push đang hoạt động.",
+    });
+    return { sent: 0, failed: 0 };
+  }
 
   let sent = 0;
   let failed = 0;
@@ -209,6 +235,22 @@ async function sendPushToUser(userUid, payload) {
         });
       }
     }),
+  );
+
+  const deliveryStatus = sent > 0
+    ? (failed > 0 ? "PARTIAL" : "SUCCESS")
+    : "FAILED";
+  await recordWebPushDelivery(
+    userUid,
+    payload,
+    eventId,
+    deliveryStatus,
+    failed > 0
+      ? {
+          code: "WEB_PUSH_PARTIAL_FAILURE",
+          message: `${failed} thiết bị Web Push gửi thất bại; ${sent} thiết bị thành công.`,
+        }
+      : null,
   );
 
   return { sent, failed };
@@ -341,7 +383,7 @@ async function checkOneWatch(userUid, idToken, watch, { notify = true } = {}) {
       ].join("-");
 
       await Promise.allSettled([
-        sendPushToUser(userUid, payload),
+        sendPushToUser(userUid, payload, { eventId }),
         sendConfiguredNotifications(userUid, payload, { eventId }),
       ]);
     }
