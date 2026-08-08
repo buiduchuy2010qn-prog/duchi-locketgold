@@ -179,6 +179,229 @@ html.theme-ios *::-webkit-scrollbar-track {
   background: transparent;
 }
 
+/*
+ * Tablet + desktop iOS composition.
+ * Keep the page genuinely wide; only the controls/camera are composed like the iPhone app.
+ */
+@media (min-width: 768px) {
+  html.theme-ios [data-locket-home="true"] {
+    overflow: hidden;
+  }
+
+  html.theme-ios [data-locket-header="true"] {
+    top: 0 !important;
+    height: 88px;
+    padding: 16px 28px 0 !important;
+    pointer-events: none;
+  }
+
+  html.theme-ios [data-locket-header="true"] button,
+  html.theme-ios [data-locket-header="true"] [role="button"] {
+    pointer-events: auto;
+  }
+
+  /* iPhone-like composition: navigation cluster left, audience center, avatar right. */
+  html.theme-ios [data-header-left="true"] {
+    position: absolute;
+    right: 28px;
+    top: 16px;
+  }
+
+  html.theme-ios [data-header-update="true"] {
+    display: none !important;
+  }
+
+  html.theme-ios [data-header-right="true"] {
+    position: absolute;
+    left: 28px;
+    top: 16px;
+    gap: 10px !important;
+  }
+
+  html.theme-ios [data-header-profile="true"],
+  html.theme-ios [data-header-chat="true"],
+  html.theme-ios #hamburger-menu-trigger {
+    width: 58px !important;
+    height: 58px !important;
+    min-width: 58px;
+    min-height: 58px;
+    border-radius: 999px !important;
+  }
+
+  html.theme-ios [data-header-profile="true"] > div:first-child {
+    width: 58px !important;
+    height: 58px !important;
+    border-radius: 999px !important;
+  }
+
+  html.theme-ios [data-header-profile="true"] img {
+    width: 49px !important;
+    height: 49px !important;
+  }
+
+  html.theme-ios [data-friends-pill="true"] {
+    top: 16px !important;
+    min-height: 58px;
+    min-width: 154px;
+    padding: 0 24px !important;
+    border-radius: 999px !important;
+    font-size: 1.18rem !important;
+    font-weight: 760 !important;
+    letter-spacing: -0.025em;
+  }
+
+  html.theme-ios [data-capture-stack="true"] {
+    justify-content: center !important;
+    gap: 14px;
+    padding-top: 96px;
+    padding-bottom: 22px;
+  }
+
+  html.theme-ios [data-capture-spacer="true"] {
+    display: none !important;
+  }
+
+  html.theme-ios [data-media-preview-shell="true"] {
+    order: 1;
+    width: min(56vw, 680px, calc(100dvh - 310px)) !important;
+    max-width: none !important;
+    padding-inline: 0 !important;
+    flex: 0 0 auto;
+  }
+
+  html.theme-ios [data-media-preview-shell="true"] > div {
+    width: 100% !important;
+    max-width: none !important;
+    border-radius: clamp(38px, 4vw, 54px) !important;
+    box-shadow:
+      0 28px 70px color-mix(in srgb, var(--color-base-content) 18%, transparent),
+      0 1px 0 color-mix(in srgb, #fff 20%, transparent) inset;
+    overflow: hidden;
+  }
+
+  html.theme-ios [data-history-region="true"] {
+    order: 2;
+    width: auto;
+    min-height: 58px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+  }
+
+  html.theme-ios [data-mobile-activity-pill="true"] {
+    display: flex !important;
+    position: relative;
+    align-items: center;
+    justify-content: center;
+    min-height: 54px;
+    padding: 0 24px !important;
+    border-radius: 999px !important;
+    background: var(--ios-surface) !important;
+    border: 1px solid var(--ios-border) !important;
+    box-shadow: var(--ios-shadow-soft);
+    backdrop-filter: blur(28px) saturate(175%);
+    -webkit-backdrop-filter: blur(28px) saturate(175%);
+    font-size: 1.05rem !important;
+    font-weight: 730 !important;
+    letter-spacing: -0.02em;
+  }
+
+  html.theme-ios [data-desktop-history-button="true"] {
+    display: none !important;
+  }
+
+  html.theme-ios [data-action-controls="true"] {
+    order: 3;
+    flex: 0 0 auto;
+    margin-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  html.theme-ios .cameraControlPill {
+    width: min(52vw, 560px) !important;
+    height: 92px !important;
+    padding-inline: 12px !important;
+    margin-bottom: 0 !important;
+  }
+
+  html.theme-ios .actionBarColCenter {
+    width: 84px !important;
+    min-width: 84px !important;
+  }
+
+  html.theme-ios #camera-shutter-button {
+    width: 82px !important;
+    height: 82px !important;
+  }
+
+  html.theme-ios #camera-shutter-button > div:first-child {
+    width: 74px !important;
+    height: 74px !important;
+    border-width: 5px !important;
+  }
+
+  html.theme-ios #camera-shutter-button > div:last-child {
+    width: 59px !important;
+    height: 59px !important;
+  }
+
+  html.theme-ios .pillSideBtn {
+    width: 56px !important;
+    height: 56px !important;
+    min-width: 56px !important;
+    min-height: 56px !important;
+  }
+}
+
+@media (min-width: 1200px) {
+  html.theme-ios [data-locket-header="true"] {
+    padding-inline: 42px !important;
+  }
+
+  html.theme-ios [data-header-left="true"] {
+    right: 42px;
+  }
+
+  html.theme-ios [data-header-right="true"] {
+    left: 42px;
+  }
+
+  html.theme-ios [data-media-preview-shell="true"] {
+    width: min(48vw, 720px, calc(100dvh - 310px)) !important;
+  }
+}
+
+@media (min-width: 768px) and (max-height: 760px) {
+  html.theme-ios [data-locket-header="true"] {
+    height: 76px;
+    padding-top: 10px !important;
+  }
+
+  html.theme-ios [data-header-left="true"],
+  html.theme-ios [data-header-right="true"],
+  html.theme-ios [data-friends-pill="true"] {
+    top: 10px !important;
+  }
+
+  html.theme-ios [data-capture-stack="true"] {
+    padding-top: 78px;
+    gap: 9px;
+  }
+
+  html.theme-ios [data-media-preview-shell="true"] {
+    width: min(50vw, 560px, calc(100dvh - 278px)) !important;
+  }
+
+  html.theme-ios [data-mobile-activity-pill="true"] {
+    min-height: 46px;
+  }
+
+  html.theme-ios .cameraControlPill {
+    height: 80px !important;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   html.theme-ios :where(button, [role="button"], .btn) {
     transition:
