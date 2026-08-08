@@ -1,6 +1,7 @@
 const express = require("express");
 const { verifyIdToken } = require("../../middlewares/Auth");
 const notificationHistoryStore = require("./notificationHistoryStore");
+const { getAccountHealth } = require("./accountHealth");
 const {
   getNotificationSettings,
   saveNotificationSettings,
@@ -42,6 +43,16 @@ router.get("/", verifyIdToken, async (req, res, next) => {
     await rememberNotificationWebOrigin(req.user.uid, requestWebOrigin(req));
     const settings = await getNotificationSettings(req.user.uid);
     return res.json({ success: true, data: settings });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/account-health", verifyIdToken, async (req, res, next) => {
+  try {
+    await rememberNotificationWebOrigin(req.user.uid, requestWebOrigin(req));
+    const health = await getAccountHealth(req.user.uid);
+    return res.json({ success: true, data: health });
   } catch (error) {
     return next(error);
   }
