@@ -12,6 +12,7 @@ const { storageRoutes } = require("../modules/storage/routes");
 const { draftRoutes } = require("../modules/drafts");
 const { slotMonitorRoutes } = require("../modules/slotMonitor");
 const slotMonitorAdminRoutes = require("../modules/slotMonitor/adminRoutes");
+const adminOpsDashboardRoutes = require("../modules/adminOps/dashboardRoutes");
 const { healthController } = require("../controllers");
 const adminRoutes = require("./adminRoutes");
 const celebrityRoutes = require("./celebrityRoutes");
@@ -37,6 +38,12 @@ module.exports = (app) => {
   // Routes có limiter riêng phải mount trước generalApiLimit.
   app.use("/locket", authRoutes);
   app.use("/locket", momentRoutes); // postMomentV2 dùng uploadLimit riêng
+  app.use(
+    "/api/admin/ops-dashboard",
+    adminLimit,
+    sensitiveApiShield,
+    adminOpsDashboardRoutes,
+  );
   // Admin Slot Monitor mount trước adminRoutes để tránh đi qua router quản trị cũ hai lần.
   app.use(
     "/api/admin/slot-monitor",
