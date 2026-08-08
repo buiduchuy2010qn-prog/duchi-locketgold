@@ -5,6 +5,7 @@ const { validateOverlayType } = require("../../../middlewares/validateOverlayTyp
 const { logRequestInfo } = require("../../../middlewares/logRequestInfo");
 const { checkAppMeta } = require("../../../middlewares/checkMeta");
 const { uploadLimit } = require("../../../middlewares/securityRateLimiter");
+const { uploadIdempotency } = require("../middlewares/uploadIdempotency");
 
 const momentRoutes = express.Router();
 
@@ -14,6 +15,7 @@ momentRoutes.post(
   logRequestInfo,
   validateOverlayType,
   verifyIdToken,
+  uploadIdempotency,
   uploadLimit,
   verifyDioToken,
   uploadMediaV3,
