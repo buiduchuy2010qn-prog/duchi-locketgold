@@ -10,11 +10,27 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
 
+function providedCommitShort() {
+  const commit = [
+    process.env.RAILWAY_GIT_COMMIT_SHA,
+    process.env.VERCEL_GIT_COMMIT_SHA,
+    process.env.GITHUB_SHA,
+  ]
+    .map((value) => String(value || "").trim())
+    .find(Boolean);
+
+  return commit ? commit.slice(0, 7) : "";
+}
+
 function gitShort() {
+  const provided = providedCommitShort();
+  if (provided) return provided;
+
   try {
     return execSync("git rev-parse --short HEAD", {
       cwd: root,
       encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
     }).trim();
   } catch {
     return "unknown";
