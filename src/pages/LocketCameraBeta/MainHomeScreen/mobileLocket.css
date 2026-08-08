@@ -1,95 +1,90 @@
 /*
- * Phone-only Locket-style home layout.
- * Desktop remains on the existing wide Huy Locket layout.
+ * Locket/iPhone-inspired home layout.
+ * IMPORTANT: these geometry changes run ONLY when the user selects theme `ios`.
+ * Every other theme keeps the original Huy Locket responsive layout.
  */
 
 @media (max-width: 767px) {
-  [data-locket-home="true"] {
+  html.theme-ios [data-locket-home="true"] {
     height: 100dvh !important;
     min-height: 100dvh;
     overflow: hidden;
   }
 
-  /* ── Compact iPhone-like top bar ─────────────────────────────── */
-  [data-locket-header="true"] {
+  html.theme-ios [data-locket-header="true"] {
     top: 0 !important;
     height: calc(76px + env(safe-area-inset-top, 0px));
     padding: calc(10px + env(safe-area-inset-top, 0px)) 14px 0 !important;
   }
 
-  [data-header-left="true"] {
+  /* Locket-like mobile header: menu left, audience center, avatar right. */
+  html.theme-ios [data-header-left="true"] {
     position: absolute;
     top: calc(10px + env(safe-area-inset-top, 0px));
     right: 14px;
   }
 
-  [data-header-update="true"] {
+  html.theme-ios [data-header-update="true"] {
     display: none !important;
   }
 
-  [data-header-profile="true"] {
+  html.theme-ios [data-header-profile="true"] {
     width: 54px !important;
     height: 54px !important;
     border-radius: 999px;
-    background: rgba(80, 80, 80, 0.34);
-    backdrop-filter: blur(20px) saturate(145%);
-    -webkit-backdrop-filter: blur(20px) saturate(145%);
+    background: var(--ios-surface, rgba(72, 72, 72, 0.48));
   }
 
-  [data-header-profile="true"] > div:first-child {
+  html.theme-ios [data-header-profile="true"] > div:first-child {
     width: 54px !important;
     height: 54px !important;
-    background: rgba(72, 72, 72, 0.48) !important;
+    background: var(--ios-surface, rgba(72, 72, 72, 0.48)) !important;
   }
 
-  [data-header-profile="true"] img {
+  html.theme-ios [data-header-profile="true"] img {
     width: 45px !important;
     height: 45px !important;
   }
 
-  [data-header-right="true"] {
+  html.theme-ios [data-header-right="true"] {
     position: absolute;
     top: calc(10px + env(safe-area-inset-top, 0px));
     left: 14px;
   }
 
-  [data-header-chat="true"] {
+  html.theme-ios [data-header-chat="true"] {
     display: none !important;
   }
 
-  #hamburger-menu-trigger {
+  html.theme-ios #hamburger-menu-trigger {
     width: 54px !important;
     height: 54px !important;
     border-radius: 999px !important;
-    background: rgba(72, 72, 72, 0.48) !important;
-    backdrop-filter: blur(20px) saturate(145%);
-    -webkit-backdrop-filter: blur(20px) saturate(145%);
+    background: var(--ios-surface, rgba(72, 72, 72, 0.48)) !important;
   }
 
-  [data-friends-pill="true"] {
+  html.theme-ios [data-friends-pill="true"] {
     top: calc(10px + env(safe-area-inset-top, 0px));
     min-width: 112px;
     min-height: 54px;
     padding: 0 18px !important;
     border-radius: 999px !important;
-    background: rgba(72, 72, 72, 0.48) !important;
-    backdrop-filter: blur(20px) saturate(145%) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(145%) !important;
+    background: var(--ios-surface, rgba(72, 72, 72, 0.48)) !important;
     font-size: 1.22rem !important;
     font-weight: 750 !important;
     letter-spacing: -0.02em;
   }
 
-  [data-friends-desktop-content="true"] {
+  html.theme-ios [data-friends-desktop-content="true"] {
     display: none !important;
   }
 
-  [data-friends-mobile-content="true"] {
+  html.theme-ios [data-friends-mobile-content="true"] {
     display: flex !important;
   }
 
-  /* ── Capture page ────────────────────────────────────────────── */
-  [data-capture-stack="true"] {
+  /* Capture stack */
+  html.theme-ios [data-capture-stack="true"] {
     justify-content: flex-start !important;
     gap: 12px;
     padding-top: calc(92px + env(safe-area-inset-top, 0px));
@@ -98,11 +93,11 @@
     overscroll-behavior: contain;
   }
 
-  [data-capture-spacer="true"] {
+  html.theme-ios [data-capture-spacer="true"] {
     display: none !important;
   }
 
-  [data-media-preview-shell="true"] {
+  html.theme-ios [data-media-preview-shell="true"] {
     order: 1;
     width: min(calc(100vw - 14px), 520px) !important;
     max-width: none !important;
@@ -110,15 +105,14 @@
     flex: 0 0 auto;
   }
 
-  /* MediaPreview Android/iOS both expose the frame as their first root div. */
-  [data-media-preview-shell="true"] > div {
+  html.theme-ios [data-media-preview-shell="true"] > div {
     width: 100% !important;
     max-width: none !important;
     border-radius: clamp(38px, 11vw, 56px) !important;
-    box-shadow: 0 18px 46px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 18px 46px rgba(0, 0, 0, 0.22);
   }
 
-  [data-history-region="true"] {
+  html.theme-ios [data-history-region="true"] {
     order: 2;
     flex: 0 0 auto;
     min-height: 58px;
@@ -128,104 +122,102 @@
     margin-top: 2px;
   }
 
-  [data-mobile-activity-pill="true"] {
+  html.theme-ios [data-mobile-activity-pill="true"] {
     display: flex !important;
     min-height: 52px;
     border-radius: 999px !important;
-    background: rgba(72, 72, 72, 0.44) !important;
-    backdrop-filter: blur(22px) saturate(145%);
-    -webkit-backdrop-filter: blur(22px) saturate(145%);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    background: var(--ios-surface, rgba(72, 72, 72, 0.48)) !important;
+    color: var(--ios-text, inherit);
+    border: 1px solid var(--ios-border, rgba(255, 255, 255, 0.12));
+    backdrop-filter: blur(22px) saturate(155%);
+    -webkit-backdrop-filter: blur(22px) saturate(155%);
+    box-shadow: var(--ios-shadow, 0 12px 32px rgba(0, 0, 0, 0.2));
   }
 
-  [data-desktop-history-button="true"] {
+  html.theme-ios [data-desktop-history-button="true"] {
     display: none !important;
   }
 
-  [data-action-controls="true"] {
+  html.theme-ios [data-action-controls="true"] {
     order: 3;
     flex: 0 0 auto;
     margin-top: auto;
     padding-bottom: 0;
   }
 
-  /* Floating bottom camera dock. Existing camera/upload/flip logic is untouched. */
-  .cameraControlPill {
+  /* Floating iOS camera dock; camera/upload/flip behavior is unchanged. */
+  html.theme-ios .cameraControlPill {
     width: min(calc(100vw - 28px), 410px) !important;
     height: 84px !important;
     margin-bottom: 0 !important;
     padding-inline: 8px !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    background: rgba(38, 36, 35, 0.74) !important;
-    backdrop-filter: blur(28px) saturate(150%) !important;
-    -webkit-backdrop-filter: blur(28px) saturate(150%) !important;
-    box-shadow:
-      0 16px 42px rgba(0, 0, 0, 0.28),
-      inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid var(--ios-border, rgba(255, 255, 255, 0.12)) !important;
+    background: var(--ios-surface, rgba(38, 36, 35, 0.74)) !important;
+    box-shadow: var(--ios-shadow, 0 16px 42px rgba(0, 0, 0, 0.28)) !important;
   }
 
-  .cameraControlPill::before {
-    opacity: 0.35;
+  html.theme-ios .cameraControlPill::before {
+    opacity: 0.4;
   }
 
-  .actionBarColCenter {
+  html.theme-ios .actionBarColCenter {
     width: 78px !important;
     min-width: 78px !important;
   }
 
-  #camera-shutter-button {
+  html.theme-ios #camera-shutter-button {
     width: 76px !important;
     height: 76px !important;
   }
 
-  #camera-shutter-button > div:first-child {
+  html.theme-ios #camera-shutter-button > div:first-child {
     width: 68px !important;
     height: 68px !important;
     border-width: 5px !important;
+    border-color: var(--ios-accent, #f5b700) !important;
   }
 
-  #camera-shutter-button > div:last-child {
+  html.theme-ios #camera-shutter-button > div:last-child {
     width: 55px !important;
     height: 55px !important;
   }
 
-  .pillSideBtn {
+  html.theme-ios .pillSideBtn {
     width: 52px !important;
     height: 52px !important;
     min-width: 52px !important;
     min-height: 52px !important;
   }
 
-  /* Short phones: preserve every control instead of overflowing below viewport. */
   @media (max-height: 720px) {
-    [data-capture-stack="true"] {
+    html.theme-ios [data-capture-stack="true"] {
       gap: 8px;
       padding-top: calc(82px + env(safe-area-inset-top, 0px));
     }
 
-    [data-media-preview-shell="true"] {
+    html.theme-ios [data-media-preview-shell="true"] {
       width: min(calc(100vw - 28px), calc(100dvh - 292px)) !important;
     }
 
-    [data-history-region="true"] {
+    html.theme-ios [data-history-region="true"] {
       min-height: 48px;
     }
 
-    [data-mobile-activity-pill="true"] {
+    html.theme-ios [data-mobile-activity-pill="true"] {
       min-height: 46px;
       padding-block: 9px !important;
       font-size: 1rem !important;
     }
 
-    .cameraControlPill {
+    html.theme-ios .cameraControlPill {
       height: 78px !important;
     }
   }
 }
 
-/* Tablet: keep the existing structure, only give the camera a little more room. */
+/* Tablet keeps the wide structure; iOS theme only gives the preview more breathing room. */
 @media (min-width: 768px) and (max-width: 1023px) {
-  [data-media-preview-shell="true"] {
+  html.theme-ios [data-media-preview-shell="true"] {
     max-width: 560px !important;
   }
 }
