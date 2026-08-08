@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, LoaderCircle, ShieldAlert, ShieldCheck } from "lucide-react";
 import AccountHealth from "@/features/SlotMonitor/AccountHealth";
-import CelebCenterOverview from "@/features/SlotMonitor/CelebCenterOverview";
+import AdminCelebCenter from "@/features/SlotMonitor/AdminCelebCenter";
 import SystemStatus from "@/features/SlotMonitor/SystemStatus";
 import { getAdminRoleInfo } from "@/services/AdminAuthService";
 import AdminSystemHealth from "../AdminSystemHealth";
@@ -42,7 +42,7 @@ export default function AdminOperations() {
           <ShieldAlert className="mx-auto h-10 w-10 text-error" />
           <h1 className="mt-3 text-xl font-bold">Khu vực chỉ dành cho Admin</h1>
           <p className="mt-2 text-sm text-base-content/65">
-            Tài khoản hiện tại không có quyền mở Celeb Center vận hành, Account Health và System Status.
+            Tài khoản hiện tại không có quyền xem Celeb Center toàn server, Account Health và System Status.
           </p>
           <Link to="/friends?slot=1" className="btn btn-sm btn-outline mt-5">
             Quay lại Canh Slot
@@ -70,18 +70,18 @@ export default function AdminOperations() {
                 Vận hành Admin
               </h1>
               <p className="mt-1 text-sm text-base-content/65">
-                Celeb Center, sức khỏe tài khoản Canh Slot và trạng thái backend chỉ hiển thị trong khu vực quản trị.
+                Toàn bộ Celeb trên Railway, sức khỏe Canh Slot và trạng thái backend chỉ hiển thị cho Admin.
               </p>
             </div>
           </div>
           <Link to="/friends?slot=1" className="btn btn-sm btn-outline rounded-full">
-            Xem trang Canh Slot người dùng
+            Xem giao diện của người dùng
           </Link>
         </div>
       </div>
 
-      <section className="pt-4" aria-label="Vận hành Canh Slot">
-        <CelebCenterOverview />
+      <section className="pt-2" aria-label="Vận hành Canh Slot toàn server">
+        <AdminCelebCenter />
         <AccountHealth />
         <SystemStatus />
       </section>
