@@ -1,25 +1,11 @@
-import { useState } from "react";
 import { CONFIG } from "@/config";
 import { useTheme } from "@/hooks/useTheme";
 import {
-  getIosAccent,
   getThemeLabel,
   hasSnowEffect,
-  IOS_THEME,
-  isIosTheme,
-  setIosAccent,
+  INTERFACE_DEFAULT,
+  INTERFACE_IOS,
 } from "@/utils/theme/themeUtils";
-
-const IOS_PRESETS = [
-  "#f5b700",
-  "#0a84ff",
-  "#ff2d55",
-  "#af52de",
-  "#34c759",
-  "#ff9500",
-  "#64d2ff",
-  "#ffffff",
-];
 
 const ThemeSelector = () => {
   const {
@@ -29,31 +15,75 @@ const ThemeSelector = () => {
     changeColorMode,
     perfMode,
     changePerfMode,
+    interfaceMode,
+    changeInterfaceMode,
   } = useTheme();
-  const [iosAccent, setIosAccentState] = useState(() => getIosAccent());
-  const themeOptions = CONFIG.ui.themes.includes(IOS_THEME)
-    ? CONFIG.ui.themes
-    : [IOS_THEME, ...CONFIG.ui.themes];
-
-  const changeIosAccent = (value) => {
-    const next = setIosAccent(value);
-    setIosAccentState(next);
-  };
 
   return (
     <div className="w-full flex justify-center">
       <div className="w-full">
         <h1 className="font-lovehouse text-base-content text-center text-3xl font-semibold">
-          Setting Theme
+          Giao diện & Màu sắc
         </h1>
 
         <fieldset className="border rounded-2xl shadow-md w-full py-3">
           <legend className="font-semibold text-base-content text-lg text-left ml-5">
-            🎨 Chọn Giao Diện:
+            🧩 Kiểu Giao Diện:
+          </legend>
+          <div className="grid grid-cols-2 gap-3 px-4 py-3">
+            {[
+              {
+                id: INTERFACE_DEFAULT,
+                label: "Mặc định",
+                description: "Bố cục Huy Locket hiện tại",
+              },
+              {
+                id: INTERFACE_IOS,
+                label: "iOS",
+                description: "Bố cục kiểu Locket iPhone",
+              },
+            ].map((item) => {
+              const active = interfaceMode === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => changeInterfaceMode(item.id)}
+                  className={`rounded-2xl border p-4 text-left transition-all duration-200 ${
+                    active
+                      ? "border-primary bg-primary/10 ring-2 ring-primary/30"
+                      : "border-base-300 bg-base-100 hover:bg-base-200"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-bold text-base-content">{item.label}</span>
+                    <span
+                      className={`w-4 h-4 rounded-full border-2 ${
+                        active
+                          ? "border-primary bg-primary"
+                          : "border-base-content/30 bg-transparent"
+                      }`}
+                    />
+                  </div>
+                  <p className="text-xs text-base-content/60 mt-1">
+                    {item.description}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+          <p className="px-4 pb-2 text-xs text-base-content/60">
+            Kiểu giao diện và màu theme hoạt động độc lập. Ví dụ: iOS + Hồng Tuyết hoặc iOS + Đại Dương Xanh.
+          </p>
+        </fieldset>
+
+        <fieldset className="border rounded-2xl shadow-md w-full py-3 mt-4">
+          <legend className="font-semibold text-base-content text-lg text-left ml-5">
+            🎨 Màu / Theme:
           </legend>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[400px] overflow-y-auto px-4 py-3">
-            {themeOptions.map((t) => {
+            {CONFIG.ui.themes.map((t) => {
               const label = getThemeLabel(t);
               const snow = hasSnowEffect(t);
               return (
@@ -92,11 +122,6 @@ const ThemeSelector = () => {
                         ❄
                       </span>
                     )}
-                    {isIosTheme(t) && (
-                      <span className="absolute top-0.5 right-0.5 text-[9px] font-black leading-none">
-                        iOS
-                      </span>
-                    )}
                   </div>
                   <span className="text-xs font-medium text-center leading-tight">
                     {label}
@@ -114,55 +139,6 @@ const ThemeSelector = () => {
             })}
           </div>
         </fieldset>
-
-        {isIosTheme(theme) && (
-          <fieldset className="border rounded-2xl shadow-md w-full py-3 mt-4">
-            <legend className="font-semibold text-base-content text-lg text-left ml-5">
-              Màu theme iOS
-            </legend>
-            <div className="px-4 py-2 space-y-3">
-              <p className="text-xs text-base-content/60">
-                Đổi màu viền, nút, pill và ánh sáng của giao diện iOS. Thay đổi áp dụng ngay.
-              </p>
-              <div className="flex items-center gap-3 flex-wrap">
-                <label className="flex items-center gap-2 rounded-full bg-base-200 px-3 py-2 border border-base-300">
-                  <input
-                    type="color"
-                    value={iosAccent}
-                    onChange={(e) => changeIosAccent(e.target.value)}
-                    className="w-8 h-8 rounded-full overflow-hidden cursor-pointer border-0 bg-transparent p-0"
-                    aria-label="Chọn màu theme iOS"
-                  />
-                  <span className="font-mono text-sm uppercase">{iosAccent}</span>
-                </label>
-                <button
-                  type="button"
-                  onClick={() => changeIosAccent("#f5b700")}
-                  className="btn btn-sm rounded-full"
-                >
-                  Màu Locket
-                </button>
-              </div>
-              <div className="flex gap-2 flex-wrap" aria-label="Màu iOS gợi ý">
-                {IOS_PRESETS.map((color) => (
-                  <button
-                    key={color}
-                    type="button"
-                    aria-label={`Chọn màu ${color}`}
-                    title={color}
-                    onClick={() => changeIosAccent(color)}
-                    className={`w-9 h-9 rounded-full border-2 transition-transform active:scale-90 ${
-                      iosAccent === color.toLowerCase()
-                        ? "border-base-content scale-110"
-                        : "border-base-300"
-                    }`}
-                    style={{ backgroundColor: color }}
-                  />
-                ))}
-              </div>
-            </div>
-          </fieldset>
-        )}
 
         <fieldset className="border rounded-2xl shadow-md w-full py-3 mt-4">
           <legend className="font-semibold text-base-content text-lg text-left ml-5">
