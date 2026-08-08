@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import AdminOpsDashboard from "@/features/AdminOps/AdminOpsDashboard";
 import AccountHealth from "@/features/SlotMonitor/AccountHealth";
 import AdminCelebCenter from "@/features/SlotMonitor/AdminCelebCenter";
 import SystemStatus from "@/features/SlotMonitor/SystemStatus";
@@ -9,48 +10,61 @@ export default function AdminSystemHealth({
   showAccountHealth = true,
   showSystemStatus = true,
 }) {
-  const [activeTab, setActiveTab] = useState("celeb");
+  const [activeTab, setActiveTab] = useState("overview");
 
   return (
     <div className="w-full">
       <div role="tablist" className="tabs tabs-boxed flex-wrap gap-1 bg-base-200/50 p-1 mb-4">
+        <button
+          type="button"
+          role="tab"
+          className={`tab font-medium ${activeTab === "overview" ? "tab-active !bg-primary !text-white" : ""}`}
+          onClick={() => setActiveTab("overview")}
+        >
+          Tổng quan vận hành
+        </button>
         {showCelebCenter && (
-          <a
+          <button
+            type="button"
             role="tab"
             className={`tab font-medium ${activeTab === "celeb" ? "tab-active !bg-primary !text-white" : ""}`}
             onClick={() => setActiveTab("celeb")}
           >
             Celeb Center
-          </a>
+          </button>
         )}
         {showAccountHealth && (
-          <a
+          <button
+            type="button"
             role="tab"
             className={`tab font-medium ${activeTab === "account" ? "tab-active !bg-primary !text-white" : ""}`}
             onClick={() => setActiveTab("account")}
           >
             Account Health
-          </a>
+          </button>
         )}
         {showSystemStatus && (
-          <a
+          <button
+            type="button"
             role="tab"
             className={`tab font-medium ${activeTab === "system" ? "tab-active !bg-primary !text-white" : ""}`}
             onClick={() => setActiveTab("system")}
           >
             System Status
-          </a>
+          </button>
         )}
-        <a
+        <button
+          type="button"
           role="tab"
           className={`tab font-medium ${activeTab === "legacy" ? "tab-active !bg-primary !text-white" : ""}`}
           onClick={() => setActiveTab("legacy")}
         >
-          Legacy Health
-        </a>
+          Chẩn đoán thiết bị
+        </button>
       </div>
 
       <div className="w-full">
+        {activeTab === "overview" && <AdminOpsDashboard />}
         {activeTab === "celeb" && showCelebCenter && <AdminCelebCenter />}
         {activeTab === "account" && showAccountHealth && <AccountHealth />}
         {activeTab === "system" && showSystemStatus && <SystemStatus />}
