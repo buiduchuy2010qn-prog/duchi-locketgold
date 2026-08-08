@@ -10,7 +10,11 @@ export function useIsGroupMember(groupId) {
     if (!currentUser?.uid) return false;
 
     const memberIds = groupMembersMap[groupId] || [];
+    const isOwner =
+      groupId && String(groupId).startsWith(`${currentUser.uid}-`);
 
-    return memberIds.includes(currentUser.uid);
+    // Chủ nhóm luôn có quyền nhắn, kể cả payload `users` của Locket
+    // không lặp lại user tạo nhóm.
+    return Boolean(isOwner || memberIds.includes(currentUser.uid));
   }, [currentUser?.uid, groupId, groupMembersMap]);
 }
