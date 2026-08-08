@@ -90,7 +90,11 @@ export default function AdminOperations() {
         <div className="border-t border-base-content/10" />
       </div>
 
-      <AdminSystemHealth showCelebCenter={false} />
+      <AdminSystemHealth
+        showCelebCenter={false}
+        showAccountHealth={false}
+        showSystemStatus={false}
+      />
     </div>
   );
 }
