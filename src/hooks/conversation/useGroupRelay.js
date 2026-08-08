@@ -1,13 +1,15 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { useGroupMessagesStore, useGroupChatStore } from "@/stores";
 
-const RELAY_URL = import.meta.env.VITE_RELAY_GROUP_URL;
+const RELAY_URL = import.meta.env.VITE_RELAY_GROUP_URL?.trim();
 const PING_INTERVAL = 15000;
+const FALLBACK_SYNC_INTERVAL = 6000;
 
 export const useGroupRelay = (idToken, myUid, isActive) => {
   const [status, setStatus] = useState("closed");
   const wsRef = useRef(null);
   const pingTimerRef = useRef(null);
+  const fallbackTimerRef = useRef(null);
   const reconnTimerRef = useRef(null);
   const reconnDelayRef = useRef(2000);
   const closingRef = useRef(false);
@@ -29,6 +31,10 @@ export const useGroupRelay = (idToken, myUid, isActive) => {
     if (reconnTimerRef.current) {
       clearTimeout(reconnTimerRef.current);
       reconnTimerRef.current = null;
+    }
+    if (fallbackTimerRef.current) {
+      clearInterval(fallbackTimerRef.current);
+      fallbackTimerRef.current = null;
     }
     if (wsRef.current) {
       wsRef.current.close();
@@ -117,7 +123,7 @@ export const useGroupRelay = (idToken, myUid, isActive) => {
   }, []);
 
   const connect = useCallback(() => {
-    if (!idToken || !myUid || !isActive) return;
+    if (!RELAY_URL || !idToken || !myUid || !isActive) return;
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) return;
 
     closingRef.current = false;
@@ -159,7 +165,9 @@ export const useGroupRelay = (idToken, myUid, isActive) => {
           default:
             handleMessage(msg);
         }
-      } catch (_) {}
+      } catch {
+        /* ignore malformed relay payload */
+      }
     };
 
     ws.onerror = () => {};
@@ -180,13 +188,40 @@ export const useGroupRelay = (idToken, myUid, isActive) => {
   connectRef.current = connect;
 
   useEffect(() => {
-    if (isActive && idToken && myUid) {
-      connect();
+    if (!isActive || !idToken || !myUid) {
+      disconnect();
+      return undefined;
     }
+
+    if (!RELAY_URL) {
+      // Chưa có raw WebSocket relay riêng: vẫn giữ chat nhóm realtime gần
+      // thời gian thực bằng delta polling thay vì báo lỗi/đóng vĩnh viễn.
+      setStatus("polling");
+      const syncFallback = () => {
+        if (typeof document !== "undefined" && document.hidden) return;
+        syncGroupsDelta();
+      };
+
+      syncFallback();
+      fallbackTimerRef.current = setInterval(
+        syncFallback,
+        FALLBACK_SYNC_INTERVAL,
+      );
+
+      return () => {
+        if (fallbackTimerRef.current) {
+          clearInterval(fallbackTimerRef.current);
+          fallbackTimerRef.current = null;
+        }
+        setStatus("closed");
+      };
+    }
+
+    connect();
     return () => {
       disconnect();
     };
-  }, [isActive, idToken, myUid, connect, disconnect]);
+  }, [isActive, idToken, myUid, connect, disconnect, syncGroupsDelta]);
 
   // ================= Catch-up khi quay lại tab/app =================
   // Khi bị ẩn (minimize / chuyển tab / khoá máy), relay có thể bị treo và
@@ -207,7 +242,7 @@ export const useGroupRelay = (idToken, myUid, isActive) => {
       syncGroupsDelta();
 
       // Đảm bảo relay sống lại nếu kết nối đã chết khi ở background.
-      if (wsRef.current?.readyState !== WebSocket.OPEN) {
+      if (RELAY_URL && wsRef.current?.readyState !== WebSocket.OPEN) {
         connectRef.current?.();
       }
     };
@@ -221,8 +256,10 @@ export const useGroupRelay = (idToken, myUid, isActive) => {
   const sendReconnect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ type: "reconnect" }));
+    } else if (!RELAY_URL) {
+      syncGroupsDelta();
     }
-  }, []);
+  }, [syncGroupsDelta]);
 
   return { status, reconnect: connect, disconnect, sendReconnect };
 };

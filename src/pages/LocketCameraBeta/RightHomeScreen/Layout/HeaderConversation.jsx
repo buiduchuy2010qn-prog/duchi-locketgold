@@ -3,7 +3,7 @@ import clsx from "clsx";
 import { ChevronLeft, RefreshCw } from "lucide-react";
 
 const getRelayStatus = (relayStatus) => {
-  if (relayStatus === "open") return "success";
+  if (relayStatus === "open" || relayStatus === "polling") return "success";
   if (relayStatus === "connecting") return "warning";
   return "error";
 };
