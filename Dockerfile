@@ -2,6 +2,11 @@
 FROM node:24-bookworm-slim AS build
 WORKDIR /app
 
+# Railway injects this build arg for GitHub-triggered deployments.
+# Declaring it makes the exact source commit available to write-version.mjs
+# without installing git in the image.
+ARG RAILWAY_GIT_COMMIT_SHA
+
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 
