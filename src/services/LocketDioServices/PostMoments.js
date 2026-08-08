@@ -39,6 +39,7 @@ function uploadConfig(payload) {
     // Gateway retries are only safe when the backend can deduplicate this key.
     safeToRetry: Boolean(clientUploadId),
     _gatewayRetryMax: clientUploadId ? 2 : 0,
+    skipErrorToast: true,
     headers: clientUploadId
       ? { "Idempotency-Key": clientUploadId }
       : undefined,
