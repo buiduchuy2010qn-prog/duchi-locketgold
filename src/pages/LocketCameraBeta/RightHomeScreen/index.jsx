@@ -69,13 +69,46 @@ const RightHomeScreen = ({ setIsHomeOpen }) => {
   const { status: relayStatus, sendReconnect } = useGroupRelay(
     idToken,
     user?.uid,
-    !!idToken && !!user?.uid && isConnected,
+    !!idToken && !!user?.uid,
   );
 
   // ── Tin nhắn đang hiển thị theo conversation được chọn ──
   const userMessages = useUserMessagesStore((s) => s.messages[conversationId]?.items);
   const groupMessages = useGroupMessagesStore((s) => s.messages[groupId]?.items);
   const messagesByConversation = (selectedChat?.type === "group" ? groupMessages : userMessages) || [];
+
+  // Không có raw relay riêng thì hook dùng trạng thái `polling`.
+  // Khi đang mở một nhóm, tải lại tin nhắn nhẹ theo chu kỳ để tin mới vẫn hiện.
+  useEffect(() => {
+    if (
+      !isHomeOpen ||
+      !isOpenConvesation ||
+      !groupId ||
+      relayStatus === "open"
+    ) {
+      return undefined;
+    }
+
+    let inFlight = false;
+    const syncOpenGroup = async () => {
+      if (document.hidden || inFlight) return;
+      inFlight = true;
+      try {
+        await fetchGroupMessages(groupId);
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    const timer = setInterval(syncOpenGroup, 6000);
+    return () => clearInterval(timer);
+  }, [
+    fetchGroupMessages,
+    groupId,
+    isHomeOpen,
+    isOpenConvesation,
+    relayStatus,
+  ]);
 
   // ── Reset displayCount khi đóng sidebar ──
   useEffect(() => {
