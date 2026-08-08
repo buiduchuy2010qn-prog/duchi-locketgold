@@ -34,7 +34,7 @@ const attachHeaders = (config) => {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// Render free cold start thường 20–60s — retry đủ dài + cả lỗi mạng (socket hang up)
+// Render/Railway cold start hoặc gateway tạm lỗi.
 const GATEWAY_RETRY_MAX = 6;
 const GATEWAY_RETRY_DELAYS_MS = [2000, 3500, 5000, 8000, 10000, 12000];
 
@@ -60,17 +60,36 @@ function isGatewayOrNetworkError(error) {
   return false;
 }
 
-/** Retry 502/503/504 + network errors (Render free cold start) */
+function canRetryRequest(config) {
+  const method = String(config?.method || "get").toLowerCase();
+  if (["get", "head", "options"].includes(method)) return true;
+
+  // POST/PUT/PATCH/DELETE are only retried when the caller explicitly marks
+  // them safe. Uploads do this only after attaching a stable idempotency key.
+  return config?.safeToRetry === true;
+}
+
+/** Retry gateway/network failures without replaying unsafe mutations. */
 function attachGatewayRetry(instance) {
   instance.interceptors.response.use(
     (res) => res,
     async (error) => {
       const cfg = error.config;
-      if (!cfg || !isGatewayOrNetworkError(error)) {
+      if (
+        !cfg ||
+        !canRetryRequest(cfg) ||
+        !isGatewayOrNetworkError(error)
+      ) {
         return Promise.reject(error);
       }
-      const attempt = cfg._gatewayRetry || 0;
-      if (attempt >= GATEWAY_RETRY_MAX) return Promise.reject(error);
+
+      const attempt = Number(cfg._gatewayRetry || 0);
+      const configuredMax = Number(cfg._gatewayRetryMax);
+      const maxRetry = Number.isFinite(configuredMax)
+        ? Math.max(0, configuredMax)
+        : GATEWAY_RETRY_MAX;
+      if (attempt >= maxRetry) return Promise.reject(error);
+
       cfg._gatewayRetry = attempt + 1;
       const delay =
         GATEWAY_RETRY_DELAYS_MS[
@@ -90,7 +109,8 @@ export const createHttpClient = (baseURL) => {
     withCredentials: true,
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": CONFIG.keys.apiKey, ...APP_META,
+      "x-api-key": CONFIG.keys.apiKey,
+      ...APP_META,
     },
   });
 
@@ -109,7 +129,8 @@ export const createUploadClient = (baseURL) => {
     withCredentials: true,
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": CONFIG.keys.apiKey, ...APP_META,
+      "x-api-key": CONFIG.keys.apiKey,
+      ...APP_META,
     },
   });
 
@@ -117,5 +138,3 @@ export const createUploadClient = (baseURL) => {
   attachGatewayRetry(instance);
   return instance;
 };
-
-
