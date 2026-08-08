@@ -18,6 +18,7 @@ export function SocketProvider({ children }) {
   const { user } = useAuthStore();
   const socketRef = useRef(null);
   const connectedOnceRef = useRef(false);
+  const needsInitialRecoveryRef = useRef(false);
   const pausedForOfflineRef = useRef(false);
   const pausedForBackgroundRef = useRef(false);
   const backgroundTimerRef = useRef(null);
@@ -35,9 +36,11 @@ export function SocketProvider({ children }) {
 
   useEffect(() => {
     const idToken = localStorage.getItem("idToken");
+    const initiallyOnline = browserIsOnline();
 
     connectedOnceRef.current = false;
-    pausedForOfflineRef.current = false;
+    needsInitialRecoveryRef.current = !initiallyOnline;
+    pausedForOfflineRef.current = !initiallyOnline;
     pausedForBackgroundRef.current = false;
     disconnectReasonRef.current = null;
     requestedRecoveryReasonRef.current = null;
@@ -60,16 +63,21 @@ export function SocketProvider({ children }) {
     };
 
     const client = createSocket(idToken, {
+      autoStart: initiallyOnline,
       onConnect: () => {
         if (disposed) return;
 
-        const recovered = connectedOnceRef.current;
+        const recovered =
+          connectedOnceRef.current || needsInitialRecoveryRef.current;
         const recoveryReason =
           requestedRecoveryReasonRef.current ||
           disconnectReasonRef.current ||
-          "socket-reconnect";
+          (needsInitialRecoveryRef.current
+            ? "initial-connect-recovery"
+            : "socket-reconnect");
 
         connectedOnceRef.current = true;
+        needsInitialRecoveryRef.current = false;
         pausedForOfflineRef.current = false;
         pausedForBackgroundRef.current = false;
         disconnectReasonRef.current = null;
@@ -80,8 +88,9 @@ export function SocketProvider({ children }) {
         setReconnectAttempts(0);
         setLastConnectedAt(Date.now());
 
-        // The first successful connection is normal boot. Every later connect
-        // means realtime events may have been missed and consumers should sync.
+        // The first successful connection is normal boot unless the app began
+        // offline / hit a connect error. Every later connect may have missed
+        // realtime events and triggers a lightweight catch-up sync.
         if (recovered) {
           setLastRecoveryReason(recoveryReason);
           setRecoveryEpoch((value) => value + 1);
@@ -102,11 +111,13 @@ export function SocketProvider({ children }) {
       },
       onError: () => {
         if (disposed) return;
+        if (!connectedOnceRef.current) needsInitialRecoveryRef.current = true;
         setIsConnected(false);
         setConnectionState(browserIsOnline() ? "reconnecting" : "offline");
       },
       onReconnectAttempt: (attempt) => {
         if (disposed) return;
+        if (!connectedOnceRef.current) needsInitialRecoveryRef.current = true;
         setReconnectAttempts(Number(attempt) || 1);
         setConnectionState(browserIsOnline() ? "reconnecting" : "offline");
       },
@@ -119,7 +130,9 @@ export function SocketProvider({ children }) {
 
     socketRef.current = client;
     setSocket(client);
-    setConnectionState(client.connected ? "connected" : "connecting");
+    setConnectionState(
+      initiallyOnline ? (client.connected ? "connected" : "connecting") : "offline",
+    );
 
     const connectClient = (reason) => {
       if (disposed || !browserIsOnline()) return;
@@ -136,6 +149,7 @@ export function SocketProvider({ children }) {
 
     const onOffline = () => {
       clearBackgroundTimer();
+      if (!connectedOnceRef.current) needsInitialRecoveryRef.current = true;
       pausedForOfflineRef.current = true;
       setIsConnected(false);
       setConnectionState("offline");
